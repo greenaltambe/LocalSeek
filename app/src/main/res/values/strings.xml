@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">LocalSeek</string>
+    <string name="search_files">Search files</string>
+</resources>
