@@ -57,15 +57,21 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    val room_version = "2.8.4"
+    val room_version = "3.0.0-alpha02"
 
-    implementation("androidx.room:room-runtime:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
+    implementation("androidx.room3:room3-runtime:$room_version")
+    ksp("androidx.room3:room3-compiler:$room_version")
+    
+    // Bundled SQLite for FTS5 support
+    implementation("androidx.sqlite:sqlite-bundled:2.6.2")
 
+    // WorkManager (for background file indexing)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // ViewModel & StateFlow integration with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
 
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Kotlin Coroutines (for background tasks)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }

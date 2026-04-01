@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.augt.localseek.model.SearchResult
+import com.augt.localseek.retrieval.BM25Retriever
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
+    private val bM25Retriever = BM25Retriever(application)
     private var searchJob: Job? = null;
 
     fun onQueryChanged(newQuery: String) {
@@ -41,11 +43,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     isLoading = true, statusMessage = "Searching"
                 )
             }
-
             delay(200)
 
             val startTime = System.currentTimeMillis()
-            val list = getDummyResults(newQuery)
+            val list = bM25Retriever.search(newQuery)
             val latency = System.currentTimeMillis() - startTime
 
             // Push final results to the UI
@@ -59,32 +60,4 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-
-    private fun getDummyResults(query: String) = listOf(
-        SearchResult(
-            1,
-            "Notes on $query",
-            "…this document discusses $query in detail…",
-            "/sdcard/notes.txt",
-            "txt",
-            0.92f,
-            System.currentTimeMillis()
-        ), SearchResult(
-            2,
-            "$query — research overview",
-            "…a comprehensive look at $query and related concepts…",
-            "/sdcard/research.pdf",
-            "pdf",
-            0.81f,
-            System.currentTimeMillis()
-        ), SearchResult(
-            3,
-            "${query.replaceFirstChar { it.uppercase() }} README",
-            "…installation and setup guide for $query…",
-            "/sdcard/README.md",
-            "md",
-            0.74f,
-            System.currentTimeMillis()
-        )
-    )
 }
