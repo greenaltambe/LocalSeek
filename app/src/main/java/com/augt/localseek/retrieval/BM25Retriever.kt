@@ -9,16 +9,18 @@ class BM25Retriever(context: Context) {
     // Get an instance of our database DAO.
     private val dao = AppDatabase.getInstance(context).documentDao()
 
-    suspend fun search(rawQuery: String): List<SearchResult> {
+    suspend fun search(rawQuery: String, limit: Int = 50): List<SearchResult> {
         if (rawQuery.isBlank()) return emptyList()
 
         // Sanitize the user input into a format FTS5 understands.
         val ftsQuery = buildFtsQuery(rawQuery)
-        println("Query: $ftsQuery")
-
+        if (ftsQuery.isBlank()) return emptyList()
+        
+        println("FTS Query: $ftsQuery")
 
         return try {
-            val rawResults = dao.searchBm25(ftsQuery)
+            // Passing the limit down to the DAO (needs to be updated there too)
+            val rawResults = dao.searchBm25(ftsQuery, limit)
             if (rawResults.isEmpty()) return emptyList()
 
             // Normalize the scores to a 0.0-1.0 range for the UI.
@@ -45,9 +47,8 @@ class BM25Retriever(context: Context) {
                 )
             }
         } catch (e: Exception) {
-            // FTS5 can throw an exception if the query syntax is invalid,
-            // e.g., if the user types a single quote or asterisk.
-            // We'll just return an empty list instead of crashing the app.
+            // FTS5 can throw an exception if the query syntax is invalid.
+            android.util.Log.e("BM25Retriever", "Search failed for query: $ftsQuery", e)
             emptyList()
         }
     }
@@ -57,7 +58,7 @@ class BM25Retriever(context: Context) {
      * matching query term. This is for the preview text in the UI.
      */
     private fun extractSnippet(body: String, query: String): String {
-        val firstTerm = query.trim().split(" ").firstOrNull() ?: return body.take(150)
+        val firstTerm = query.trim().split("\\s+".toRegex()).firstOrNull() ?: return body.take(150)
         val idx = body.indexOf(firstTerm, ignoreCase = true)
         return if (idx < 0) {
             body.take(150)
@@ -69,18 +70,23 @@ class BM25Retriever(context: Context) {
     }
 
     /**
-     * Prepares a raw user query for FTS5. This wraps each term in quotes
-     * to handle special characters and improve matching.
-     * Example: "on-device search" -> "\"on-device\" \"search\""
+     * Prepares a raw user query for FTS5.
+     * Changed to use AND logic and prefix matching (*) to make search much more flexible.
+     * Example: "kotlin guide" -> "\"kotlin\"* AND \"guide\"*"
      */
     private fun buildFtsQuery(query: String): String {
-        return query.trim()
+        val tokens = query.trim()
             .split("\\s+".toRegex()) // Split on one or more spaces
             .filter { it.isNotBlank() }
-            .joinToString(" ") { token ->
-                // Escape any double quotes within the token itself before wrapping.
-                val escaped = token.replace("\"", "\"\"")
-                "\"$escaped\""
-            }
+            
+        if (tokens.isEmpty()) return ""
+
+        // Join terms with AND to ensure all terms must be present, but anywhere in the doc.
+        // Add * to the end of each term for prefix matching (e.g. "andro" matches "android").
+        return tokens.joinToString(" AND ") { token ->
+            // Escape any double quotes within the token.
+            val escaped = token.replace("\"", "\"\"")
+            "\"$escaped\"*"
+        }
     }
 }

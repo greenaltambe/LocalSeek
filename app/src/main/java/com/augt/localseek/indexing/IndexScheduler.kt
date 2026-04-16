@@ -16,8 +16,8 @@ object IndexScheduler {
 
     /**
      * Run one full index scan right now.
-     * We use ExistingWorkPolicy.KEEP so if the user spam-clicks "Sync",
-     * it doesn't queue up 50 jobs.
+     * Changed to REPLACE to ensure that a new scan is triggered immediately
+     * when requested (e.g. after granting permissions or on app start).
      */
     fun scheduleImmediateIndex(context: Context) {
         val request = OneTimeWorkRequestBuilder<IndexWorker>()
@@ -27,7 +27,7 @@ object IndexScheduler {
         WorkManager.getInstance(context)
             .enqueueUniqueWork(
                 TAG_ONE_TIME,
-                ExistingWorkPolicy.KEEP,
+                ExistingWorkPolicy.REPLACE,
                 request
             )
     }

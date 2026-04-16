@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
+import com.augt.localseek.retrieval.HybridRetriever
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     // Initialize our Retrievers
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever = DenseRetriever(application, denseEncoder)
+    private val hybridRetriever = HybridRetriever(bm25Retriever, denseRetriever)
 
     private var searchJob: Job? = null
 
@@ -45,8 +47,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
             val startTime = System.currentTimeMillis()
 
-            val list = denseRetriever.search(newQuery)
-
+//            val list = denseRetriever.search(newQuery)
+            val list = hybridRetriever.search(newQuery)
             val latency = System.currentTimeMillis() - startTime
 
             _uiState.update {
