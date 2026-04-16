@@ -28,7 +28,7 @@ interface DocumentDao {
      *    most relevant (most negative) results first.
      * 4. `JOIN documents d ON documents_fts.rowid = d.id`: We link the FTS results
      *    back to our main `documents` table to retrieve all the metadata.
-     * 5. `LIMIT 50`: We only care about the top 50 candidates for performance.
+     * 5. `LIMIT :limit`: We use a parameter for the limit.
      */
     @Query("""
         SELECT d.id, d.filePath, d.title, d.body, d.fileType, d.modifiedAt,
@@ -37,9 +37,9 @@ interface DocumentDao {
         JOIN documents d ON documents_fts.rowid = d.id
         WHERE documents_fts MATCH :query
         ORDER BY score ASC
-        LIMIT 50
+        LIMIT :limit
     """)
-    suspend fun searchBm25(query: String): List<BM25Result>
+    suspend fun searchBm25(query: String, limit: Int): List<BM25Result>
 
     /**
      * Used by the file indexer (Phase 2) to check if a file has been modified
