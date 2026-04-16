@@ -9,9 +9,7 @@ class HybridRetriever(
     private val denseRetriever: DenseRetriever
 ) {
 
-    private val k = 60 // Standard RRF constant
-
-    suspend fun search(query: String, topK: Int = 25): List<SearchResult> {
+    suspend fun search(query: String): List<HybridResult> {
         if (query.isBlank()) return emptyList()
 
         // 1. Run both retrievers in parallel for maximum speed.
@@ -21,28 +19,19 @@ class HybridRetriever(
             Pair(sparseJob.await(), denseJob.await())
         }
 
-        // 2. Create maps for quick rank lookups.
-        val sparseRankings = sparseResults.withIndex().associate { (i, r) -> r.id to i + 1 }
-        val denseRankings = denseResults.withIndex().associate { (i, r) -> r.id to i + 1 }
+        // 2. Create maps for quick rank lookups (optional if not used in this specific version)
+        val sparseRankings = sparseResults.withIndex().associate { (i, r) -> r.id to (i + 1) }
+        val denseRankings = denseResults.withIndex().associate { (i, r) -> r.id to (i + 1) }
 
         // 3. Combine all unique documents from both lists.
         val allDocs = (sparseResults + denseResults).associateBy { it.id }.values
 
-        // 4. Calculate the RRF score for each document.
-        val fusedResults = allDocs.map { doc ->
-            val sparseRank = sparseRankings[doc.id] ?: Int.MAX_VALUE
-            val denseRank = denseRankings[doc.id] ?: Int.MAX_VALUE
-
-            val rrfScore = (1.0f / (k + sparseRank)) + (1.0f / (k + denseRank))
-
-            // We'll use the title/snippet from the BM25 result if available,
-            // as it often has better keyword highlighting.
-            val finalDoc = sparseResults.find { it.id == doc.id } ?: doc
-
-            finalDoc.copy(score = rrfScore.toFloat())
+        return allDocs.map { doc ->
+            HybridResult(
+                result = doc,
+                bm25Score = sparseResults.find { it.id == doc.id }?.score ?: 0f,
+                denseScore = denseResults.find { it.id == doc.id }?.score ?: 0f
+            )
         }
-
-        // 5. Sort by the final RRF score and return the best results.
-        return fusedResults.sortedByDescending { it.score }.take(topK)
     }
 }

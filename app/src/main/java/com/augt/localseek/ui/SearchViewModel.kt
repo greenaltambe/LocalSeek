@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.augt.localseek.ml.DenseEncoder
+import com.augt.localseek.ranking.LambdaMARTReranker
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
 import com.augt.localseek.retrieval.HybridRetriever
@@ -27,6 +28,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever = DenseRetriever(application, denseEncoder)
     private val hybridRetriever = HybridRetriever(bm25Retriever, denseRetriever)
+    private val reranker = LambdaMARTReranker(application)
 
     private var searchJob: Job? = null
 
@@ -47,14 +49,18 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
             val startTime = System.currentTimeMillis()
 
-//            val list = denseRetriever.search(newQuery)
-            val list = hybridRetriever.search(newQuery)
+            // --- FINAL RE-RANKING PIPELINE ---
+            // 1. Get hybrid candidates (with original scores)
+            val candidates = hybridRetriever.search(newQuery)
+            // 2. Re-rank them with the AI model
+            val list = reranker.rerank(candidates)
+            
             val latency = System.currentTimeMillis() - startTime
 
             _uiState.update {
                 it.copy(
                     results = list,
-                    statusMessage = if (list.isEmpty()) "No results" else "AI Search: ${list.size} results",
+                    statusMessage = if (list.isEmpty()) "No results" else "Final Rank: ${list.size} results",
                     isLoading = false,
                     latencyMs = latency
                 )
