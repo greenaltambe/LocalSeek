@@ -42,7 +42,6 @@ class FileIndexer(context: Context, private val encoder: DenseEncoder) {
                 .onEnter { dir ->
                     val name = dir.name
                     // Skip hidden directories and the system Android folder
-                    // Also skip media/cache dirs if we encounter them
                     if (name.startsWith(".") || 
                         name.equals("Android", ignoreCase = true) ||
                         name.equals("lost+found", ignoreCase = true)
@@ -83,22 +82,31 @@ class FileIndexer(context: Context, private val encoder: DenseEncoder) {
                 return
             }
 
-            Log.i("FileIndexer", "Indexing: ${file.name} (${file.absolutePath})")
-            val vector = encoder.encode(parsed.body)
+            // 1. Delete ALL old chunks for this file path to keep DB clean
+            dao.deleteByPath(file.absolutePath)
 
-            // Insert into SQLite (Room will automatically update the FTS5 table)
-            dao.insert(
-                DocumentEntity(
+            // 2. Split the document into chunks
+            val chunks = TextChunker.split(parsed.body)
+            Log.d("FileIndexer", "🧠 Chunking ${file.name} into ${chunks.size} parts.")
+
+            chunks.forEachIndexed { index, chunkText ->
+                // 3. Generate vector for THIS chunk
+                val vector = encoder.encode(chunkText)
+
+                // 4. Save this chunk as a unique row
+                dao.insert(DocumentEntity(
                     filePath = file.absolutePath,
                     title = parsed.title,
-                    body = parsed.body,
+                    body = chunkText,
                     fileType = parsed.fileType,
                     modifiedAt = file.lastModified(),
                     sizeBytes = file.length(),
+                    chunkIndex = index,
                     embedding = vector
-                )
-            )
+                ))
+            }
 
+            Log.i("FileIndexer", "✅ Indexed: ${file.name} (${chunks.size} chunks)")
             if (existingModifiedAt == null) stats.newFiles++ else stats.updatedFiles++
 
         } catch (e: Exception) {

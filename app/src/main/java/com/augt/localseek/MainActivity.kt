@@ -18,6 +18,7 @@ import com.augt.localseek.data.AppDatabase
 import com.augt.localseek.indexing.IndexScheduler
 import com.augt.localseek.ui.SearchViewModel
 import com.augt.localseek.ui.theme.LocalSeekTheme
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -44,8 +45,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize PDFBox for parsing .pdf files
+        PDFBoxResourceLoader.init(applicationContext)
 
-        // Seed our 4 dummy test documents (from Phase 1)
+        // Seed our test documents
         lifecycleScope.launch {
             AppDatabase.seedTestData(this@MainActivity)
         }
@@ -55,20 +59,7 @@ class MainActivity : ComponentActivity() {
 
         // Set up the periodic 6-hour background indexer
         IndexScheduler.schedulePeriodicIndex(this)
-        // --- TEMPORARY AI TEST ---
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val encoder = com.augt.localseek.ml.DenseEncoder(this@MainActivity)
-                val vector = encoder.encode("pineapple")
-                android.util.Log.d("DenseRetrieval", "✅ MiniLM Inference Success!")
-                android.util.Log.d("DenseRetrieval", "Vector Shape: ${vector.size} (Should be 384)")
-                android.util.Log.d("DenseRetrieval", "First 5 values: ${vector.take(5)}")
-                encoder.close()
-            } catch (e: Exception) {
-                android.util.Log.e("DenseRetrieval", "❌ Inference Failed", e)
-            }
-        }
-        // -------------------------
+        
         setContent {
             LocalSeekTheme {
                 SearchApp(viewModel = viewModel)
@@ -98,7 +89,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startIndexing() {
-        // Now that we have permission, trigger the WorkManager to scan the device!
+        // Trigger the WorkManager to scan the device!
         IndexScheduler.scheduleImmediateIndex(this)
     }
 }

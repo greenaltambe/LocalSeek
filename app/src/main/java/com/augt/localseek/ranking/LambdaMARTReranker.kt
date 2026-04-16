@@ -23,7 +23,7 @@ class LambdaMARTReranker(context: Context) {
 
         // 1. Feature Engineering: Create the input tensor for the ONNX model
         val features = candidates.map {
-            val daysSinceModified = ((System.currentTimeMillis() - it.result.modifiedAt) / (1000 * 60 * 60 * 24)).toFloat()
+            val daysSinceModified = ((System.currentTimeMillis() - it.doc.modifiedAt) / (1000 * 60 * 60 * 24)).toFloat()
             // Feature order MUST match the Python training script!
             floatArrayOf(it.bm25Score, it.denseScore, daysSinceModified)
         }.toTypedArray()
@@ -42,7 +42,7 @@ class LambdaMARTReranker(context: Context) {
         return candidates.zip(outputScores)
             .sortedByDescending { it.second }
             .map { (hybridResult, newScore) ->
-                hybridResult.result.copy(score = newScore)
+                hybridResult.doc.copy(score = newScore)
             }
     }
 }

@@ -76,4 +76,7 @@ dependencies {
     // --- LIBRARIES FOR PHASE 3: DENSE RETRIEVAL ---
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
+    
+    // PDF Parsing library for Android
+    implementation(libs.pdfbox.android)
 }
