@@ -55,7 +55,20 @@ class MainActivity : ComponentActivity() {
 
         // Set up the periodic 6-hour background indexer
         IndexScheduler.schedulePeriodicIndex(this)
-
+        // --- TEMPORARY AI TEST ---
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val encoder = com.augt.localseek.ml.DenseEncoder(this@MainActivity)
+                val vector = encoder.encode("pineapple")
+                android.util.Log.d("DenseRetrieval", "✅ MiniLM Inference Success!")
+                android.util.Log.d("DenseRetrieval", "Vector Shape: ${vector.size} (Should be 384)")
+                android.util.Log.d("DenseRetrieval", "First 5 values: ${vector.take(5)}")
+                encoder.close()
+            } catch (e: Exception) {
+                android.util.Log.e("DenseRetrieval", "❌ Inference Failed", e)
+            }
+        }
+        // -------------------------
         setContent {
             LocalSeekTheme {
                 SearchApp(viewModel = viewModel)
