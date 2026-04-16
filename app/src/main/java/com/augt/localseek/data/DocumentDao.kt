@@ -59,4 +59,11 @@ interface DocumentDao {
      */
     @Query("SELECT COUNT(*) FROM documents")
     suspend fun getDocumentCount(): Int
+
+    /**
+     * Fetches all documents that have an AI embedding generated.
+     * We will do the vector math (Cosine Similarity) in Kotlin memory.
+     */
+    @Query("SELECT id, filePath, title, body, fileType, modifiedAt, embedding FROM documents WHERE embedding IS NOT NULL")
+    suspend fun getAllVectors(): List<VectorResult>
 }
