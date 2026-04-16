@@ -76,4 +76,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // --- LIBRARIES FOR PHASE 3: DENSE RETRIEVAL ---
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
 }
