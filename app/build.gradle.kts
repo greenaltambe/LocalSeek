@@ -74,4 +74,6 @@ dependencies {
 
     // Kotlin Coroutines (for background tasks)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // --- LIBRARIES FOR PHASE 3: DENSE RETRIEVAL ---
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
 }
