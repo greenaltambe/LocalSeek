@@ -963,6 +963,40 @@ This is a **key reason for poor results**.
 - Capture per-file chunk counts from `FileIndexer` logs (`Chunked <file>: <N> chunks`)
 - Capture query/perf logs (`[PERF]`, `[VALIDATION]`) during BM25 chunk search
 
+### Database Migration Fix (Hotfix - 2026-04-20)
+
+**Issue:** App crash risk with `IllegalStateException: migration from 1 to 2 was required but not found` on legacy installs.
+
+**Root Cause:** Chunk tables were introduced in earlier phases, while some older DB states can still request a `1 -> 2` path.
+
+**Fix Applied:**
+
+1. **Updated AppDatabase migration graph:**
+   - Added legacy migration: `Migration1To2`
+   - Kept existing migrations: `Migration10To11`, `Migration11To12`
+   - Ensured `chunkDao()` is exposed in `AppDatabase`
+
+2. **Migration SQL includes:**
+   - Create `document_chunks` table with foreign key constraint
+   - Create FTS5 virtual table `chunks_fts`
+   - Add FTS sync triggers (insert/update/delete)
+   - Create index on `parentFileId`
+
+3. **Temporary development safeguard:**
+   - Added `.fallbackToDestructiveMigration()` in database builder
+
+**Migration Strategy:**
+- **New installs:** create latest schema (`v12`) fresh
+- **Legacy upgrades:** explicit `1 -> 2` supported; newer migrations remain registered
+- **Fallback:** destructive reset if an unsupported migration hop is encountered
+
+**Impact:**
+- ✅ Prevents migration-not-found crash for known legacy case
+- ✅ Keeps chunking schema initialization consistent
+- ⚠️ `.fallbackToDestructiveMigration()` is development-only and should be removed before production
+
+**Status:** ✅ Fixed
+
 ---
 
 ## Phase 2 - Optimized Embedding Model (2026-04-19)

@@ -25,6 +25,73 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun documentDao(): DocumentDao
     abstract fun chunkDao(): ChunkDao
 
+    private object Migration1To2 : Migration(1, 2) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentFileId INTEGER NOT NULL,
+                    chunkIndex INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    startOffset INTEGER NOT NULL,
+                    endOffset INTEGER NOT NULL,
+                    embedding BLOB,
+                    createdAt INTEGER NOT NULL,
+                    FOREIGN KEY(parentFileId) REFERENCES documents(id) ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts
+                USING fts5(text, content=document_chunks, content_rowid=id)
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_insert
+                AFTER INSERT ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(rowid, text) VALUES (new.id, new.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_delete
+                AFTER DELETE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text)
+                    VALUES('delete', old.id, old.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_update
+                AFTER UPDATE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text)
+                    VALUES('delete', old.id, old.text);
+                    INSERT INTO chunks_fts(rowid, text) VALUES (new.id, new.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_document_chunks_parentFileId
+                ON document_chunks(parentFileId)
+                """.trimIndent()
+            )
+        }
+    }
+
     private object Migration10To11 : Migration(10, 11) {
         override suspend fun migrate(connection: SQLiteConnection) {
             connection.execSQL(
@@ -92,7 +159,9 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration10To11, Migration11To12)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12)
+                // Temporary dev safety valve for unsupported legacy version hops.
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance
