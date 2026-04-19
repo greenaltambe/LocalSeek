@@ -1120,3 +1120,27 @@ This is a **key reason for poor results**.
 - Host build/test: ✅ pass
 - Device-scale profiling target (50k chunks): ⏳ pending
 
+---
+
+## Phase 7 - Testing & Validation (2026-04-20)
+
+### Test Coverage
+- Unit tests added for chunking behavior (`ChunkerTest`)
+- Unit tests added for evaluation metrics (`MapEvaluationSuiteTest`)
+- Instrumentation integration test scaffold added (`SearchE2ETest`)
+- Memory stability regression test added in instrumentation (`SearchE2ETest.noMemoryLeakOnRepeatedSearches`)
+
+### Test Results
+| Metric | Result |
+|--------|--------|
+| Unit pass rate | 100% on host (`:app:testDebugUnitTest`) |
+| AndroidTest pass rate | TBD (requires connected device/emulator run) |
+| Avg latency | TBD (device runtime measurement required) |
+| Memory stable | TBD (device runtime measurement required) |
+| MAP score | >0.7 in fixture-based unit test |
+
+### Quality Metrics
+- Precision@5: TBD (requires labeled device-backed retrieval run)
+- Recall@10: TBD (requires labeled device-backed retrieval run)
+- User satisfaction: TBD (needs real users)
+
