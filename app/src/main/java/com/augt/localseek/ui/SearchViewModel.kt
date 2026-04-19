@@ -21,7 +21,7 @@ import kotlin.system.measureTimeMillis
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
-        const val ENABLE_DENSE = false
+        const val ENABLE_DENSE = true
         private const val BM25_WEIGHT = 0.6f
         private const val DENSE_WEIGHT = 0.4f
         private const val TAG_VALIDATION = "SearchValidation"
@@ -105,7 +105,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     statusMessage = if (finalResults.isEmpty()) {
                         "No results"
                     } else {
-                        "BM25: ${finalResults.size} results"
+                        if (ENABLE_DENSE) "Hybrid: ${finalResults.size} results" else "BM25: ${finalResults.size} results"
                     },
                     isLoading = false,
                     latencyMs = totalLatencyMs

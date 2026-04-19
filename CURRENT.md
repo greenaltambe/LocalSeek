@@ -997,3 +997,28 @@ This is a **key reason for poor results**.
 - Memory reduction: TBD (requires runtime memory profiling)
 - Battery impact: TBD (requires on-device power sampling)
 
+---
+
+## Phase 3 - Efficient Dense Retrieval (2026-04-19)
+
+### Architecture Change
+- ❌ Removed: all-embeddings-in-memory dense scoring path
+- ✅ Added: streaming dense retrieval over paginated chunk embeddings
+
+### Implementation
+- **Page size:** 500 chunks (default)
+- **Threshold:** cosine > 0.3
+- **Memory profile:** bounded by page size + top-K heap (no full embedding table load)
+- Dense retrieval flag re-enabled in search flow (`ENABLE_DENSE = true`)
+
+### Verification Status
+- ✅ Host build/test passes after streaming retriever refactor
+- ⏳ Device measurements pending for:
+  - memory ceiling during search (<150MB target)
+  - latency target (<200ms at 10k chunks)
+  - qualitative semantic relevance spot checks
+
+### Future Work
+- [ ] FAISS ANN index (10x speedup potential)
+- [ ] Approximate top-K / early termination
+- [ ] Device-level profiling dashboard for dense page scan timing

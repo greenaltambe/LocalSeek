@@ -5,78 +5,86 @@ import android.util.Log
 import com.augt.localseek.data.AppDatabase
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.ml.VectorUtils.cosineSimilarity
-import com.augt.localseek.ml.VectorUtils.toFloatArray
 import com.augt.localseek.model.SearchResult
+import java.util.PriorityQueue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class DenseRetriever(context: Context) {
 
-    private val dao = AppDatabase.getInstance(context).documentDao()
-    
-    // We keep the encoder open in memory so we don't have to reload the .tflite file every keystroke
+    private val chunkDao = AppDatabase.getInstance(context).chunkDao()
     private val encoder = DenseEncoder(context)
 
-    suspend fun search(query: String, topK: Int = 50): List<SearchResult> = withContext(Dispatchers.IO) {
+    private data class ScoredChunk(val chunkId: Long, val score: Float)
+
+    suspend fun search(query: String, topK: Int = 50, pageSize: Int = 500): List<SearchResult> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
 
-        // 1. Convert the user's text query into a 384-dimensional vector
         val queryVector = encoder.encode(query)
+        val threshold = 0.3f
+        val boundedTopK = topK.coerceAtLeast(1)
+        val pageLimit = pageSize.coerceAtLeast(1)
 
-        // 2. Fetch all document vectors from the database
-        val allDocs = dao.getAllEmbeddings()
+        val topChunks = PriorityQueue(compareBy<ScoredChunk> { it.score })
+        var offset = 0
+        var totalScored = 0
+        var totalKept = 0
 
-        // --- SAFER DEBUG LOGS ---
-        Log.d("DenseDebug", "========================================")
-        Log.d("DenseDebug", "Query: '$query'")
-        Log.d("DenseDebug", "Query Vector (first 5): ${queryVector.take(5).toList()}")
-        Log.d("DenseDebug", "Found ${allDocs.size} documents with embeddings.")
+        while (true) {
+            val page = chunkDao.getEmbeddingsPage(limit = pageLimit, offset = offset)
+            if (page.isEmpty()) break
 
-        // Only try to log doc vectors if we actually have them
-        if (allDocs.isNotEmpty()) {
-            val doc0Vector = allDocs[0].embedding.toFloatArray()
-            Log.d("DenseDebug", "Doc 0 ('${allDocs[0].title}') Vector: ${doc0Vector.take(5).toList()}")
-        }
-        if (allDocs.size > 1) {
-            val doc1Vector = allDocs[1].embedding.toFloatArray()
-            Log.d("DenseDebug", "Doc 1 ('${allDocs[1].title}') Vector: ${doc1Vector.take(5).toList()}")
-        }
-        Log.d("DenseDebug", "========================================")
-        // --- END OF SAFER DEBUG LOGS ---
+            page.forEach { chunk ->
+                totalScored++
+                val score = cosineSimilarity(queryVector, chunk.embedding)
+                if (score < threshold) return@forEach
 
-        if (allDocs.isEmpty()) return@withContext emptyList()
-
-        // 3. Compute Cosine Similarity for every document
-        val results = allDocs.mapNotNull { doc ->
-            val docVector = doc.embedding.toFloatArray()
-            
-            // Score will be between -1.0 (completely opposite) and 1.0 (exact match)
-            val score = cosineSimilarity(queryVector, docVector)
-
-            // --- THIS IS THE FIX ---
-            // Set a semantic relevance threshold. If the AI is less than 30%
-            // confident, we consider it noise and throw it away. This prevents
-            // random, irrelevant files from polluting your RRF stage.
-            if (score < 0.3f) {
-                return@mapNotNull null
+                totalKept++
+                if (topChunks.size < boundedTopK) {
+                    topChunks.add(ScoredChunk(chunk.id, score))
+                } else {
+                    val smallest = topChunks.peek()
+                    if (smallest != null && score > smallest.score) {
+                        topChunks.poll()
+                        topChunks.add(ScoredChunk(chunk.id, score))
+                    }
+                }
             }
-            // -------------------------
 
-            SearchResult(
-                id = doc.id,
-                title = doc.title,
-                snippet = doc.bodySnippet.trim().replace("\n", " ") + "...",
-                filePath = doc.filePath,
-                fileType = doc.fileType,
-                score = score, // This is the raw cosine similarity
-                modifiedAt = doc.modifiedAt
-            )
+            offset += pageLimit
         }
 
-        // 4. Sort by highest similarity and return top results
-        // Note: For research papers, a score > 0.3 is usually a "weak semantic match", 
-        // and > 0.6 is a "strong semantic match".
-        results.sortedByDescending { it.score }.take(topK)
+        Log.d("DenseRetriever", "Streaming dense scored=$totalScored kept=$totalKept top=${topChunks.size}")
+
+        if (topChunks.isEmpty()) return@withContext emptyList()
+
+        val scoredChunks = topChunks.toList().sortedByDescending { it.score }
+        val scoreByChunkId = scoredChunks.associate { it.chunkId to it.score }
+        val metadata = chunkDao.getChunkMetadataByIds(scoredChunks.map { it.chunkId })
+        if (metadata.isEmpty()) return@withContext emptyList()
+
+        metadata
+            .groupBy { it.parentFileId }
+            .map { (_, rows) ->
+                val bestRow = rows.maxBy { scoreByChunkId[it.chunkId] ?: Float.NEGATIVE_INFINITY }
+                val bestScore = scoreByChunkId[bestRow.chunkId] ?: 0f
+                val snippets = rows
+                    .sortedByDescending { scoreByChunkId[it.chunkId] ?: Float.NEGATIVE_INFINITY }
+                    .take(3)
+                    .joinToString(" ... ") { it.text.take(200) }
+
+                SearchResult(
+                    id = bestRow.parentFileId,
+                    title = bestRow.title,
+                    snippet = snippets,
+                    filePath = bestRow.filePath,
+                    fileType = bestRow.fileType,
+                    score = bestScore,
+                    modifiedAt = bestRow.modifiedAt
+                )
+            }
+            .sortedByDescending { it.score }
+            .take(boundedTopK)
     }
 
     fun close() {

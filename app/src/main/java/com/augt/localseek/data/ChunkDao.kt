@@ -19,6 +19,33 @@ interface ChunkDao {
 
     @Query(
         """
+        SELECT id, embedding
+        FROM document_chunks
+        WHERE embedding IS NOT NULL
+        LIMIT :limit OFFSET :offset
+        """
+    )
+    suspend fun getEmbeddingsPage(limit: Int, offset: Int): List<ChunkEmbedding>
+
+    @Query(
+        """
+        SELECT
+            c.id AS chunkId,
+            c.parentFileId,
+            c.text,
+            d.filePath,
+            d.title,
+            d.fileType,
+            d.modifiedAt
+        FROM document_chunks c
+        JOIN documents d ON c.parentFileId = d.id
+        WHERE c.id IN (:chunkIds)
+        """
+    )
+    suspend fun getChunkMetadataByIds(chunkIds: List<Long>): List<ChunkMetadata>
+
+    @Query(
+        """
         SELECT
             c.id AS chunkId,
             c.parentFileId,
@@ -41,6 +68,21 @@ interface ChunkDao {
     )
     suspend fun searchChunks(query: String, limit: Int): List<ChunkWithMetadata>
 }
+
+data class ChunkEmbedding(
+    val id: Long,
+    val embedding: FloatArray
+)
+
+data class ChunkMetadata(
+    val chunkId: Long,
+    val parentFileId: Long,
+    val text: String,
+    val filePath: String,
+    val title: String,
+    val fileType: String,
+    val modifiedAt: Long
+)
 
 data class ChunkWithMetadata(
     val chunkId: Long,
