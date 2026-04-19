@@ -920,3 +920,45 @@ This is a **key reason for poor results**.
 ### Build Verification
 - ✅ `:app:assembleDebug` passes after removing LambdaMART/ONNX
 
+---
+
+## Phase 1 - Chunking (2026-04-19)
+
+### Database Changes
+- ✅ New table: `document_chunks` (holds text segments)
+- ✅ New table: `chunks_fts` (FTS5 for BM25)
+- ✅ Migration: v10 -> v11 (creates chunk tables and backfills legacy body text into chunks)
+
+### Chunking Strategy
+- **Algorithm:** Sliding window
+- **Parameters:**
+  - chunk_size = 150 tokens
+  - overlap = 40 tokens
+- **Rationale:** Preserves local context while improving retrieval granularity
+
+### Indexing Pipeline Changes
+- Documents table now stores metadata + optional file embedding (`body` written as empty)
+- Chunks table stores searchable content
+- 1 file -> N chunks, with per-file chunk counts logged during indexing
+
+### Search Changes
+- BM25 now operates on chunks (`chunks_fts`)
+- Results are aggregated back to file-level
+- Snippet = top 3 relevant chunks per file
+
+### Validation Run (Host)
+- ✅ Build: `:app:assembleDebug` succeeded
+- ✅ Unit tests: `:app:testDebugUnitTest` succeeded
+- ✅ New validation tests passed (`Phase1ValidationTest`): 2/2
+  - `textChunker_generatesOverlappingChunksWithOffsets`
+  - `chunkAggregator_groupsByParentFile_andKeepsTopThreeSnippets`
+
+### Performance Impact
+- Index time: TBD (requires device indexing run with real files)
+- Storage: TBD (requires DB size comparison before/after reindex)
+- Search quality: TBD (requires query relevance evaluation set)
+
+### Pending Device Verification
+- Run indexing on sample set (10 PDFs, 5 text files)
+- Capture per-file chunk counts from `FileIndexer` logs (`Chunked <file>: <N> chunks`)
+- Capture query/perf logs (`[PERF]`, `[VALIDATION]`) during BM25 chunk search

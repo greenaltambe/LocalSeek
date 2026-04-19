@@ -34,6 +34,9 @@ interface DocumentDao {
     @Query("SELECT modifiedAt FROM documents WHERE filePath = :path LIMIT 1")
     suspend fun getModifiedAt(path: String): Long?
 
+    @Query("SELECT id FROM documents WHERE filePath = :path LIMIT 1")
+    suspend fun getDocumentIdByPath(path: String): Long?
+
     /**
      * Deletes every chunk associated with that path.
      */

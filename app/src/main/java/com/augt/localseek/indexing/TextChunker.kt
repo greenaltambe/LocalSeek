@@ -1,29 +1,38 @@
 package com.augt.localseek.indexing
 
-object TextChunker {
-    /**
-     * Splits text into overlapping chunks.
-     * @param chunkSize Number of words per chunk
-     * @param overlap Number of words to repeat from the previous chunk
-     */
-    fun split(text: String, chunkSize: Int = 150, overlap: Int = 50): List<String> {
-        val words = text.split("\\s+".toRegex()).filter { it.isNotBlank() }
-        if (words.size <= chunkSize) return listOf(text)
+import com.augt.localseek.data.DocumentChunk
 
-        val chunks = mutableListOf<String>()
-        var start = 0
-        
-        while (start < words.size) {
-            val end = minOf(start + chunkSize, words.size)
-            val chunk = words.subList(start, end).joinToString(" ")
-            chunks.add(chunk)
-            
-            // Move start forward, but stay back by 'overlap' words
-            start += (chunkSize - overlap)
-            
-            // Safety check to avoid infinite loops if overlap >= chunkSize
-            if (chunkSize <= overlap) break
+class TextChunker(
+    private val chunkSize: Int = 150,
+    private val overlap: Int = 40
+) {
+    fun chunkDocument(fileId: Long, text: String): List<DocumentChunk> {
+        val tokens = text.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        if (tokens.isEmpty()) return emptyList()
+
+        val chunks = mutableListOf<DocumentChunk>()
+        val step = (chunkSize - overlap).coerceAtLeast(1)
+        var chunkIndex = 0
+        var position = 0
+
+        while (position < tokens.size) {
+            val end = minOf(position + chunkSize, tokens.size)
+            val chunkText = tokens.subList(position, end).joinToString(" ")
+
+            chunks.add(
+                DocumentChunk(
+                    parentFileId = fileId,
+                    chunkIndex = chunkIndex,
+                    text = chunkText,
+                    startOffset = position,
+                    endOffset = end
+                )
+            )
+
+            position += step
+            chunkIndex++
         }
+
         return chunks
     }
 }

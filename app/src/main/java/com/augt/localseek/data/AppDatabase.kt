@@ -6,20 +6,67 @@ import androidx.room3.Database
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.room3.TypeConverters
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.execSQL
 
 
 @SuppressLint("RestrictedApi")
 @Database(
     // List all of @Entity classes here.
-    entities = [DocumentEntity::class, DocumentFts::class],
-    version = 10, // Incremented to 10 to clear old data and force re-index due to schema changes
+    entities = [DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class],
+    version = 11,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun documentDao(): DocumentDao
+    abstract fun chunkDao(): ChunkDao
+
+    private object Migration10To11 : Migration(10, 11) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentFileId INTEGER NOT NULL,
+                    chunkIndex INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    startOffset INTEGER NOT NULL,
+                    endOffset INTEGER NOT NULL,
+                    embedding BLOB,
+                    createdAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts
+                USING fts5(text, content=`document_chunks`, tokenize='unicode61')
+                """.trimIndent()
+            )
+
+            // Backfill one chunk per legacy document body to preserve searchable data.
+            connection.execSQL(
+                """
+                INSERT INTO document_chunks (parentFileId, chunkIndex, text, startOffset, endOffset, createdAt)
+                SELECT id, 0, body, 0, length(body), CAST(strftime('%s','now') AS INTEGER) * 1000
+                FROM documents
+                WHERE body IS NOT NULL AND length(trim(body)) > 0
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                INSERT INTO chunks_fts(rowid, text)
+                SELECT id, text FROM document_chunks
+                """.trimIndent()
+            )
+        }
+    }
 
     companion object {
         @Volatile
@@ -34,7 +81,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .fallbackToDestructiveMigration()
+                .addMigrations(Migration10To11)
                 .build()
                 INSTANCE = instance
                 instance

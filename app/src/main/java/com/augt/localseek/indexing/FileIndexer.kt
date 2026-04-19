@@ -11,6 +11,8 @@ import java.io.File
 class FileIndexer(private val context: Context) {
 
     private val dao = AppDatabase.getInstance(context).documentDao()
+    private val chunkDao = AppDatabase.getInstance(context).chunkDao()
+    private val textChunker = TextChunker(chunkSize = 150, overlap = 40)
 
     private val scanRoots: List<File> get() = listOf(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
@@ -53,6 +55,12 @@ class FileIndexer(private val context: Context) {
                     continue
                 }
 
+                val existingDocumentId = dao.getDocumentIdByPath(file.absolutePath)
+                if (existingDocumentId != null) {
+                    chunkDao.deleteByParentFileId(existingDocumentId)
+                    dao.deleteByPath(file.absolutePath)
+                }
+
                 // 2. Generate the AI Vector Embedding! (If encoder is loaded)
                 var embedding: FloatArray? = null
                 if (denseEncoder != null) {
@@ -60,16 +68,22 @@ class FileIndexer(private val context: Context) {
                     embedding = denseEncoder.encode(parsed.body.take(1500))
                 }
 
-                // 3. Save to Room Database
-                dao.insert(DocumentEntity(
+                // 3. Save metadata row to Room Database (full text now lives in chunks)
+                val fileId = dao.insert(DocumentEntity(
                     filePath = file.absolutePath,
                     title = parsed.title,
-                    body = parsed.body,
+                    body = "",
                     fileType = parsed.fileType,
                     modifiedAt = file.lastModified(),
                     sizeBytes = file.length(),
                     embedding = embedding // <-- Saved!
                 ))
+
+                val chunks = textChunker.chunkDocument(fileId = fileId, text = parsed.body)
+                if (chunks.isNotEmpty()) {
+                    chunkDao.insertAll(chunks)
+                }
+                Log.d("FileIndexer", "Chunked ${file.name}: ${chunks.size} chunks")
 
                 if (existingModifiedAt == null) newCount++ else updatedCount++
 
