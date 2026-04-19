@@ -1022,3 +1022,41 @@ This is a **key reason for poor results**.
 - [ ] FAISS ANN index (10x speedup potential)
 - [ ] Approximate top-K / early termination
 - [ ] Device-level profiling dashboard for dense page scan timing
+
+---
+
+## Phase 4 - Fusion & Ranking (2026-04-19)
+
+### Replaced Components
+- ❌ Simplistic weighted fusion fallback only
+- ❌ Legacy RRF-only path as primary strategy
+- ✅ Weighted multi-signal fusion with normalization (`FusionRanker`)
+
+### Scoring Signals
+| Signal | Weight | Normalization |
+|--------|--------|---------------|
+| BM25 | 0.45 | MinMax |
+| Dense | 0.35 | MinMax |
+| Recency | 0.10 | Exponential decay |
+| Title match | 0.10 | Boolean boost |
+
+### Diversification
+- **Algorithm:** MMR (`lambda = 0.7`)
+- **Purpose:** Reduce redundant semantically similar results
+- **Behavior:** Re-ranks top fused candidates with embedding cosine penalty when vectors are available
+
+### Implementation Notes
+- Added `ScoreNormalizer.minMaxNorm` and `ScoreNormalizer.standardize`
+- Added `FusionRanker.rank(query, candidates)` and `FusionRanker.diversify(...)`
+- `SearchViewModel` now builds unified BM25+dense candidates and applies fusion + MMR
+- Dense results now include best chunk embedding for diversification
+
+### Validation Status
+- ✅ Host build passed (`:app:assembleDebug`)
+- ✅ Host unit tests passed (`:app:testDebugUnitTest`)
+- ✅ Added Phase 4 tests (`Phase4FusionTest`) for normalization and title boost ranking
+
+### Performance
+- Ranking time: TBD (needs on-device micro-benchmark)
+- Quality delta: TBD (needs user relevance eval / nDCG pass)
+

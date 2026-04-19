@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
+import com.augt.localseek.retrieval.FusionCandidate
+import com.augt.localseek.retrieval.FusionRanker
 import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,8 +24,6 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
     companion object {
         const val ENABLE_DENSE = true
-        private const val BM25_WEIGHT = 0.6f
-        private const val DENSE_WEIGHT = 0.4f
         private const val TAG_VALIDATION = "SearchValidation"
     }
 
@@ -33,6 +33,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val performanceLogger = PerformanceLogger()
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
+    private val fusionRanker = FusionRanker()
 
     private var searchJob: Job? = null
 
@@ -74,11 +75,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
             var finalResults = emptyList<SearchResult>()
             val fusionLatencyMs = measureTimeMillis {
-                finalResults = if (ENABLE_DENSE) {
-                    weightedFusion(bm25Results, denseResults)
-                } else {
-                    bm25Results
-                }
+                finalResults = rankAndDiversify(query, bm25Results, denseResults)
             }
 
             val totalLatencyMs = System.currentTimeMillis() - totalStartMs
@@ -129,26 +126,49 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun normalizeQuery(query: String): String = query.trim().lowercase()
 
-    private fun weightedFusion(
+    private fun rankAndDiversify(
+        query: String,
         bm25Results: List<SearchResult>,
         denseResults: List<SearchResult>
     ): List<SearchResult> {
-        val byId = mutableMapOf<Long, SearchResult>()
-        val weightedScores = mutableMapOf<Long, Float>()
+        val bm25Map = bm25Results.associateBy { it.id }
+        val denseMap = denseResults.associateBy { it.id }
+        val allIds = (bm25Map.keys + denseMap.keys).distinct()
 
-        bm25Results.forEach { result ->
-            byId[result.id] = result
-            weightedScores[result.id] = (weightedScores[result.id] ?: 0f) + (BM25_WEIGHT * result.score)
+        val candidates = allIds.mapNotNull { id ->
+            val bm25 = bm25Map[id]
+            val dense = denseMap[id]
+            val source = dense ?: bm25
+            source?.let {
+                FusionCandidate(
+                    id = id,
+                    title = it.title,
+                    snippet = it.snippet,
+                    filePath = it.filePath,
+                    fileType = it.fileType,
+                    modifiedAt = it.modifiedAt,
+                    bm25Score = bm25?.score?.toDouble(),
+                    denseScore = dense?.score?.toDouble(),
+                    embedding = dense?.embedding
+                )
+            }
         }
 
-        denseResults.forEach { result ->
-            byId[result.id] = result
-            weightedScores[result.id] = (weightedScores[result.id] ?: 0f) + (DENSE_WEIGHT * result.score)
-        }
+        val ranked = fusionRanker.rank(query, candidates)
+        val diversified = fusionRanker.diversify(ranked)
 
-        return weightedScores.entries
-            .sortedByDescending { it.value }
-            .mapNotNull { (id, score) -> byId[id]?.copy(score = score) }
+        return diversified.map {
+            SearchResult(
+                id = it.id,
+                title = it.title,
+                snippet = it.snippet,
+                filePath = it.filePath,
+                fileType = it.fileType,
+                score = it.finalScore.toFloat(),
+                modifiedAt = it.modifiedAt,
+                embedding = it.embedding
+            )
+        }
     }
 
     private fun logTopResults(query: String, results: List<SearchResult>) {
