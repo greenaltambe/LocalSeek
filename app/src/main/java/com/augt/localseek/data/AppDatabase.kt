@@ -16,7 +16,7 @@ import androidx.sqlite.execSQL
 @Database(
     // List all of @Entity classes here.
     entities = [DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
@@ -68,6 +68,17 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 
+    private object Migration11To12 : Migration(11, 12) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_document_chunks_parentFileId ON document_chunks(parentFileId)"
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_document_chunks_embedding ON document_chunks(embedding)"
+            )
+        }
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -81,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration10To11)
+                .addMigrations(Migration10To11, Migration11To12)
                 .build()
                 INSTANCE = instance
                 instance

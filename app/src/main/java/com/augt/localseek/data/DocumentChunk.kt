@@ -3,9 +3,16 @@ package com.augt.localseek.data
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Fts5
+import androidx.room3.Index
 import androidx.room3.PrimaryKey
 
-@Entity(tableName = "document_chunks")
+@Entity(
+    tableName = "document_chunks",
+    indices = [
+        Index(value = ["parentFileId"]),
+        Index(value = ["embedding"])
+    ]
+)
 data class DocumentChunk(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

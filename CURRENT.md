@@ -1090,3 +1090,33 @@ This is a **key reason for poor results**.
 - Clarity: improved with file-level grouping and richer context snippets
 - Usability: easier document selection due to badges, metadata, and file-type chips
 
+---
+
+## Phase 6 - Performance (2026-04-20)
+
+### Optimizations Applied
+- ✅ Parallel BM25 + Dense execution in `SearchViewModel` using coroutines (`async`)
+- ✅ Database indexes added for `document_chunks(parentFileId)` and `document_chunks(embedding)`
+- ✅ LRU query cache (`QueryCache`, max 50 entries)
+- ✅ Early termination hook for dense retrieval (`DenseRetriever.shouldSkipDense(...)`)
+
+### Instrumentation
+- ✅ Added stage timers (`measureSuspendTime`) with `[PERF]` log labels
+- ✅ Cache-hit fast path returns pre-aggregated file results with minimal UI latency
+
+### Latency Breakdown
+| Stage | Time |
+|-------|------|
+| BM25 | TBD (device profile) |
+| Dense | TBD (device profile) |
+| Fusion | TBD (device profile) |
+| **Total** | **TBD** |
+
+### Cache Performance
+- Hit rate: TBD (requires session log sampling)
+- Avg cached response: currently hardcoded to ~2ms UI latency marker
+
+### Scalability Tested
+- Host build/test: ✅ pass
+- Device-scale profiling target (50k chunks): ⏳ pending
+

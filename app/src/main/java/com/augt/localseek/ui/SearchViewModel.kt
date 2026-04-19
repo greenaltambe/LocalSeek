@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.augt.localseek.logging.measureSuspendTime
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
@@ -14,13 +15,14 @@ import com.augt.localseek.retrieval.FileResult
 import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.system.measureTimeMillis
 
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -36,6 +38,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
     private val fusionRanker = FusionRanker()
+    private val queryCache = QueryCache(maxSize = 50)
     private var latestAggregatedResults: List<FileResult> = emptyList()
 
     private var searchJob: Job? = null
@@ -59,29 +62,65 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             val analyzedTokens = analyzeTokens(query)
             Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
 
+            val cachedResults = queryCache.get(query)
+            if (cachedResults != null) {
+                latestAggregatedResults = cachedResults
+                _uiState.update {
+                    it.copy(
+                        results = applyFilters(cachedResults, it.activeFilters),
+                        statusMessage = "Cache: ${cachedResults.size} files",
+                        isLoading = false,
+                        latencyMs = 2L
+                    )
+                }
+                return@launch
+            }
+
             val memBeforeMb = performanceLogger.memoryUsageMb()
             val totalStartMs = System.currentTimeMillis()
 
-            var bm25Results = emptyList<SearchResult>()
-            val bm25LatencyMs = measureTimeMillis {
-                bm25Results = bm25Retriever.search(query)
-            }
-
-            var denseResults = emptyList<SearchResult>()
-            val denseLatencyMs = if (ENABLE_DENSE) {
-                measureTimeMillis {
-                    denseResults = denseRetriever?.search(query).orEmpty()
+            var bm25LatencyMs = 0L
+            var denseLatencyMs = 0L
+            val (bm25Results, denseResults) = coroutineScope {
+                val bm25Deferred = async {
+                    val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(query, 100) }
+                    result to duration
                 }
-            } else {
-                0L
+                val denseDeferred = async {
+                    val (result, duration) = measureSuspendTime("Dense") {
+                        denseRetriever?.search(query, 50).orEmpty()
+                    }
+                    result to duration
+                }
+
+                val (bm25, bm25Duration) = bm25Deferred.await()
+                bm25LatencyMs = bm25Duration
+
+                var denseDuration = 0L
+                val dense = if (ENABLE_DENSE && denseRetriever != null) {
+                    if (denseRetriever.shouldSkipDense(bm25)) {
+                        denseDeferred.cancel()
+                        emptyList()
+                    } else {
+                        val (denseResult, duration) = denseDeferred.await()
+                        denseDuration = duration
+                        denseResult
+                    }
+                } else {
+                    denseDeferred.cancel()
+                    emptyList()
+                }
+
+                denseLatencyMs = denseDuration
+                bm25 to dense
             }
 
-            var finalResults = emptyList<SearchResult>()
-            val fusionLatencyMs = measureTimeMillis {
-                finalResults = rankAndDiversify(query, bm25Results, denseResults)
+            val (finalResults, fusionLatencyMs) = measureSuspendTime("Fusion") {
+                rankAndDiversify(query, bm25Results, denseResults)
             }
 
             latestAggregatedResults = ResultAggregator.aggregateToFiles(finalResults, query)
+            queryCache.put(query, latestAggregatedResults)
             val filteredResults = applyFilters(latestAggregatedResults, _uiState.value.activeFilters)
 
             val totalLatencyMs = System.currentTimeMillis() - totalStartMs

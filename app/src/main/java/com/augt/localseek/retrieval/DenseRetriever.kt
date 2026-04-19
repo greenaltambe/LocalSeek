@@ -7,7 +7,9 @@ import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.ml.VectorUtils.cosineSimilarity
 import com.augt.localseek.model.SearchResult
 import java.util.PriorityQueue
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 class DenseRetriever(context: Context) {
@@ -16,6 +18,10 @@ class DenseRetriever(context: Context) {
     private val encoder = DenseEncoder(context)
 
     private data class ScoredChunk(val chunkId: Long, val score: Float)
+
+    fun shouldSkipDense(bm25Results: List<SearchResult>, threshold: Float = 0.85f): Boolean {
+        return bm25Results.size >= 50 && (bm25Results.firstOrNull()?.score ?: 0f) >= threshold
+    }
 
     suspend fun search(query: String, topK: Int = 50, pageSize: Int = 500): List<SearchResult> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
@@ -31,6 +37,7 @@ class DenseRetriever(context: Context) {
         var totalKept = 0
 
         while (true) {
+            if (!currentCoroutineContext().isActive) break
             val page = chunkDao.getEmbeddingsPage(limit = pageLimit, offset = offset)
             if (page.isEmpty()) break
 
