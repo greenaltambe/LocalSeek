@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.logging.measureSuspendTime
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.retrieval.BM25Retriever
@@ -13,6 +14,8 @@ import com.augt.localseek.retrieval.FusionCandidate
 import com.augt.localseek.retrieval.FusionRanker
 import com.augt.localseek.retrieval.FileResult
 import com.augt.localseek.retrieval.ResultAggregator
+import com.augt.localseek.search.query.QueryExpander
+import com.augt.localseek.search.query.QueryProcessor
 import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -37,6 +40,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val performanceLogger = PerformanceLogger()
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
+    private val queryProcessorEncoder = DenseEncoder(application)
+    private val queryProcessor = QueryProcessor(application, queryProcessorEncoder)
     private val fusionRanker = FusionRanker()
     private val queryCache = QueryCache(maxSize = 50)
     private var latestAggregatedResults: List<FileResult> = emptyList()
@@ -58,9 +63,15 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.update { it.copy(isLoading = true, statusMessage = "Searching…") }
             delay(200)
 
-            val query = normalizeQuery(newQuery)
-            val analyzedTokens = analyzeTokens(query)
+            val processed = queryProcessor.process(newQuery)
+            val query = normalizeQuery(processed.normalized.normalized)
+            val analyzedTokens = processed.keyTerms.ifEmpty { analyzeTokens(query) }
             Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
+
+            val queryFilters = buildFiltersFromProcessed(processed.filters)
+            if (queryFilters.isNotEmpty()) {
+                _uiState.update { it.copy(activeFilters = queryFilters) }
+            }
 
             val cachedResults = queryCache.get(query)
             if (cachedResults != null) {
@@ -83,12 +94,12 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             var denseLatencyMs = 0L
             val (bm25Results, denseResults) = coroutineScope {
                 val bm25Deferred = async {
-                    val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(query, 100) }
+                    val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(processed.bm25Query, 100) }
                     result to duration
                 }
                 val denseDeferred = async {
                     val (result, duration) = measureSuspendTime("Dense") {
-                        denseRetriever?.search(query, 50).orEmpty()
+                        denseRetriever?.search(processed.denseQuery, 50).orEmpty()
                     }
                     result to duration
                 }
@@ -181,6 +192,19 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun buildFiltersFromProcessed(processedFilters: QueryExpander.QueryFilters): List<FilterType> {
+        val filters = mutableListOf<FilterType>()
+
+        processedFilters.fileType?.let { filters.add(FilterType.FileType(it)) }
+        processedFilters.dateAfter?.let { start ->
+            val end = processedFilters.dateBefore ?: Long.MAX_VALUE
+            filters.add(FilterType.DateRange(start, end))
+        }
+
+        if (filters.isEmpty()) filters.add(FilterType.All)
+        return filters
+    }
+
     fun applyFilters(results: List<FileResult>, filters: List<FilterType>): List<FileResult> {
         var filtered = results
 
@@ -269,5 +293,6 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         denseRetriever?.close()
+        queryProcessorEncoder.close()
     }
 }

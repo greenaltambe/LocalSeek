@@ -1178,3 +1178,33 @@ This is a **key reason for poor results**.
 - Recall@10: TBD (requires labeled device-backed retrieval run)
 - User satisfaction: TBD (needs real users)
 
+---
+
+## Phase 8A - Production Query Processing (2026-04-20)
+
+### Architecture
+Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query Expansion -> Intent Classification -> Enhanced Query
+
+### Implemented Components
+- ✅ `search/query/QueryNormalizer.kt` (rule-based normalization, URL/email stripping, contraction expansion)
+- ✅ `search/query/SmartTokenizer.kt` (vocab-backed tokenization + key-term extraction)
+- ✅ `search/query/EntityExtractor.kt` (regex + dictionary entities)
+- ✅ `search/query/QueryExpander.kt` (domain expansion, synonym expansion, filters)
+- ✅ `search/query/IntentClassifier.kt` (lightweight rule-based intents)
+- ✅ `search/query/QueryProcessor.kt` (orchestrates end-to-end query processing)
+
+### Search Integration
+- ✅ `SearchViewModel` now processes raw input through `QueryProcessor`
+- ✅ BM25 retrieval receives expanded BM25-safe query terms
+- ✅ Dense retrieval receives expanded dense query string
+- ✅ Entity-derived filters (file type/date) are mapped into existing filter pipeline
+
+### Test Coverage Added
+- ✅ Unit: `QueryProcessingCoreTest` (normalization, entity extraction, intent classification)
+- ✅ Instrumentation: `QueryProcessorInstrumentationTest` (intent/entity/latency assertion scaffold)
+
+### Validation Status
+- ✅ Host build + unit tests pass
+- ⏳ Instrumentation runtime assertions pending connected device execution
+- ⚠️ `<50ms` target enforced in instrumentation test; verify on target device class
+
