@@ -1,12 +1,13 @@
 package com.augt.localseek.ui
 
-import com.augt.localseek.model.SearchResult
+import com.augt.localseek.retrieval.FileResult
 
 data class SearchUiState(
     val query: String = "",
-    val results: List<SearchResult> = emptyList(),
+    val results: List<FileResult> = emptyList(),
     val statusMessage: String = "Type to search",
     val isLoading: Boolean = false,
     val latencyMs: Long = 0L,
-    val showScores: Boolean = false
+    val showScores: Boolean = false,
+    val activeFilters: List<FilterType> = listOf(FilterType.All)
 )

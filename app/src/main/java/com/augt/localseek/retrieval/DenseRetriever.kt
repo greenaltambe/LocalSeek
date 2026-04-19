@@ -81,7 +81,8 @@ class DenseRetriever(context: Context) {
                     fileType = bestRow.fileType,
                     score = bestScore,
                     modifiedAt = bestRow.modifiedAt,
-                    embedding = bestRow.embedding
+                    embedding = bestRow.embedding,
+                    sizeBytes = bestRow.sizeBytes
                 )
             }
             .sortedByDescending { it.score }

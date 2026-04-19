@@ -37,6 +37,7 @@ interface ChunkDao {
             d.filePath,
             d.title,
             d.fileType,
+            d.sizeBytes,
             d.modifiedAt
         FROM document_chunks c
         JOIN documents d ON c.parentFileId = d.id
@@ -57,6 +58,7 @@ interface ChunkDao {
             d.filePath,
             d.title,
             d.fileType,
+            d.sizeBytes,
             d.modifiedAt,
             bm25(chunks_fts) AS score
         FROM chunks_fts
@@ -83,6 +85,7 @@ data class ChunkMetadata(
     val filePath: String,
     val title: String,
     val fileType: String,
+    val sizeBytes: Long,
     val modifiedAt: Long
 )
 
@@ -96,6 +99,7 @@ data class ChunkWithMetadata(
     val filePath: String,
     val title: String,
     val fileType: String,
+    val sizeBytes: Long,
     val modifiedAt: Long,
     val score: Float
 )

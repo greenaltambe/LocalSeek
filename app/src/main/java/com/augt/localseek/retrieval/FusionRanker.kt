@@ -10,6 +10,7 @@ data class FusionCandidate(
     val filePath: String,
     val fileType: String,
     val modifiedAt: Long,
+    val sizeBytes: Long,
     val bm25Score: Double? = null,
     val denseScore: Double? = null,
     val embedding: FloatArray? = null,

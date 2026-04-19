@@ -10,6 +10,8 @@ import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
 import com.augt.localseek.retrieval.FusionCandidate
 import com.augt.localseek.retrieval.FusionRanker
+import com.augt.localseek.retrieval.FileResult
+import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,6 +36,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
     private val fusionRanker = FusionRanker()
+    private var latestAggregatedResults: List<FileResult> = emptyList()
 
     private var searchJob: Job? = null
 
@@ -78,6 +81,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 finalResults = rankAndDiversify(query, bm25Results, denseResults)
             }
 
+            latestAggregatedResults = ResultAggregator.aggregateToFiles(finalResults, query)
+            val filteredResults = applyFilters(latestAggregatedResults, _uiState.value.activeFilters)
+
             val totalLatencyMs = System.currentTimeMillis() - totalStartMs
             val memAfterMb = performanceLogger.memoryUsageMb()
 
@@ -89,26 +95,65 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 totalLatencyMs = totalLatencyMs,
                 bm25Count = bm25Results.size,
                 denseCount = denseResults.size,
-                finalCount = finalResults.size,
+                finalCount = filteredResults.size,
                 memoryBeforeMb = memBeforeMb,
                 memoryAfterMb = memAfterMb
             )
 
-            logTopResults(query, finalResults)
+            logTopResults(query, filteredResults)
 
             _uiState.update {
                 it.copy(
-                    results = finalResults,
-                    statusMessage = if (finalResults.isEmpty()) {
+                    results = filteredResults,
+                    statusMessage = if (filteredResults.isEmpty()) {
                         "No results"
                     } else {
-                        if (ENABLE_DENSE) "Hybrid: ${finalResults.size} results" else "BM25: ${finalResults.size} results"
+                        if (ENABLE_DENSE) "Hybrid: ${filteredResults.size} files" else "BM25: ${filteredResults.size} files"
                     },
                     isLoading = false,
                     latencyMs = totalLatencyMs
                 )
             }
         }
+    }
+
+    fun onFileTypeFilterChanged(type: String?) {
+        val filters = if (type.isNullOrBlank()) {
+            listOf(FilterType.All)
+        } else {
+            listOf(FilterType.FileType(type.lowercase()))
+        }
+        applyCurrentFilters(filters)
+    }
+
+    fun onDateRangeFilterChanged(start: Long, end: Long) {
+        val filters = listOf(FilterType.DateRange(start, end))
+        applyCurrentFilters(filters)
+    }
+
+    private fun applyCurrentFilters(filters: List<FilterType>) {
+        val filtered = applyFilters(latestAggregatedResults, filters)
+        _uiState.update {
+            it.copy(
+                activeFilters = filters,
+                results = filtered,
+                statusMessage = if (filtered.isEmpty()) "No results" else "${filtered.size} files"
+            )
+        }
+    }
+
+    fun applyFilters(results: List<FileResult>, filters: List<FilterType>): List<FileResult> {
+        var filtered = results
+
+        filters.forEach { filter ->
+            filtered = when (filter) {
+                is FilterType.FileType -> filtered.filter { it.fileType.equals(filter.type, ignoreCase = true) }
+                is FilterType.DateRange -> filtered.filter { it.modifiedAt in filter.start..filter.end }
+                FilterType.All -> filtered
+            }
+        }
+
+        return filtered
     }
 
     fun onToggleShowScores() {
@@ -147,6 +192,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     filePath = it.filePath,
                     fileType = it.fileType,
                     modifiedAt = it.modifiedAt,
+                    sizeBytes = it.sizeBytes,
                     bm25Score = bm25?.score?.toDouble(),
                     denseScore = dense?.score?.toDouble(),
                     embedding = dense?.embedding
@@ -166,16 +212,17 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 fileType = it.fileType,
                 score = it.finalScore.toFloat(),
                 modifiedAt = it.modifiedAt,
-                embedding = it.embedding
+                embedding = it.embedding,
+                sizeBytes = it.sizeBytes
             )
         }
     }
 
-    private fun logTopResults(query: String, results: List<SearchResult>) {
+    private fun logTopResults(query: String, results: List<FileResult>) {
         results.take(5).forEachIndexed { index, result ->
             Log.d(
                 TAG_VALIDATION,
-                "[VALIDATION] Query: \"$query\" | #${index + 1}: ${result.title} | score=${"%.4f".format(result.score)}"
+                "[VALIDATION] Query: \"$query\" | #${index + 1}: ${result.title} | score=${"%.4f".format(result.bestScore)}"
             )
         }
     }

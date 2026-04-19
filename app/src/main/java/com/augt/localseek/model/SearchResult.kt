@@ -8,5 +8,6 @@ data class SearchResult(
     val fileType: String,     // "txt", "pdf", "md", etc.
     val score: Float,         // relevance score, 0.0–1.0
     val modifiedAt: Long,     // epoch milliseconds (File.lastModified())
-    val embedding: FloatArray? = null
+    val embedding: FloatArray? = null,
+    val sizeBytes: Long = 0L
 )

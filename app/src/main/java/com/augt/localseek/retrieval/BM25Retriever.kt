@@ -45,7 +45,8 @@ class BM25Retriever(context: Context) {
                     filePath = r.filePath,
                     fileType = r.fileType,
                     score = normalizedScore,
-                    modifiedAt = r.modifiedAt
+                    modifiedAt = r.modifiedAt,
+                    sizeBytes = r.sizeBytes
                 )
             }
         } catch (e: Exception) {

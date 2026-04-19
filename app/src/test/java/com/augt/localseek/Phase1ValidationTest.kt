@@ -31,11 +31,11 @@ class Phase1ValidationTest {
     @Test
     fun chunkAggregator_groupsByParentFile_andKeepsTopThreeSnippets() {
         val hits = listOf(
-            ChunkWithMetadata(1, 10, 0, "alpha one", 0, 2, "/docs/a.txt", "a.txt", "txt", 1000L, -9.0f),
-            ChunkWithMetadata(2, 10, 1, "alpha two", 2, 4, "/docs/a.txt", "a.txt", "txt", 1000L, -8.0f),
-            ChunkWithMetadata(3, 10, 2, "alpha three", 4, 6, "/docs/a.txt", "a.txt", "txt", 1000L, -7.5f),
-            ChunkWithMetadata(4, 10, 3, "alpha four", 6, 8, "/docs/a.txt", "a.txt", "txt", 1000L, -6.0f),
-            ChunkWithMetadata(5, 20, 0, "beta one", 0, 2, "/docs/b.txt", "b.txt", "txt", 2000L, -12.0f)
+            ChunkWithMetadata(1, 10, 0, "alpha one", 0, 2, "/docs/a.txt", "a.txt", "txt", 4096L, 1000L, -9.0f),
+            ChunkWithMetadata(2, 10, 1, "alpha two", 2, 4, "/docs/a.txt", "a.txt", "txt", 4096L, 1000L, -8.0f),
+            ChunkWithMetadata(3, 10, 2, "alpha three", 4, 6, "/docs/a.txt", "a.txt", "txt", 4096L, 1000L, -7.5f),
+            ChunkWithMetadata(4, 10, 3, "alpha four", 6, 8, "/docs/a.txt", "a.txt", "txt", 4096L, 1000L, -6.0f),
+            ChunkWithMetadata(5, 20, 0, "beta one", 0, 2, "/docs/b.txt", "b.txt", "txt", 2048L, 2000L, -12.0f)
         )
 
         val files = ChunkAggregator.aggregateChunks(hits)

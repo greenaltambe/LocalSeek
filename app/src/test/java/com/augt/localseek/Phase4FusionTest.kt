@@ -30,6 +30,7 @@ class Phase4FusionTest {
                 filePath = "/a",
                 fileType = "txt",
                 modifiedAt = now,
+                sizeBytes = 1000,
                 bm25Score = 0.8,
                 denseScore = 0.6
             ),
@@ -40,6 +41,7 @@ class Phase4FusionTest {
                 filePath = "/b",
                 fileType = "txt",
                 modifiedAt = now,
+                sizeBytes = 1000,
                 bm25Score = 0.8,
                 denseScore = 0.6
             )

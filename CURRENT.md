@@ -1060,3 +1060,33 @@ This is a **key reason for poor results**.
 - Ranking time: TBD (needs on-device micro-benchmark)
 - Quality delta: TBD (needs user relevance eval / nDCG pass)
 
+---
+
+## Phase 5 - Aggregation & UI (2026-04-19)
+
+### Result Structure
+- **Changed:** Chunk-level list -> File-level list in UI state
+- **Aggregation:** Best score per file via `ResultAggregator.aggregateToFiles(...)`
+- **Snippets:** Top 3 chunk previews per file
+- **Highlighting:** Query terms wrapped with `**term**` markers in snippet text
+
+### UI Improvements
+- ✅ Dedicated file card component: `FileResultCard`
+- ✅ File type badge on each result card
+- ✅ Metadata footer (modified date + score or file size)
+- ✅ Multi-snippet rendering per file result
+
+### Filters
+- ✅ File type filter implemented (All / PDF / TXT / MD chips)
+- ✅ Date-range filter API implemented in `SearchViewModel` (`onDateRangeFilterChanged`)
+- ⏳ Date-range chip controls in UI not added yet
+
+### Validation Status
+- ✅ Host build passed (`:app:assembleDebug`)
+- ✅ Host unit tests passed (`:app:testDebugUnitTest`)
+- ✅ Existing Phase 1/4 tests updated and passing after data-model changes
+
+### UX Impact
+- Clarity: improved with file-level grouping and richer context snippets
+- Usability: easier document selection due to badges, metadata, and file-type chips
+
