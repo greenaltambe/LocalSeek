@@ -1,0 +1,7 @@
+{
+  "max_length": 128,
+  "padding": "max_length",
+  "truncation": true,
+  "model_max_length": 128,
+  "do_lower_case": true
+}

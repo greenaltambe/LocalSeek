@@ -19,9 +19,9 @@ class BertTokenizer(context: Context, vocabFilename: String = "vocab.txt") {
 
     /**
      * Converts a string into input_ids and attention_mask.
-     * Enforces exactly 256 tokens for our TFLite model signature.
+     * Defaults to 128 tokens to match the optimized TFLite model signature.
      */
-    fun tokenize(text: String, maxLength: Int = 256): Pair<IntArray, IntArray> {
+    fun tokenize(text: String, maxLength: Int = 128): Pair<IntArray, IntArray> {
         val tokens = mutableListOf<Int>()
         tokens.add(vocab["[CLS]"] ?: 101)
 

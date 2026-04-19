@@ -962,3 +962,38 @@ This is a **key reason for poor results**.
 - Run indexing on sample set (10 PDFs, 5 text files)
 - Capture per-file chunk counts from `FileIndexer` logs (`Chunked <file>: <N> chunks`)
 - Capture query/perf logs (`[PERF]`, `[VALIDATION]`) during BM25 chunk search
+
+---
+
+## Phase 2 - Optimized Embedding Model (2026-04-19)
+
+### Model Changes
+- ❌ Removed: legacy model reference in code (`minilm_int8.tflite`)
+- ✅ Added/used: `minilm_optimized.tflite`
+- ✅ Updated tokenizer vocabulary usage (`vocab.txt`) for 128-token inputs
+
+### Encoder Runtime Changes
+- ✅ DenseEncoder now loads `minilm_optimized.tflite`
+- ✅ NNAPI enabled (`setUseNNAPI(true)`)
+- ✅ Threads set to 4
+- ✅ Max sequence length reduced to 128 tokens
+- ✅ Output embedding L2-normalized in encoder
+
+### Indexing Pipeline Changes
+- ✅ Added `encodeBatch(texts, batchSize = 8)` in `DenseEncoder`
+- ✅ `FileIndexer` now batch-encodes chunk text embeddings
+- ✅ Embedded chunks are inserted in one DB write (`chunkDao.insertAll(...)`)
+
+### Validation Status
+- ✅ Host build passed (`:app:assembleDebug`)
+- ✅ Host unit tests passed (`:app:testDebugUnitTest`)
+- ⏳ Device validation pending for:
+  - per-chunk inference latency target (<50ms)
+  - NNAPI backend confirmation from runtime logs on target device
+  - embedding norm sampling on indexed chunk set
+
+### Performance Impact
+- Indexing speedup: TBD (requires before/after timed device runs)
+- Memory reduction: TBD (requires runtime memory profiling)
+- Battery impact: TBD (requires on-device power sampling)
+

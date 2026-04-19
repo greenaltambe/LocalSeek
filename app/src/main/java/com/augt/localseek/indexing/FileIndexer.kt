@@ -19,7 +19,7 @@ class FileIndexer(private val context: Context) {
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
         File(Environment.getExternalStorageDirectory(), "Download"),
         File(Environment.getExternalStorageDirectory(), "Documents"),
-        File("/sdcard/Download") 
+        File("/sdcard/Download")
     ).filter { it.exists() && it.isDirectory }.distinctBy { it.absolutePath }
 
     data class IndexStats(
@@ -28,7 +28,7 @@ class FileIndexer(private val context: Context) {
 
     suspend fun runFullIndex(): IndexStats {
         var newCount = 0; var updatedCount = 0; var skippedCount = 0; var errorCount = 0
-        
+
         // 1. Initialize the AI Encoder
         val denseEncoder = try {
             DenseEncoder(context)
@@ -61,14 +61,7 @@ class FileIndexer(private val context: Context) {
                     dao.deleteByPath(file.absolutePath)
                 }
 
-                // 2. Generate the AI Vector Embedding! (If encoder is loaded)
-                var embedding: FloatArray? = null
-                if (denseEncoder != null) {
-                    // We only embed the first 256 tokens of the body to save time
-                    embedding = denseEncoder.encode(parsed.body.take(1500))
-                }
-
-                // 3. Save metadata row to Room Database (full text now lives in chunks)
+                // 2. Save metadata row to Room Database (full text and vectors live in chunks)
                 val fileId = dao.insert(DocumentEntity(
                     filePath = file.absolutePath,
                     title = parsed.title,
@@ -76,14 +69,26 @@ class FileIndexer(private val context: Context) {
                     fileType = parsed.fileType,
                     modifiedAt = file.lastModified(),
                     sizeBytes = file.length(),
-                    embedding = embedding // <-- Saved!
+                    embedding = null
                 ))
 
+                // 3. Chunk and batch-embed content
                 val chunks = textChunker.chunkDocument(fileId = fileId, text = parsed.body)
-                if (chunks.isNotEmpty()) {
-                    chunkDao.insertAll(chunks)
+                val chunksWithEmbeddings = if (chunks.isEmpty()) {
+                    emptyList()
+                } else {
+                    val embeddings = denseEncoder?.encodeBatch(chunks.map { it.text }).orEmpty()
+                    if (embeddings.size == chunks.size) {
+                        chunks.mapIndexed { index, chunk -> chunk.copy(embedding = embeddings[index]) }
+                    } else {
+                        chunks
+                    }
                 }
-                Log.d("FileIndexer", "Chunked ${file.name}: ${chunks.size} chunks")
+
+                if (chunksWithEmbeddings.isNotEmpty()) {
+                    chunkDao.insertAll(chunksWithEmbeddings)
+                }
+                Log.d("FileIndexer", "Chunked ${file.name}: ${chunksWithEmbeddings.size} chunks")
 
                 if (existingModifiedAt == null) newCount++ else updatedCount++
 
@@ -92,7 +97,7 @@ class FileIndexer(private val context: Context) {
                 errorCount++
             }
         }
-        
+
         // Cleanup AI from memory when done
         denseEncoder?.close()
 
