@@ -19,10 +19,9 @@ class IndexWorker(
 
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting background indexing run...")
-        val encoder = com.augt.localseek.ml.DenseEncoder(applicationContext)
 
         return try {
-            val indexer = FileIndexer(applicationContext, encoder)
+            val indexer = FileIndexer(applicationContext)
             val stats = indexer.runFullIndex()
 
             Log.d(TAG, "Indexing complete! Stats: $stats")
@@ -36,8 +35,6 @@ class IndexWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Indexing failed", e)
             if (runAttemptCount < 3) Result.retry() else Result.failure()
-        } finally {
-            encoder.close()
         }
     }
 }

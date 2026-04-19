@@ -51,4 +51,27 @@ interface DocumentDao {
      */
     @Query("SELECT id, filePath, title, body, fileType, modifiedAt, embedding FROM documents WHERE embedding IS NOT NULL")
     suspend fun getAllVectors(): List<VectorResult>
+
+    @Query("""
+        SELECT id, title, substr(body, 1, 250) AS bodySnippet, filePath, fileType, modifiedAt, embedding 
+        FROM documents 
+        WHERE embedding IS NOT NULL
+    """)
+    suspend fun getAllEmbeddings(): List<DocumentWithVector>
+
+    // Fetches embeddings only for a specific list of document IDs.
+    // This is highly optimized for the MMR re-ranking step.
+    @Query("SELECT id, embedding, '' as title, '' as bodySnippet, '' as filePath, '' as fileType, 0 as modifiedAt FROM documents WHERE id IN (:docIds) AND embedding IS NOT NULL")
+    suspend fun getEmbeddingsForIds(docIds: List<Long>): List<DocumentWithVector>
 }
+
+// This lightweight POJO prevents memory crashes when fetching thousands of vectors
+data class DocumentWithVector(
+    val id: Long,
+    val title: String,
+    val bodySnippet: String, 
+    val filePath: String,
+    val fileType: String,
+    val modifiedAt: Long,
+    val embedding: ByteArray
+)

@@ -1,0 +1,922 @@
+# Current Implementation State — Hybrid Android Search
+## Full System Audit (Code-Level + Failure Analysis)
+
+---
+
+# 0. SYSTEM STATUS
+
+## Maturity Level:
+⚠️ Early Prototype (Functional but unstable)
+
+## Observed Issues:
+- Poor semantic relevance
+- Occasional crashes (likely memory / heavy operations)
+- Inconsistent ranking quality
+- High latency under scale
+
+---
+
+# 1. DATABASE LAYER
+
+## 1.1 Architecture
+
+- Room Database
+- SQLite (Bundled driver → ensures FTS5 support)
+
+### Tables:
+1. documents
+2. documents_fts (FTS5 virtual table)
+
+---
+
+## 1.2 Schema — documents
+
+| Field | Type | Notes |
+|------|------|------|
+| id | Long | PK |
+| filePath | String | Absolute path |
+| title | String | File name |
+| body | String | FULL document text ❗ |
+| fileType | String | extension |
+| modifiedAt | Long | timestamp |
+| sizeBytes | Long | file size |
+| embedding | FloatArray (BLOB) | 384-d vector |
+
+---
+
+## 1.3 Schema — documents_fts
+
+- Linked via contentEntity
+- Indexed fields:
+  - title
+  - body
+
+---
+
+## 1.4 CRITICAL DESIGN FLAW
+
+### ❗ NO CHUNKING
+
+Current:
+
+1 file → 1 row → 1 embedding
+
+
+Impact:
+- Embedding represents entire document → semantic dilution
+- Large files dominate signal
+- Query matching becomes noisy
+
+---
+
+## 1.5 Memory Risk
+
+- Embeddings stored per document
+- Dense retrieval loads ALL embeddings
+
+Risk:
+- O(N) memory usage
+- Possible OOM on large datasets
+
+---
+
+# 2. INDEXING PIPELINE
+
+## 2.1 Entry Point
+
+- FileIndexer.runFullIndex()
+
+---
+
+## 2.2 File Discovery
+
+### Sources:
+- Documents
+- Downloads
+- /sdcard fallback paths
+
+### Strategy:
+- Walk entire directory tree
+
+---
+
+## 2.3 Incremental Logic
+
+if existingModifiedAt == file.lastModified():
+skip
+
+
+✔ Efficient
+
+---
+
+## 2.4 Parsing
+
+### Component:
+DocumentParser
+
+---
+
+### Behavior:
+
+#### Text files:
+- Reads first 100KB
+
+#### PDF:
+- First 10 pages
+
+---
+
+### Limitations:
+
+- No semantic segmentation
+- No metadata extraction
+- No language handling
+
+---
+
+## 2.5 Embedding Generation
+
+### Component:
+DenseEncoder
+
+---
+
+### Pipeline:
+
+text.take(1500)
+
+Impact:
+- Arbitrary cutoff
+- Important content lost
+
+---
+
+#### 3. Potential Model Mismatch
+
+- Assumes output shape [1, 384]
+- Some MiniLM variants output [1, 256, 384]
+
+Fallback logic exists but unsafe
+
+---
+
+#### 4. No batching
+
+- One inference per file
+- Slow indexing
+
+---
+
+## 2.6 Storage
+
+- Each document stored once
+- Embedding saved as BLOB
+
+---
+
+# 3. SPARSE RETRIEVAL (BM25)
+
+## 3.1 Implementation
+
+### DAO Query:
+
+SELECT ...
+bm25(documents_fts, 1.2, 0.75)
+ORDER BY score ASC
+
+
+---
+
+## 3.2 Query Construction
+
+
+"term1"* AND "term2"* ...
+
+
+---
+
+## 3.3 Strengths
+
+✔ Correct BM25 usage  
+✔ Prefix matching improves recall  
+✔ Fast execution (SQLite optimized)
+
+---
+
+## 3.4 Weaknesses
+
+- No phrase boosting
+- No field weighting (title vs body)
+
+---
+
+# 4. DENSE RETRIEVAL
+
+## 4.1 Current Algorithm
+
+query_vec = encode(query)
+
+for doc in all_docs:
+score = cosine(query_vec, doc_vec)
+
+
+---
+
+## 4.2 Data Source
+
+dao.getAllEmbeddings()
+
+
+Returns:
+- ALL documents with embeddings
+
+---
+
+## 4.3 CRITICAL ISSUES
+
+### 4.3.1 O(N) Complexity
+
+- Linear scan
+- Not scalable
+
+---
+
+### 4.3.2 Memory Explosion
+
+- Loads ALL embeddings into memory
+
+---
+
+### 4.3.3 Threshold Filtering
+
+
+if score < 0.3 → discard
+
+Problems:
+- Arbitrary threshold
+- Sensitive to embedding quality
+- Can remove relevant results
+
+---
+
+### 4.3.4 Embedding Quality Unverified
+
+No validation of:
+- distribution
+- normalization correctness
+
+---
+
+### 4.3.5 Debug Logs Indicate Risk
+
+- Checking for all-zero vectors
+- Suggests model inference issues possible
+
+---
+
+# 5. HYBRID RETRIEVAL
+
+## 5.1 Implementation
+
+- Parallel execution:
+  - BM25
+  - Dense
+
+---
+
+## 5.2 Fusion
+
+### RRF:
+
+score = 1 / (k + rank)
+k = 60
+
+
+✔ Correct implementation
+
+---
+
+## 5.3 Issue
+
+- Garbage in → garbage out
+
+If dense results are poor:
+- RRF polluted
+
+---
+
+# 6. RE-RANKING (LAMBDA MART)
+
+## 6.1 Implementation
+
+- ONNX Runtime
+- Features:
+  - bm25Score
+  - denseScore
+  - daysSinceModified
+
+---
+
+## 6.2 Training Data
+
+
+Synthetic random data
+
+---
+
+## 6.3 CRITICAL FAILURE
+
+### ❗ Model is meaningless
+
+Why:
+- No real relevance labels
+- Random feature-label mapping
+
+Effect:
+- Random ranking
+- Worse than baseline
+
+---
+
+## 6.4 Additional Issues
+
+- Feature scaling undefined
+- No normalization consistency
+
+---
+
+# 7. MMR DIVERSIFICATION
+
+## 7.1 Implementation
+
+✔ Correct
+
+---
+
+## 7.2 Algorithm
+
+
+MMR = λ * relevance - (1-λ) * similarity
+λ = 0.7
+
+
+---
+
+## 7.3 Strength
+
+- Reduces duplicate results
+
+---
+
+## 7.4 Limitation
+
+- Works on chunk-level — but system is document-level
+- Less effective without chunking
+
+---
+
+# 8. UI LAYER
+
+## 8.1 Architecture
+
+- Jetpack Compose
+- ViewModel-driven state
+
+---
+
+## 8.2 Behavior
+
+- Debounced search (200ms)
+- Displays:
+  - title
+  - snippet
+  - score
+  - latency
+
+---
+
+## 8.3 Code Reference
+
+UI rendering and state flow handled cleanly  
+:contentReference[oaicite:0]{index=0}
+
+---
+
+## 8.4 Strengths
+
+✔ Clean UX  
+✔ Latency visibility  
+✔ Stable rendering  
+
+---
+
+# 9. WORK SCHEDULING
+
+## 9.1 WorkManager
+
+- Immediate indexing
+- Periodic (6 hours)
+
+---
+
+## 9.2 Constraints
+
+- Battery not low
+
+---
+
+## 9.3 Strength
+
+✔ Production-ready approach
+
+---
+
+# 10. CRASH ANALYSIS (LIKELY ROOT CAUSES)
+
+## 10.1 OOM (Most Probable)
+
+Cause:
+- Loading all embeddings
+- Large documents
+
+---
+
+## 10.2 TFLite Issues
+
+Cause:
+- Input mismatch
+- Incorrect tensor expectations
+
+---
+
+## 10.3 Long Blocking Operations
+
+Cause:
+- File parsing
+- Embedding generation
+
+---
+
+# 11. QUALITY FAILURE ANALYSIS
+
+## Why results are poor:
+
+### 1. No Chunking
+→ embeddings meaningless
+
+---
+
+### 2. Synthetic LambdaMART
+→ destroys ranking
+
+---
+
+### 3. Dense Retrieval Noise
+→ weak signal
+
+---
+
+### 4. Threshold Filtering
+→ removes valid results
+
+---
+
+### 5. Token Truncation
+→ context loss
+
+---
+
+# 12. PERFORMANCE BOTTLENECKS
+
+| Component | Issue |
+|----------|------|
+| Dense Retrieval | O(N) |
+| Indexing | No batching |
+| Parsing | Blocking |
+| Memory | Full load |
+
+---
+
+# 13. WHAT WORKS WELL
+
+✔ BM25 pipeline  
+✔ RRF fusion  
+✔ MMR diversification  
+✔ Database design  
+✔ WorkManager indexing  
+✔ UI system  
+
+---
+
+# 14. WHAT IS FUNDAMENTALLY BROKEN
+
+❌ Chunking missing  
+❌ LambdaMART invalid  
+❌ Dense retrieval inefficient  
+❌ Embedding pipeline questionable  
+
+---
+
+# 15. GAP VS TARGET SYSTEM
+
+| Component | Status |
+|----------|-------|
+| Chunking | ❌ Missing |
+| ANN (FAISS) | ❌ Missing |
+| Proper reranking | ❌ Broken |
+| Query processing | ⚠ Minimal |
+| Aggregation | ❌ Missing |
+
+---
+
+# 16. IMMEDIATE FIX PRIORITY
+
+### P0 (BLOCKING)
+
+1. Implement chunking
+2. Remove LambdaMART
+3. Fix dense retrieval memory usage
+
+---
+
+### P1
+
+4. Add better scoring fusion
+5. Validate embeddings
+
+---
+
+### P2
+
+6. Introduce ANN (FAISS optional)
+
+---
+
+# FINAL SYSTEM DIAGNOSIS
+
+This system has:
+
+✔ Correct architecture direction  
+❌ Incorrect execution in key areas  
+
+Biggest root cause:
+> Embedding pipeline + ranking layer are fundamentally flawed
+
+# 17. ML MODEL GENERATION PIPELINE (CRITICAL — NOW FULLY DOCUMENTED)
+
+This system uses **two offline-generated ML artifacts**:
+
+1. MiniLM TFLite model (semantic embeddings)
+2. LambdaMART ONNX model (reranking)
+
+---
+
+# 17.1 MiniLM Embedding Model (TFLite)
+
+## Source Model
+
+- HuggingFace:
+  sentence-transformers/all-MiniLM-L6-v2
+
+---
+
+## Conversion Pipeline
+
+### Step 1: Load Model
+- TFAutoModel
+- AutoTokenizer
+
+---
+
+### Step 2: Custom Wrapper
+
+Purpose:
+- Convert token-level embeddings → sentence embedding
+
+#### Key operations:
+
+token_embeddings = outputs.last_hidden_state
+
+
+Mean pooling:
+
+sum_embeddings = Σ(token_embeddings * attention_mask)
+sentence_embedding = sum_embeddings / valid_tokens
+
+
+Normalization:
+
+embedding = L2_normalize(sentence_embedding)
+
+
+---
+
+## Step 3: TFLite Conversion
+
+### FP32 Model
+
+converter = tf.lite.TFLiteConverter.from_concrete_functions(...)
+
+---
+
+### INT8 Model (Dynamic Range Quantization)
+
+
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+
+---
+
+## ⚠️ CRITICAL ISSUES
+
+### 1. NOT TRUE INT8 INFERENCE
+Fact:
+- This is **dynamic range quantization**, not full INT8
+
+Meaning:
+- Weights → INT8
+- Activations → FP32
+
+Impact:
+- Limited speedup
+- Larger memory than expected
+
+---
+
+### 2. SELECT_TF_OPS USED
+
+tf.lite.OpsSet.SELECT_TF_OPS
+
+
+Impact:
+- Requires Flex delegate
+- Increases binary size
+- Slower inference on mobile
+
+---
+
+### 3. TOKENIZER MISMATCH RISK
+
+Saved:
+vocab.txt
+
+
+But:
+- HuggingFace tokenizer ≠ your custom tokenizer fully
+
+Risk:
+- Token mismatch
+- Embedding degradation
+
+---
+
+### 4. INPUT SIGNATURE ASSUMPTION
+
+Model expects:
+
+input_ids: [1, 256]
+attention_mask: [1, 256]
+
+
+Your Android code:
+- Sometimes sends 3 inputs (token_type_ids)
+
+Fallback logic exists → fragile
+
+---
+
+### 5. POOLING CORRECTNESS
+
+✔ Mean pooling implemented correctly  
+✔ L2 normalization applied (important for cosine)
+
+---
+
+## FINAL ASSESSMENT
+
+| Component | Status |
+|----------|-------|
+| Model choice | ✅ Good |
+| Pooling | ✅ Correct |
+| Quantization | ⚠ Partial |
+| Tokenization | ⚠ Risk |
+| TFLite ops | ⚠ Heavy |
+
+---
+
+# 17.2 LambdaMART Model (ONNX)
+
+## Training Pipeline
+
+### Data Generation
+
+features = random
+labels = heuristic rules
+
+Features:
+| Index | Meaning |
+|------|--------|
+| 0 | BM25 score |
+| 1 | Dense score |
+| 2 | Recency |
+
+---
+
+### Label Generation
+
+Artificial logic:
+if bm25 < -8 and dense > 0.7 → label 2
+elif bm25 < -5 or dense > 0.5 → label 1
+...
+
+
+---
+
+### Training
+
+
+LGBMRanker(objective="lambdarank")
+
+
+Grouped by:
+
+query_groups = [100, 100, ...]
+
+
+
+
+---
+
+### Conversion
+
+
+onnxmltools.convert_lightgbm(...)
+
+
+
+
+Output:
+- reranker.onnx
+
+---
+
+## ❗ CRITICAL FAILURE ANALYSIS
+
+### 1. SYNTHETIC DATA
+
+Fact:
+- No real query-document relevance
+
+Impact:
+- Model learns **fake patterns**
+
+---
+
+### 2. FEATURE DISTRIBUTION MISMATCH
+
+Training:
+- random uniform distribution
+
+Inference:
+- real BM25 + cosine
+
+→ Distribution shift
+
+---
+
+### 3. LABEL NOISE
+
+Labels derived from:
+- arbitrary thresholds
+
+→ Not aligned with user intent
+
+---
+
+### 4. NO NORMALIZATION CONSISTENCY
+
+Training:
+- raw features
+
+Inference:
+- partially normalized scores
+
+→ Model input mismatch
+
+---
+
+### 5. SMALL FEATURE SET
+
+Only 3 features:
+- insufficient for ranking
+
+---
+
+## RESULT
+
+The model behaves as:
+
+
+random nonlinear scoring function
+
+
+
+NOT a true ranking model
+
+---
+
+## FINAL ASSESSMENT
+
+| Component | Status |
+|----------|-------|
+| Framework | ✅ Correct |
+| Conversion | ✅ Correct |
+| Training data | ❌ Invalid |
+| Model quality | ❌ Broken |
+| Usefulness | ❌ Harmful |
+
+---
+
+# 17.3 SYSTEM-LEVEL IMPACT
+
+## MiniLM Issues Cause:
+- Slight semantic degradation
+- Possible inference overhead
+
+---
+
+## LambdaMART Issues Cause:
+- Completely unstable ranking
+- Overrides correct RRF ordering
+
+---
+
+## Combined Effect
+
+Even if retrieval is good:
+
+
+LambdaMART → destroys final ranking
+
+
+---
+
+# 17.4 REQUIRED ACTION
+
+### Immediate (P0)
+
+- REMOVE LambdaMART entirely
+
+---
+
+### Medium (P1)
+
+- Validate MiniLM embeddings:
+  - Check cosine distribution
+  - Ensure non-zero vectors
+
+---
+
+### Advanced (P2)
+
+- Rebuild MiniLM without SELECT_TF_OPS
+- OR use pre-optimized mobile model
+
+---
+
+# FINAL CONCLUSION
+
+The ML pipeline exists, but:
+
+- MiniLM → usable with caveats  
+- LambdaMART → fundamentally invalid  
+
+This is a **key reason for poor results**.
+
+# 18. SYSTEM CHANGELOG
+
+## Phase 0 - Cleanup (2026-04-19)
+
+### Removed
+- ❌ LambdaMART reranker (synthetic training data)
+- ❌ ONNX Runtime dependency
+- ❌ `app/src/main/assets/reranker.onnx`
+
+### Disabled
+- ⏸ Dense retrieval in live search path (`ENABLE_DENSE = false`)
+
+### Added
+- ✅ Performance logging framework (`PerformanceLogger`)
+- ✅ Weighted fusion placeholder (`0.6 * BM25 + 0.4 * Dense`) for when dense is re-enabled
+- ✅ Debug UI toggle for score visibility
+- ✅ Query token + top-5 result validation logs
+
+### Baseline Performance
+- Query latency: TBD (capture from `[PERF]` logs on device)
+- Memory: TBD MB (capture from `[PERF]` logs on device)
+- Index time: TBD for 1000 files
+
+### Build Verification
+- ✅ `:app:assembleDebug` passes after removing LambdaMART/ONNX
+

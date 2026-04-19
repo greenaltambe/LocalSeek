@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -64,34 +65,28 @@ fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        Box(
+        SearchBar(
+            query = uiState.query,
+            onQueryChange = viewModel::onQueryChanged,
+            onSearch = { },
+            active = false,
+            onActiveChange = { },
+            placeholder = { Text(stringResource(R.string.search_files)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (uiState.query.isNotBlank()) {
+                    IconButton(onClick = { viewModel.onQueryChanged("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        ) {
-            SearchBar(
-                query = uiState.query,
-                onQueryChange = { viewModel.onQueryChanged(it) },
-                onSearch = { /* Handle explicit search if needed */ },
-                active = false,
-                onActiveChange = { },
-                placeholder = { Text(stringResource(R.string.search_files)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (uiState.query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = SearchBarDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            ) { }
-        }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = SearchBarDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        ) { }
 
         AnimatedVisibility(
             visible = uiState.isLoading,
@@ -120,24 +115,31 @@ fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
-            if (uiState.latencyMs > 0) {
-                Text(
-                    text = "${uiState.latencyMs}ms",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Bold
-                )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (uiState.latencyMs > 0) {
+                    Text(
+                        text = "${uiState.latencyMs}ms",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                TextButton(onClick = viewModel::onToggleShowScores) {
+                    Text(if (uiState.showScores) "Hide scores" else "Show scores")
+                }
             }
         }
 
         AnimatedContent(
             targetState = uiState.results,
             transitionSpec = {
-                (fadeIn() + slideInVertically { it / 2 }).togetherWith(fadeOut() + slideOutVertically { it / 2 })
+                (fadeIn() + slideInVertically { it / 2 })
+                    .togetherWith(fadeOut() + slideOutVertically { it / 2 })
             },
-            label = "ResultsAnimation"
+            label = "results"
         ) { results ->
-            if (results.isEmpty() && !uiState.isLoading && uiState.query.isNotEmpty()) {
+            if (results.isEmpty() && !uiState.isLoading && uiState.query.isNotBlank()) {
                 EmptyState()
             } else {
                 LazyColumn(
@@ -145,8 +147,8 @@ fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(results, key = { it.id }) { result ->
-                        ResultCard(result)
+                    items(items = results, key = { it.id }) { result ->
+                        ResultCard(result = result, showScore = uiState.showScores)
                     }
                 }
             }
@@ -155,7 +157,7 @@ fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ResultCard(result: SearchResult) {
+fun ResultCard(result: SearchResult, showScore: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -205,7 +207,7 @@ fun ResultCard(result: SearchResult) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     Text(
                         text = result.fileType.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
@@ -230,14 +232,12 @@ fun ResultCard(result: SearchResult) {
                     lineHeight = 20.sp
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showScore) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Icon(
                             Icons.Default.History,
                             contentDescription = null,
@@ -246,7 +246,7 @@ fun ResultCard(result: SearchResult) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Match Score: ${"%.3f".format(result.score)}",
+                            text = "Match Score: ${String.format("%.3f", result.score)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )

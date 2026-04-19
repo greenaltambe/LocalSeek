@@ -1,6 +1,7 @@
 package com.augt.localseek.ml
 
 import android.content.Context
+import android.util.Log
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.MappedByteBuffer
@@ -12,14 +13,21 @@ class DenseEncoder(context: Context) {
     private var interpreter: Interpreter
 
     init {
-        // Load the TFLite model from assets
         val modelBuffer = loadModelFile(context, "minilm_int8.tflite")
-
-        // Setup TFLite Options (e.g., Use 4 threads for faster CPU execution)
         val options = Interpreter.Options().apply {
             setNumThreads(4)
         }
         interpreter = Interpreter(modelBuffer, options)
+        
+        // Log model info for debugging
+        for (i in 0 until interpreter.inputTensorCount) {
+            val tensor = interpreter.getInputTensor(i)
+            Log.d("DenseEncoder", "Input $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
+        }
+        for (i in 0 until interpreter.outputTensorCount) {
+            val tensor = interpreter.getOutputTensor(i)
+            Log.d("DenseEncoder", "Output $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
+        }
     }
 
     private fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {
@@ -39,23 +47,41 @@ class DenseEncoder(context: Context) {
     fun encode(text: String): FloatArray {
         // 1. Tokenize the text
         val (inputIds, attentionMask) = tokenizer.tokenize(text, 256)
+        val tokenTypeIds = IntArray(256) { 0 } // Standard for single-sentence BERT
 
-        // 2. Prepare inputs matching Python tf.function signature ([1, 256])
-        val inputArray0 = Array(1) { inputIds }
-        val inputArray1 = Array(1) { attentionMask }
-
-        // TFLite requires inputs as an Object array
-        val inputs = arrayOf<Any>(inputArray0, inputArray1)
+        // 2. Prepare inputs matching most BERT TFLite models [1, 256]
+        // We provide 3 inputs as many MiniLM models require input_ids, attention_mask, and segment_ids
+        val inputs = arrayOf<Any>(
+            Array(1) { inputIds },
+            Array(1) { attentionMask },
+            Array(1) { tokenTypeIds }
+        )
 
         // 3. Prepare output buffer ([1, 384])
+        // We assume the model has a pooling layer. If not, shape would be [1, 256, 384]
         val outputArray = Array(1) { FloatArray(384) }
         val outputs = mutableMapOf<Int, Any>(0 to outputArray)
 
         // 4. Run the Neural Network
-        interpreter.runForMultipleInputsOutputs(inputs, outputs)
+        try {
+            interpreter.runForMultipleInputsOutputs(inputs, outputs)
+        } catch (e: Exception) {
+            Log.e("DenseEncoder", "Inference failed: ${e.message}")
+            // Fallback for models with 2 inputs
+            if (e.message?.contains("input") == true) {
+                val inputs2 = arrayOf<Any>(Array(1) { inputIds }, Array(1) { attentionMask })
+                interpreter.runForMultipleInputsOutputs(inputs2, outputs)
+            }
+        }
 
-        // Return the 384-float vector
-        return outputArray[0]
+        val result = outputArray[0]
+        
+        // Check if output is all zeros
+        if (result.all { it == 0.0f }) {
+            Log.w("DenseEncoder", "Warning: Encoder returned an all-zero vector for text: $text")
+        }
+
+        return result
     }
 
     fun close() {

@@ -25,25 +25,22 @@ class BertTokenizer(context: Context, vocabFilename: String = "vocab.txt") {
         val tokens = mutableListOf<Int>()
         tokens.add(vocab["[CLS]"] ?: 101)
 
-        // Basic clean & split (Lowercasing as MiniLM is uncased)
-        val words = text.lowercase().replace(Regex("[^a-z0-9 ]"), " ").split("\\s+".toRegex()).filter { it.isNotBlank() }
+        // Split by whitespace and punctuation, but keep the word pieces
+        val words = text.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
 
         for (word in words) {
             if (tokens.size >= maxLength - 1) break // Leave room for [SEP]
 
             var start = 0
-            var isBad = false
             val subTokens = mutableListOf<Int>()
 
             while (start < word.length) {
                 var end = word.length
-                var curStr = ""
                 var matchToken = -1
 
                 while (start < end) {
                     val subStr = if (start == 0) word.substring(start, end) else "##" + word.substring(start, end)
                     if (vocab.containsKey(subStr)) {
-                        curStr = subStr
                         matchToken = vocab[subStr]!!
                         break
                     }
@@ -51,18 +48,15 @@ class BertTokenizer(context: Context, vocabFilename: String = "vocab.txt") {
                 }
 
                 if (matchToken == -1) {
-                    isBad = true
-                    break
+                    // If no match is found, add [UNK] and move to the next character
+                    subTokens.add(vocab["[UNK]"] ?: 100)
+                    start++
+                } else {
+                    subTokens.add(matchToken)
+                    start = end
                 }
-                subTokens.add(matchToken)
-                start = end
             }
-
-            if (isBad) {
-                tokens.add(vocab["[UNK]"] ?: 100)
-            } else {
-                tokens.addAll(subTokens)
-            }
+            tokens.addAll(subTokens)
         }
 
         tokens.add(vocab["[SEP]"] ?: 102)

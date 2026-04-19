@@ -1,13 +1,14 @@
 package com.augt.localseek.ui
 
 import android.app.Application
+import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.augt.localseek.ml.DenseEncoder
-import com.augt.localseek.ranking.LambdaMARTReranker
+import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.DenseRetriever
-import com.augt.localseek.retrieval.HybridRetriever
+import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,20 +16,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.system.measureTimeMillis
 
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        const val ENABLE_DENSE = false
+        private const val BM25_WEIGHT = 0.6f
+        private const val DENSE_WEIGHT = 0.4f
+        private const val TAG_VALIDATION = "SearchValidation"
+    }
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
-    // Initialize our ML Encoder
-    private val denseEncoder = DenseEncoder(application)
-
-    // Initialize our Retrievers
+    private val performanceLogger = PerformanceLogger()
     private val bm25Retriever = BM25Retriever(application)
-    private val denseRetriever = DenseRetriever(application, denseEncoder)
-    private val hybridRetriever = HybridRetriever(bm25Retriever, denseRetriever)
-    private val reranker = LambdaMARTReranker(application)
+    private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
 
     private var searchJob: Job? = null
 
@@ -47,30 +51,117 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.update { it.copy(isLoading = true, statusMessage = "Searching…") }
             delay(200)
 
-            val startTime = System.currentTimeMillis()
+            val query = normalizeQuery(newQuery)
+            val analyzedTokens = analyzeTokens(query)
+            Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
 
-            // --- FINAL RE-RANKING PIPELINE ---
-            // 1. Get hybrid candidates (with original scores)
-            val candidates = hybridRetriever.search(newQuery)
-            // 2. Re-rank them with the AI model
-            val list = reranker.rerank(candidates)
-            
-            val latency = System.currentTimeMillis() - startTime
+            val memBeforeMb = performanceLogger.memoryUsageMb()
+            val totalStartMs = System.currentTimeMillis()
+
+            var bm25Results = emptyList<SearchResult>()
+            val bm25LatencyMs = measureTimeMillis {
+                bm25Results = bm25Retriever.search(query)
+            }
+
+            var denseResults = emptyList<SearchResult>()
+            val denseLatencyMs = if (ENABLE_DENSE) {
+                measureTimeMillis {
+                    denseResults = denseRetriever?.search(query).orEmpty()
+                }
+            } else {
+                0L
+            }
+
+            var finalResults = emptyList<SearchResult>()
+            val fusionLatencyMs = measureTimeMillis {
+                finalResults = if (ENABLE_DENSE) {
+                    weightedFusion(bm25Results, denseResults)
+                } else {
+                    bm25Results
+                }
+            }
+
+            val totalLatencyMs = System.currentTimeMillis() - totalStartMs
+            val memAfterMb = performanceLogger.memoryUsageMb()
+
+            performanceLogger.logQuery(
+                query = query,
+                bm25LatencyMs = bm25LatencyMs,
+                denseLatencyMs = denseLatencyMs,
+                fusionLatencyMs = fusionLatencyMs,
+                totalLatencyMs = totalLatencyMs,
+                bm25Count = bm25Results.size,
+                denseCount = denseResults.size,
+                finalCount = finalResults.size,
+                memoryBeforeMb = memBeforeMb,
+                memoryAfterMb = memAfterMb
+            )
+
+            logTopResults(query, finalResults)
 
             _uiState.update {
                 it.copy(
-                    results = list,
-                    statusMessage = if (list.isEmpty()) "No results" else "Final Rank: ${list.size} results",
+                    results = finalResults,
+                    statusMessage = if (finalResults.isEmpty()) {
+                        "No results"
+                    } else {
+                        "BM25: ${finalResults.size} results"
+                    },
                     isLoading = false,
-                    latencyMs = latency
+                    latencyMs = totalLatencyMs
                 )
             }
         }
     }
 
+    fun onToggleShowScores() {
+        _uiState.update { current -> current.copy(showScores = !current.showScores) }
+    }
+
+    @VisibleForTesting
+    internal fun analyzeTokens(query: String): List<String> {
+        return query
+            .lowercase()
+            .split("\\s+".toRegex())
+            .map { it.trim().replace("[^a-z0-9_]".toRegex(), "") }
+            .filter { it.isNotBlank() }
+    }
+
+    private fun normalizeQuery(query: String): String = query.trim().lowercase()
+
+    private fun weightedFusion(
+        bm25Results: List<SearchResult>,
+        denseResults: List<SearchResult>
+    ): List<SearchResult> {
+        val byId = mutableMapOf<Long, SearchResult>()
+        val weightedScores = mutableMapOf<Long, Float>()
+
+        bm25Results.forEach { result ->
+            byId[result.id] = result
+            weightedScores[result.id] = (weightedScores[result.id] ?: 0f) + (BM25_WEIGHT * result.score)
+        }
+
+        denseResults.forEach { result ->
+            byId[result.id] = result
+            weightedScores[result.id] = (weightedScores[result.id] ?: 0f) + (DENSE_WEIGHT * result.score)
+        }
+
+        return weightedScores.entries
+            .sortedByDescending { it.value }
+            .mapNotNull { (id, score) -> byId[id]?.copy(score = score) }
+    }
+
+    private fun logTopResults(query: String, results: List<SearchResult>) {
+        results.take(5).forEachIndexed { index, result ->
+            Log.d(
+                TAG_VALIDATION,
+                "[VALIDATION] Query: \"$query\" | #${index + 1}: ${result.title} | score=${"%.4f".format(result.score)}"
+            )
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
-        // Prevent memory leaks by shutting down the TensorFlow Lite model when the app closes
-        denseEncoder.close()
+        denseRetriever?.close()
     }
 }

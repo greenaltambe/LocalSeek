@@ -13,7 +13,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 @Database(
     // List all of @Entity classes here.
     entities = [DocumentEntity::class, DocumentFts::class],
-    version = 8, // Increment to 8 to clear old data and force re-index
+    version = 10, // Incremented to 10 to clear old data and force re-index due to schema changes
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)

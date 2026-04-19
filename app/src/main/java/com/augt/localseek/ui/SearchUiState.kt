@@ -7,5 +7,6 @@ data class SearchUiState(
     val results: List<SearchResult> = emptyList(),
     val statusMessage: String = "Type to search",
     val isLoading: Boolean = false,
-    val latencyMs: Long = 0L // Crucial for your Phase 7 Evaluation!
+    val latencyMs: Long = 0L,
+    val showScores: Boolean = false
 )
