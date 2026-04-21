@@ -9,6 +9,7 @@ import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.logging.measureSuspendTime
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.retrieval.BM25Retriever
+import com.augt.localseek.retrieval.CrossEncoderReranker
 import com.augt.localseek.retrieval.DenseRetriever
 import com.augt.localseek.retrieval.FusionCandidate
 import com.augt.localseek.retrieval.FusionRanker
@@ -43,6 +44,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val queryProcessorEncoder = DenseEncoder(application)
     private val queryProcessor = QueryProcessor(application, queryProcessorEncoder)
     private val fusionRanker = FusionRanker()
+    private val crossEncoderReranker = CrossEncoderReranker(application)
     private val queryCache = QueryCache(maxSize = 50)
     private var latestAggregatedResults: List<FileResult> = emptyList()
 
@@ -54,16 +56,33 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
         if (newQuery.isBlank()) {
             _uiState.update {
-                it.copy(results = emptyList(), statusMessage = "Type to search", isLoading = false, latencyMs = 0L)
+                it.copy(
+                    results = emptyList(),
+                    statusMessage = "Type to search",
+                    isLoading = false,
+                    loadingStage = "Idle",
+                    loadingProgress = 0f,
+                    errorMessage = null,
+                    latencyMs = 0L
+                )
             }
             return
         }
 
         searchJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, statusMessage = "Searching…") }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    loadingStage = "Processing query",
+                    loadingProgress = 0.15f,
+                    errorMessage = null,
+                    statusMessage = "Searching..."
+                )
+            }
             delay(200)
 
             val processed = queryProcessor.process(newQuery)
+            _uiState.update { it.copy(loadingStage = "Retrieving results", loadingProgress = 0.45f) }
             val query = normalizeQuery(processed.normalized.normalized)
             val analyzedTokens = processed.keyTerms.ifEmpty { analyzeTokens(query) }
             Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
@@ -81,6 +100,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                         results = applyFilters(cachedResults, it.activeFilters),
                         statusMessage = "Cache: ${cachedResults.size} files",
                         isLoading = false,
+                        loadingStage = "Done",
+                        loadingProgress = 1f,
+                        errorMessage = null,
                         latencyMs = 2L
                     )
                 }
@@ -130,7 +152,13 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 rankAndDiversify(query, bm25Results, denseResults)
             }
 
-            latestAggregatedResults = ResultAggregator.aggregateToFiles(finalResults, query)
+            _uiState.update { it.copy(loadingStage = "Reranking", loadingProgress = 0.8f) }
+
+            val (rerankedResults, rerankLatencyMs) = measureSuspendTime("Rerank") {
+                crossEncoderReranker.rerank(query, finalResults)
+            }
+
+            latestAggregatedResults = ResultAggregator.aggregateToFiles(rerankedResults, query)
             queryCache.put(query, latestAggregatedResults)
             val filteredResults = applyFilters(latestAggregatedResults, _uiState.value.activeFilters)
 
@@ -141,7 +169,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 query = query,
                 bm25LatencyMs = bm25LatencyMs,
                 denseLatencyMs = denseLatencyMs,
-                fusionLatencyMs = fusionLatencyMs,
+                fusionLatencyMs = fusionLatencyMs + rerankLatencyMs,
                 totalLatencyMs = totalLatencyMs,
                 bm25Count = bm25Results.size,
                 denseCount = denseResults.size,
@@ -161,10 +189,32 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                         if (ENABLE_DENSE) "Hybrid: ${filteredResults.size} files" else "BM25: ${filteredResults.size} files"
                     },
                     isLoading = false,
+                    loadingStage = "Done",
+                    loadingProgress = 1f,
+                    errorMessage = null,
                     latencyMs = totalLatencyMs
                 )
             }
         }
+    }
+
+    // Phase 9 UI compatibility helpers.
+    fun updateQuery(newQuery: String) = onQueryChanged(newQuery)
+
+    fun search() {
+        onQueryChanged(_uiState.value.query)
+    }
+
+    fun removeFilter(filterType: FilterType) {
+        when (filterType) {
+            is FilterType.FileType -> onFileTypeFilterChanged(null)
+            is FilterType.DateRange -> applyCurrentFilters(listOf(FilterType.All))
+            FilterType.All -> applyCurrentFilters(listOf(FilterType.All))
+        }
+    }
+
+    fun openFile(result: FileResult) {
+        Log.d(TAG_VALIDATION, "[UI] Open file requested: ${result.filePath}")
     }
 
     fun onFileTypeFilterChanged(type: String?) {
@@ -293,6 +343,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         denseRetriever?.close()
+        crossEncoderReranker.close()
         queryProcessorEncoder.close()
     }
 }

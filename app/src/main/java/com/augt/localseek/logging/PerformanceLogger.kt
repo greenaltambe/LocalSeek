@@ -40,6 +40,19 @@ class PerformanceLogger(
                 memoryAfterMb = memoryAfterMb
             )
         )
+
+        PerformanceHistoryStore.add(
+            LoggedQueryMetric(
+                query = query,
+                bm25LatencyMs = bm25LatencyMs,
+                denseLatencyMs = denseLatencyMs,
+                fusionLatencyMs = fusionLatencyMs,
+                totalLatencyMs = totalLatencyMs,
+                finalCount = finalCount,
+                memoryAfterMb = memoryAfterMb,
+                timestamp = System.currentTimeMillis()
+            )
+        )
     }
 
     @VisibleForTesting

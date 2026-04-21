@@ -1,15 +1,7 @@
 package com.augt.localseek.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,133 +11,123 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.augt.localseek.R
+import com.augt.localseek.retrieval.FileResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
+fun SearchScreen(
+    viewModel: SearchViewModel,
+    modifier: Modifier = Modifier,
+    onNavigateToSettings: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        SearchBar(
-            query = uiState.query,
-            onQueryChange = viewModel::onQueryChanged,
-            onSearch = { },
-            active = false,
-            onActiveChange = { },
-            placeholder = { Text(stringResource(R.string.search_files)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (uiState.query.isNotBlank()) {
-                    IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text("LocalSeek") },
+                actions = {
+                    if (uiState.latencyMs > 0L) {
+                        PerformanceChip(latencyMs = uiState.latencyMs)
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Toggle scores")
                     }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = SearchBarDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             )
-        ) { }
-
-        AnimatedVisibility(
-            visible = uiState.isLoading,
-            enter = fadeIn(),
-            exit = fadeOut()
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            LinearProgressIndicator(
+            SearchInput(
+                query = uiState.query,
+                onQueryChange = viewModel::updateQuery,
+                onSearch = {
+                    viewModel.search()
+                    keyboardController?.hide()
+                },
+                isSearching = uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .height(2.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.Transparent
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = uiState.statusMessage,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    .padding(16.dp)
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (uiState.latencyMs > 0) {
-                    Text(
-                        text = "${uiState.latencyMs}ms",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                TextButton(onClick = viewModel::onToggleShowScores) {
-                    Text(if (uiState.showScores) "Hide scores" else "Show scores")
-                }
+            val appliedFilters = toAppliedFilters(uiState.activeFilters)
+            if (appliedFilters.isNotEmpty()) {
+                FilterChipsRow(
+                    filters = appliedFilters,
+                    onFilterRemove = { viewModel.removeFilter(it.type) }
+                )
             }
-        }
 
-        FilterRow(
-            activeFilters = uiState.activeFilters,
-            onFilterSelected = { type -> viewModel.onFileTypeFilterChanged(type) }
-        )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                when {
+                    uiState.errorMessage != null -> ErrorState(
+                        error = SearchError.Unknown(uiState.errorMessage ?: "Unknown"),
+                        onRetry = viewModel::search
+                    )
 
-        AnimatedContent(
-            targetState = uiState.results,
-            transitionSpec = {
-                (fadeIn() + slideInVertically { it / 2 })
-                    .togetherWith(fadeOut() + slideOutVertically { it / 2 })
-            },
-            label = "results"
-        ) { results ->
-            if (results.isEmpty() && !uiState.isLoading && uiState.query.isNotBlank()) {
-                EmptyState()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(items = results, key = { it.filePath }) { result ->
-                        FileResultCard(result = result, showScore = uiState.showScores)
-                    }
+                    uiState.isLoading -> LoadingState(
+                        stage = uiState.loadingStage,
+                        progress = uiState.loadingProgress
+                    )
+
+                    uiState.query.isBlank() -> IdleState(onSuggestionClick = viewModel::updateQuery)
+
+                    uiState.results.isEmpty() -> EmptyState(query = uiState.query)
+
+                    else -> SuccessState(
+                        results = uiState.results,
+                        showScore = uiState.showScores
+                    )
                 }
             }
         }
@@ -153,57 +135,245 @@ fun SearchScreen(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FilterRow(activeFilters: List<FilterType>, onFilterSelected: (String?) -> Unit) {
-    val chipItems = listOf(
-        "All" to null,
-        "PDF" to "pdf",
-        "TXT" to "txt",
-        "MD" to "md"
+private fun SearchInput(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    isSearching: Boolean,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier,
+        placeholder = { Text("Search your files...") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+        trailingIcon = {
+            if (isSearching) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            } else if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                }
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        singleLine = true,
+        shape = MaterialTheme.shapes.extraLarge
     )
+}
 
+@Composable
+private fun PerformanceChip(latencyMs: Long) {
+    val color = when {
+        latencyMs < 200 -> MaterialTheme.colorScheme.tertiary
+        latencyMs < 400 -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    Surface(
+        color = color.copy(alpha = 0.1f),
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.padding(end = 8.dp)
+    ) {
+        Text(
+            text = "${latencyMs}ms",
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun FilterChipsRow(
+    filters: List<AppliedFilter>,
+    onFilterRemove: (AppliedFilter) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val selectedType = activeFilters.filterIsInstance<FilterType.FileType>().firstOrNull()?.type
-        chipItems.forEach { (label, type) ->
+        filters.forEach { filter ->
             FilterChip(
-                selected = if (type == null) selectedType == null else selectedType == type,
-                onClick = { onFilterSelected(type) },
-                label = { Text(label) }
+                selected = true,
+                onClick = { onFilterRemove(filter) },
+                label = { Text(filter.label) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = filter.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Remove filter",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             )
         }
     }
 }
 
 @Composable
-fun EmptyState() {
+private fun IdleState(onSuggestionClick: (String) -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 64.dp),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.surfaceVariant
+            modifier = Modifier.size(100.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Search your local files",
+            style = MaterialTheme.typography.headlineSmall
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SuggestionChip(
+            onClick = { onSuggestionClick("machine learning tutorials") },
+            label = { Text("machine learning tutorials") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SuggestionChip(
+            onClick = { onSuggestionClick("kotlin coroutines example") },
+            label = { Text("kotlin coroutines example") }
+        )
+    }
+}
+
+@Composable
+private fun LoadingState(stage: String, progress: Float) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(56.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = stage, style = MaterialTheme.typography.bodyLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = Modifier.width(200.dp)
+        )
+    }
+}
+
+@Composable
+private fun SuccessState(results: List<FileResult>, showScore: Boolean) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(
+                text = "${results.size} results found",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        items(items = results, key = { it.filePath }) { result ->
+            FileResultCard(result = result, showScore = showScore)
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(error: SearchError, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = error.title, style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = error.message,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Retry")
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(query: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.SearchOff,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No files found",
+            text = "No results found",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Try adjusting your search query",
+            text = "No files match \"$query\"",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private fun toAppliedFilters(filters: List<FilterType>): List<AppliedFilter> {
+    return filters.mapNotNull { filter ->
+        when (filter) {
+            is FilterType.FileType -> AppliedFilter(filter, filter.type.uppercase(), Icons.Default.Description)
+            is FilterType.DateRange -> AppliedFilter(filter, "Date", Icons.Default.CalendarToday)
+            FilterType.All -> null
+        }
+    }
+}
+
+private data class AppliedFilter(
+    val type: FilterType,
+    val label: String,
+    val icon: ImageVector
+)
+
+private sealed class SearchError(val title: String, val message: String) {
+    data class Unknown(val raw: String) : SearchError("Something went wrong", raw)
 }

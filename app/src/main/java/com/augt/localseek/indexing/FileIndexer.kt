@@ -6,12 +6,14 @@ import android.util.Log
 import com.augt.localseek.data.AppDatabase
 import com.augt.localseek.data.DocumentEntity
 import com.augt.localseek.ml.DenseEncoder
+import com.augt.localseek.retrieval.DenseRetriever
 import java.io.File
 
 class FileIndexer(private val context: Context) {
 
     private val dao = AppDatabase.getInstance(context).documentDao()
     private val chunkDao = AppDatabase.getInstance(context).chunkDao()
+    private val denseRetriever = DenseRetriever(context)
     private val textChunker = TextChunker(chunkSize = 150, overlap = 40)
 
     private val scanRoots: List<File> get() = listOf(
@@ -100,6 +102,16 @@ class FileIndexer(private val context: Context) {
 
         // Cleanup AI from memory when done
         denseEncoder?.close()
+
+        try {
+            Log.d("FileIndexer", "Rebuilding ANN index (LSH)...")
+            denseRetriever.rebuildIndex()
+            Log.d("FileIndexer", "ANN index rebuild complete")
+        } catch (e: Exception) {
+            Log.e("FileIndexer", "ANN index rebuild failed", e)
+        } finally {
+            denseRetriever.close()
+        }
 
         return IndexStats(newCount, updatedCount, skippedCount, errorCount)
     }

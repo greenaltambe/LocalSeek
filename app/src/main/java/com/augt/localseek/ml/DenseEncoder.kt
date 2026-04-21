@@ -92,3 +92,69 @@ class DenseEncoder(context: Context) {
         interpreter.close()
     }
 }
+
+class CrossEncoder(context: Context) {
+
+    companion object {
+        private const val TAG = "CrossEncoder"
+        private const val MAX_LENGTH = 256
+        private const val MODEL_FILE = "models/cross_encoder.tflite"
+    }
+
+    private val tokenizer = BertTokenizer(context)
+    private val interpreter: Interpreter?
+
+    val isAvailable: Boolean
+        get() = interpreter != null
+
+    init {
+        interpreter = try {
+            val modelBuffer = loadModelFile(context, MODEL_FILE)
+            val options = Interpreter.Options().apply {
+                setNumThreads(4)
+                setUseNNAPI(false)
+            }
+            Interpreter(modelBuffer, options).also {
+                Log.i(TAG, "Loaded $MODEL_FILE")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Cross-encoder model unavailable; reranking will use fallback", e)
+            null
+        }
+    }
+
+    fun score(query: String, document: String): Float {
+        val current = interpreter ?: return 0f
+
+        return try {
+            val (inputIds, attentionMask) = tokenizer.tokenize("$query [SEP] $document", MAX_LENGTH)
+            val output = Array(1) { FloatArray(1) }
+
+            current.runForMultipleInputsOutputs(
+                arrayOf(arrayOf(inputIds), arrayOf(attentionMask)),
+                mapOf(0 to output)
+            )
+
+            output[0][0]
+        } catch (e: Exception) {
+            Log.e(TAG, "Cross-encoder scoring failed", e)
+            0f
+        }
+    }
+
+    fun close() {
+        interpreter?.close()
+    }
+
+    private fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {
+        val fileDescriptor = context.assets.openFd(modelName)
+        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        return fileChannel.map(
+            FileChannel.MapMode.READ_ONLY,
+            fileDescriptor.startOffset,
+            fileDescriptor.declaredLength
+        )
+    }
+}
+

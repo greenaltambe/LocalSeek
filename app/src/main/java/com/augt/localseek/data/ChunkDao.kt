@@ -17,6 +17,9 @@ interface ChunkDao {
     @Query("SELECT COUNT(*) FROM document_chunks WHERE parentFileId = :parentFileId")
     suspend fun countChunksForFile(parentFileId: Long): Int
 
+    @Query("SELECT COUNT(*) FROM document_chunks")
+    suspend fun countAllChunks(): Int
+
     @Query(
         """
         SELECT id, embedding
@@ -26,6 +29,9 @@ interface ChunkDao {
         """
     )
     suspend fun getEmbeddingsPage(limit: Int, offset: Int): List<ChunkEmbedding>
+
+    @Query("SELECT * FROM document_chunks WHERE id = :chunkId LIMIT 1")
+    suspend fun getChunkById(chunkId: Long): DocumentChunk?
 
     @Query(
         """

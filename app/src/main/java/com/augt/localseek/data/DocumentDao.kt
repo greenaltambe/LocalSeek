@@ -49,6 +49,9 @@ interface DocumentDao {
     @Query("SELECT COUNT(*) FROM documents")
     suspend fun getDocumentCount(): Int
 
+    @Query("SELECT COALESCE(MAX(modifiedAt), 0) FROM documents")
+    suspend fun getLastUpdatedTimestamp(): Long
+
     /**
      * Fetches all chunks that have an AI embedding generated.
      */

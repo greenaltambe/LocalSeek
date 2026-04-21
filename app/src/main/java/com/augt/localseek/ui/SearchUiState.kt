@@ -7,7 +7,10 @@ data class SearchUiState(
     val results: List<FileResult> = emptyList(),
     val statusMessage: String = "Type to search",
     val isLoading: Boolean = false,
+    val loadingStage: String = "Searching...",
+    val loadingProgress: Float = 0f,
     val latencyMs: Long = 0L,
+    val errorMessage: String? = null,
     val showScores: Boolean = false,
     val activeFilters: List<FilterType> = listOf(FilterType.All)
 )

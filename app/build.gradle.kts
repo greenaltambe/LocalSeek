@@ -73,9 +73,12 @@ dependencies {
 
     // Kotlin Coroutines (for background tasks)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    // --- LIBRARIES FOR PHASE 3: DENSE RETRIEVAL ---
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("co.yml:ycharts:2.1.0")
+    // --- LIBRARIES FOR DENSE RETRIEVAL / RERANKING ---
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    
+
     // PDF Parsing library for Android
     implementation(libs.pdfbox.android)
 }

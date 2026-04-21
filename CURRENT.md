@@ -1208,3 +1208,182 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ⏳ Instrumentation runtime assertions pending connected device execution
 - ⚠️ `<50ms` target enforced in instrumentation test; verify on target device class
 
+---
+
+## Phase 8B-Revised - Kotlin LSH ANN (2026-04-20)
+
+### Objective
+- Replace FAISS-native dependency path with pure Kotlin ANN while keeping dense retrieval scalable
+
+### Architecture Changes
+- ❌ Removed FAISS-first runtime path from dense retrieval orchestration
+- ✅ Added `search/vector/LshIndexManager.kt` (random-projection LSH)
+- ✅ `DenseRetriever` now uses LSH ANN as primary search path with brute-force fallback
+- ✅ `FileIndexer` now logs/rebuilds ANN index (LSH) after full indexing
+
+### Build/Dependency Changes
+- ✅ Removed JitPack repository from `settings.gradle.kts`
+- ✅ Kept runtime dependency surface lean (no JNI/NDK/FAISS requirement)
+
+### LSH Configuration
+- Tables: 10
+- Hash bits: 12
+- Projection dim: 64
+- Embedding dim: 384
+- Persistence: `filesDir/lsh_index.bin`
+
+### Testing
+- ✅ Updated instrumentation test (`FaissPerformanceTest`) to validate LSH latency target (<300ms)
+- ⏳ Device profiling still required for measured p50/p95 values at 10k+ chunks
+
+---
+
+## Phase 8C-Part2 - Cross-Encoder Reranking (2026-04-20)
+
+### Objective
+- Improve top-result precision by reranking fused candidates with a cross-encoder model
+
+### Implemented Components
+- ✅ Added `CrossEncoder` runtime wrapper in `ml/DenseEncoder.kt`
+  - Optional asset load (`models/cross_encoder.tflite`)
+  - Graceful fallback when model is absent
+- ✅ Added `retrieval/CrossEncoderReranker.kt`
+  - Rerank cap: top-100
+  - Return cap: top-20
+  - Timeout guard: 500ms
+  - Score cache for repeated query-document pairs
+
+### Search Pipeline Integration
+- ✅ `SearchViewModel` now runs reranking after fusion/MMR stage
+- ✅ Rerank latency is included in performance logging via fusion stage accounting
+- ✅ If cross-encoder is unavailable or times out, fused ranking is returned safely
+
+### Validation Status
+- ✅ Code path integrated with fallback safety
+- ⏳ Final quality metrics (nDCG/MRR lift) pending labeled evaluation run
+
+
+---
+
+## Phase 8C-Upgrade - Adaptive LSH Enhancements (2026-04-20)
+
+### Objective
+- Upgrade LSH from fixed parameters to adaptive behavior without major refactoring
+
+### Implemented Features
+- ✅ Adaptive configuration model (`LshConfig`) added in `search/vector/LshIndexManager.kt`
+  - Dataset-size adaptive table/hash/projection sizing
+  - Candidate budget control via `searchCandidates`
+  - Memory mode switch: `IN_MEMORY` / `STREAMING`
+- ✅ Battery-aware behavior (`BatteryMonitor` + battery-adjusted runtime config)
+  - Reduces active tables/candidates under low battery
+  - Can force streaming mode for power saving
+- ✅ Memory-efficient streaming mode
+  - New DAO API: `ChunkDao.getEmbedding(chunkId)`
+  - On-demand vector fetch for candidate scoring
+  - `DenseRetriever` now passes `chunkDao` into LSH search
+
+### LSH Manager Updates
+- Dynamic hash tables and projection matrices sized from active config
+- `buildIndex(...)` now accepts optional custom config and logs selected profile
+- Search now applies runtime battery-aware limits for table count and candidate cap
+- Index persistence includes adaptive config metadata alongside vectors
+- Added guard to avoid clobbering persisted index when incremental save has no cached vectors
+
+### Logging
+- ✅ Adaptive config logs include dataset size + battery + selected parameters
+- ✅ Build summary logs include mode, build time, avg bucket size, and index size
+- ✅ Search logs include candidate limiting and active mode
+
+### Validation Status
+- ✅ Host compile passes after adaptive changes
+- ✅ Host unit tests pass after adaptive changes
+- ⏳ Device scenario verification pending:
+  - small dataset profile (<10k)
+  - large dataset with low battery (streaming)
+  - high battery quality mode
+
+---
+
+## Phase 9 - Professional UI/UX Polish (2026-04-21)
+
+### Design System
+- ✅ Expanded Material 3 color system in `app/src/main/java/com/augt/localseek/ui/theme/Theme.kt` (full light/dark token mapping)
+- ✅ Expanded typography scale in `app/src/main/java/com/augt/localseek/ui/theme/Type.kt` to full display/headline/title/body/label set
+
+### Search Screen UX
+- ✅ Reworked `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt` to explicit state-driven rendering:
+  - idle state with suggestion chips
+  - loading state with stage/progress indicators
+  - empty and error states
+  - success list with result count and latency chip
+- ✅ Added applied-filter chip row with remove actions
+- ✅ Added top app bar action for score visibility toggle
+
+### Result Card Polish
+- ✅ Upgraded `app/src/main/java/com/augt/localseek/ui/SearchResultCard.kt`:
+  - richer file-type iconography and color coding
+  - snippet expansion (show more)
+  - metadata row (date + size)
+  - highlighted snippet rendering for `**term**` tokens
+  - optional relevance chip when score is high
+
+### ViewModel / State Integration
+- ✅ `SearchUiState` extended with:
+  - `loadingStage`
+  - `loadingProgress`
+  - `errorMessage`
+- ✅ `SearchViewModel` updated for UI compatibility methods used by the polished screen:
+  - `updateQuery(...)`
+  - `search()`
+  - `removeFilter(...)`
+  - `openFile(...)` (logging stub)
+- ✅ Search flow now updates loading stage/progress checkpoints throughout query process
+
+### Validation Status
+- ✅ Kotlin compile verified: `:app:compileDebugKotlin` (success)
+- ⚠️ Minor deprecation warnings remain in `SearchResultCard.kt` for `Icons.Filled.Article` / `Icons.Filled.InsertDriveFile` on current Compose API level
+- ⏳ On-device UX validation pending (dark mode pass, accessibility contrast checks, and interaction polish)
+
+---
+
+## Phase 9 - Part 2 Settings, Dashboard, Branding (2026-04-21)
+
+### Settings System
+- ✅ Added `app/src/main/java/com/augt/localseek/ui/settings/SettingsScreen.kt` with advanced toggles/sliders/selectors
+- ✅ Added persistent settings model and state:
+  - `app/src/main/java/com/augt/localseek/ui/settings/SettingsModels.kt`
+  - `app/src/main/java/com/augt/localseek/ui/settings/SettingsRepository.kt` (DataStore Preferences)
+  - `app/src/main/java/com/augt/localseek/ui/settings/SettingsViewModel.kt`
+- ✅ Added index health summary card (files/chunks/index size/last update)
+
+### Performance Dashboard
+- ✅ Added metrics UI:
+  - `app/src/main/java/com/augt/localseek/ui/performance/PerformanceDashboard.kt`
+  - `app/src/main/java/com/augt/localseek/ui/performance/PerformanceModels.kt`
+  - `app/src/main/java/com/augt/localseek/ui/performance/PerformanceViewModel.kt`
+- ✅ Added in-memory performance history feed:
+  - `app/src/main/java/com/augt/localseek/logging/PerformanceHistoryStore.kt`
+  - `app/src/main/java/com/augt/localseek/logging/PerformanceLogger.kt` now pushes query metrics to store
+- ✅ Dashboard now shows latency cards, breakdown, quality stats, LSH config summary, and recent query list
+
+### Navigation + Error Handling
+- ✅ Updated `app/src/main/java/com/augt/localseek/SearchApp.kt` with route switching (`SEARCH`, `SETTINGS`, `PERFORMANCE`)
+- ✅ Added `app/src/main/java/com/augt/localseek/ui/common/ErrorBoundary.kt` and wrapped root app content
+
+### Branding and Startup UX
+- ✅ Added splash screen dependency and DataStore/charts dependencies in `app/build.gradle.kts`
+- ✅ Updated app icon foreground/background drawables:
+  - `app/src/main/res/drawable/ic_launcher_foreground.xml`
+  - `app/src/main/res/drawable/ic_launcher_background.xml`
+- ✅ Added launcher/splash color: `app/src/main/res/values/colors.xml` (`ic_launcher_background`)
+- ✅ Splash theme finalized in `app/src/main/res/values/themes.xml`
+- ✅ `AndroidManifest.xml` now applies `Theme.LocalSeek.Splash` to `MainActivity`
+- ✅ `MainActivity` installs splash via `installSplashScreen()` before `super.onCreate(...)`
+
+### Validation Status
+- ✅ Kotlin compile verified after Phase 9 Part 2 changes: `:app:compileDebugKotlin`
+- ⚠️ Remaining warnings are Compose deprecations in settings/performance icons and `Divider` usage; functional behavior unaffected
+- ⏳ Device validation pending for splash rendering timing and settings persistence across app restarts
+
+
