@@ -1386,4 +1386,26 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ⚠️ Remaining warnings are Compose deprecations in settings/performance icons and `Divider` usage; functional behavior unaffected
 - ⏳ Device validation pending for splash rendering timing and settings persistence across app restarts
 
+---
 
+## Phase 10 - LLM Scaffold Continuation (2026-04-22)
+
+### Context
+- Continued unfinished on-device LLM integration by stabilizing core interface and adding a lightweight fallback implementation.
+
+### Implemented
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/OnDeviceLLM.kt`
+  - Added safe defaults in `LLMResponse` (`answer = ""`, `latencyMs = 0L`)
+  - Added `LLMResponse.failure(...)` helper for consistent error construction
+- ✅ Added `app/src/main/java/com/augt/localseek/ml/llm/ExtractiveOnDeviceLLM.kt`
+  - Pure Kotlin extractive fallback answer generator (no model dependency)
+  - Ranks chunks by query-term overlap and returns top supporting snippets
+- ✅ Added unit tests in `app/src/test/java/com/augt/localseek/ml/llm/ExtractiveOnDeviceLLMTest.kt`
+  - Validates success path with relevant chunks
+  - Validates error path when context is empty
+
+### Validation
+- ✅ Host compile check passes: `:app:compileDebugKotlin`
+- ⏳ Full unit test run after this change pending (recommended before commit)
+
+---
