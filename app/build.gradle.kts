@@ -1,3 +1,15 @@
+import java.util.Properties
+
+val localProps = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+fun escapeBuildConfigString(value: String): String =
+    value.replace("\\", "\\\\").replace("\"", "\\\"")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -16,6 +28,35 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val geminiKey = (
+            (project.findProperty("GEMINI_API_KEY") as String?)
+                ?: System.getenv("GEMINI_API_KEY")
+                ?: localProps.getProperty("GEMINI_API_KEY")
+                ?: ""
+            ).trim()
+        buildConfigField("String", "GEMINI_API_KEY", "\"${escapeBuildConfigString(geminiKey)}\"")
+
+        externalNativeBuild {
+            cmake {
+                cppFlags("-std=c++17", "-O3", "-DNDEBUG")
+                arguments(
+                    "-DANDROID_ABI=arm64-v8a",
+                    "-DANDROID_PLATFORM=android-26"
+                )
+            }
+        }
+
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -38,15 +79,25 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
+        jniLibs {
+            pickFirsts += setOf(
+                "lib/arm64-v8a/libtensorflowlite_jni.so"
+            )
+        }
         resources {
             excludes += setOf(
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE",
                 "META-INF/LICENSE.txt",
                 "META-INF/NOTICE",
-                "META-INF/NOTICE.txt"
+                "META-INF/NOTICE.txt",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1"
             )
         }
     }
@@ -88,4 +139,5 @@ dependencies {
     implementation(libs.pdfbox.android)
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 }

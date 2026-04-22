@@ -15,21 +15,16 @@ class LLMProvider(private val context: Context) {
         Log.d(TAG, "=== LLM Provider Detection ===")
         Log.d(TAG, "Summary: ${diagnostics.summary}")
 
-        if (GeminiNanoLLM.isAvailable(context)) {
-            Log.d(TAG, "Gemini Nano available, initializing")
-            val gemini = GeminiNanoLLM(context)
-            return try {
-                if (gemini.initialize()) {
-                    Log.d(TAG, "Gemini Nano initialized successfully")
-                    gemini
-                } else {
-                    Log.w(TAG, "Gemini Nano initialization returned false")
-                    null
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Gemini Nano initialization error", e)
-                null
+        Log.d(TAG, "Trying Gemini initialization")
+        val gemini = GeminiNanoLLM(context)
+        try {
+            if (gemini.initialize()) {
+                Log.d(TAG, "Gemini initialized successfully")
+                return gemini
             }
+            Log.w(TAG, "Gemini initialization returned false")
+        } catch (e: Exception) {
+            Log.e(TAG, "Gemini initialization error", e)
         }
 
         if (Phi3LLM.isAvailable(context)) {
@@ -63,13 +58,13 @@ class LLMProvider(private val context: Context) {
     fun getCapabilities(): LLMCapabilities {
         val diagnostics = getDiagnostics()
         return when {
-            diagnostics.aiCoreFound -> LLMCapabilities(
-                name = "Gemini Nano",
-                provider = "Google AICore",
+            diagnostics.geminiReason.contains("API key configured", ignoreCase = true) -> LLMCapabilities(
+                name = "Gemini",
+                provider = "Google Generative AI",
                 maxTokens = 2048,
                 estimatedLatency = 1000,
-                supportsStreaming = true,
-                memoryImpact = "Low (system-managed)",
+                supportsStreaming = false,
+                memoryImpact = "Low (cloud)",
                 isAvailable = true
             )
 
@@ -105,7 +100,7 @@ class LLMProvider(private val context: Context) {
         return LLMDiagnostics(
             sdkVersion = Build.VERSION.SDK_INT,
             androidVersion = Build.VERSION.RELEASE,
-            aiCoreFound = gemini.aiCoreFound,
+            aiCoreFound = gemini.isAvailable,
             phi3Found = phi3.modelAssetFound,
             manufacturer = Build.MANUFACTURER,
             model = Build.MODEL,
@@ -114,7 +109,7 @@ class LLMProvider(private val context: Context) {
             detectedAiCorePackage = gemini.detectedPackage,
             phi3JniReady = phi3.jniReady,
             summary = when {
-                gemini.isAvailable -> "Gemini available"
+                gemini.isAvailable -> "Gemini configured"
                 phi3.isAvailable && phi3.jniReady -> "Phi-3 available (llama.cpp JNI)"
                 phi3.isAvailable -> "Phi-3 available (extractive fallback mode)"
                 else -> "No LLM available"

@@ -1,21 +1,49 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ============================================================
+# PDF Box - optional JP2 decoder (not present on Android)
+# ============================================================
+-dontwarn com.gemalto.jp2.**
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ============================================================
+# PDFBox Android
+# ============================================================
+-dontwarn org.apache.pdfbox.**
+-dontwarn org.apache.fontbox.**
+-dontwarn org.apache.commons.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ============================================================
+# TFLite / NNAPI
+# ============================================================
+-keep class org.tensorflow.lite.** { *; }
+-keepclassmembers class org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ============================================================
+# OkHttp
+# ============================================================
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# ============================================================
+# Room3
+# ============================================================
+-keep class * extends androidx.room3.RoomDatabase
+-keep @androidx.room3.Entity class *
+-keepclassmembers class * {
+	@androidx.room3.* <fields>;
+	@androidx.room3.* <methods>;
+}
+
+# ============================================================
+# Coroutines / DataStore
+# ============================================================
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-dontwarn kotlinx.coroutines.**
+-dontwarn androidx.datastore.**
+
+# ============================================================
+# Generic metadata retention
+# ============================================================
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions

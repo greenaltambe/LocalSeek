@@ -541,8 +541,8 @@ fun LLMStatusCard(capabilities: LLMCapabilities, diagnostics: LLMDiagnostics) {
                 passed = diagnostics.sdkVersion >= 34
             )
             DiagnosticRow(
-                label = "AICore Installed",
-                value = if (diagnostics.aiCoreFound) "Yes" else "No",
+                label = "Gemini API Key",
+                value = if (diagnostics.aiCoreFound) "Configured" else "Missing (local.properties)",
                 passed = diagnostics.aiCoreFound
             )
             DiagnosticRow(
@@ -552,7 +552,7 @@ fun LLMStatusCard(capabilities: LLMCapabilities, diagnostics: LLMDiagnostics) {
             )
             DiagnosticRow(
                 label = "Phi-3 JNI",
-                value = if (diagnostics.phi3JniReady) "Loaded" else "Missing (extractive fallback)",
+                value = if (diagnostics.phi3JniReady) "Compiled/Loaded" else "Not compiled (extractive fallback)",
                 passed = if (!diagnostics.phi3Found) null else diagnostics.phi3JniReady
             )
             DiagnosticRow(

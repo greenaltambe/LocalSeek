@@ -73,8 +73,16 @@ class Phi3LLM(private val context: Context) : OnDeviceLLM {
         }
 
         fun resolveDownloadedModel(context: Context): File? {
-            val modelFile = File(File(context.filesDir, "models"), MODEL_FILE)
-            return if (modelFile.exists() && modelFile.length() > 0L) modelFile else null
+            val internalFile = File(File(context.filesDir, "models"), MODEL_FILE)
+            if (internalFile.exists() && internalFile.length() > 0L) return internalFile
+
+            val legacyExternalFile = context.getExternalFilesDir(null)
+                ?.let { File(File(it, "models"), MODEL_FILE) }
+            return if (legacyExternalFile?.exists() == true && legacyExternalFile.length() > 0L) {
+                legacyExternalFile
+            } else {
+                null
+            }
         }
     }
 

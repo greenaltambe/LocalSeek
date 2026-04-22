@@ -1528,3 +1528,80 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ Kotlin compile passed: `:app:compileDebugKotlin`
 - ✅ LLM unit test passed: `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest`
 - ⚠️ Existing Compose deprecation warnings remain (Divider and a few icon aliases), no functional regression observed
+
+---
+
+## Phase 11 - Build + Gemini Runtime Fixes (2026-04-22)
+
+### R8 / Shrinker Stability
+- ✅ Updated `app/proguard-rules.pro` to handle optional PDFBox JP2 decoder classes (`com.gemalto.jp2.**`)
+- ✅ Added targeted keep/dontwarn rules for:
+  - TensorFlow Lite runtime classes
+  - OkHttp/Okio
+  - Room3 annotations/runtime
+  - Kotlin coroutines + DataStore
+
+### Build Configuration Hardening
+- ✅ Updated `app/build.gradle.kts`
+  - Enabled `buildFeatures.buildConfig = true`
+  - Injected `BuildConfig.GEMINI_API_KEY` from `local.properties` (`GEMINI_API_KEY=...`)
+  - Added JNI packaging rule for `lib/arm64-v8a/libtensorflowlite_jni.so`
+  - Extended META-INF excludes to reduce packaging collisions
+  - Added Google Generative AI SDK dependency (`com.google.ai.client.generativeai:generativeai:0.9.0`)
+
+### Gemini Backend (Real Implementation)
+- ✅ Replaced placeholder behavior in `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt`
+  - Uses `GenerativeModel` (`gemini-1.5-flash`)
+  - Performs initialization health probe with timeout
+  - Builds context-grounded prompt from retrieved snippets
+  - Returns structured `LLMResponse` on success/failure
+  - Keeps diagnostics model compatible with existing settings UI
+
+### Provider Routing Update
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/LLMProvider.kt`
+  - Gemini is now attempted first via active initialization (instead of passive AICore-only gate)
+  - Falls back to Phi-3 path when Gemini init fails
+  - Capability/summary messaging updated for cloud Gemini path
+
+### Validation
+- ✅ `:app:assembleDebug` passed after changes
+- ✅ `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest` passed
+- ⚠️ Existing Compose deprecation warnings remain; no new functional regressions observed in host checks
+
+---
+
+## Phase 11 - Part 2 Gemini Key + JNI Build Reliability (2026-04-23)
+
+### Gemini API Key Reliability
+- ✅ Hardened key injection in `app/build.gradle.kts`
+  - Reads `GEMINI_API_KEY` from Gradle property/env/local.properties in priority order
+  - Escapes key safely before writing into `BuildConfig`
+  - Keeps `buildFeatures.buildConfig = true`
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt`
+  - Added explicit key-resolution fallback (`BuildConfig` -> `assets/gemini_key.txt`)
+  - Added explicit failure reason tracking to avoid silent init failures
+  - Improved initialization logging and not-initialized error messages
+
+### Phi-3 JNI Build Activation
+- ✅ Enabled native build wiring in `app/build.gradle.kts`
+  - Added `externalNativeBuild.cmake` configuration
+  - Added `ndk.abiFilters += "arm64-v8a"`
+- ✅ Upgraded `app/src/main/cpp/CMakeLists.txt`
+  - Conditional llama.cpp integration (`app/src/main/cpp/llama.cpp` when present)
+  - Stub JNI bridge still builds when llama.cpp source is absent
+- ✅ Updated `app/src/main/cpp/llama_jni.cpp`
+  - Added conditional real/stub code paths (`LLAMA_AVAILABLE`)
+  - Fixed JNI function signatures so stub path compiles cleanly
+
+### Diagnostics UX Alignment
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/LLMProvider.kt`
+  - Diagnostics now expose Gemini key-configured state through `LLMDiagnostics.aiCoreFound`
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/settings/SettingsScreen.kt`
+  - Status row now shows `Gemini API Key` configured/missing
+  - JNI row wording now shows compiled/loaded vs not compiled fallback state
+
+### Validation
+- ✅ `:app:assembleDebug` passed with CMake/NDK native tasks enabled
+- ✅ `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest` passed
+- ⚠️ Current CMake log indicates `llama.cpp` source was not present locally, so build used JNI stub mode (expected fallback behavior)
+
