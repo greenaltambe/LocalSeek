@@ -21,9 +21,11 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -64,6 +66,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.augt.localseek.ml.llm.LLMCapabilities
+import com.augt.localseek.ml.llm.LLMDiagnostics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -77,6 +81,10 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val indexStats by viewModel.indexStats.collectAsState()
+    val llmCapabilities by viewModel.llmCapabilities.collectAsState()
+    val llmDiagnostics by viewModel.llmDiagnostics.collectAsState()
+    val phi3Downloaded by viewModel.isPhi3Downloaded.collectAsState()
+    val phi3DownloadState by viewModel.phi3DownloadState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -156,6 +164,19 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.updateSetting { copy(batteryAwareMode = it) } },
                     icon = Icons.Default.BatteryChargingFull
                 )
+            }
+
+            item { SectionHeader(title = "AI Features") }
+            item {
+                LLMStatusCard(capabilities = llmCapabilities, diagnostics = llmDiagnostics)
+            }
+            if (!phi3Downloaded) {
+                item {
+                    Phi3DownloadCard(
+                        onDownload = viewModel::downloadPhi3,
+                        downloadState = phi3DownloadState
+                    )
+                }
             }
             item {
                 SettingSwitch(
@@ -456,6 +477,140 @@ fun AboutCard() {
             TechItem(name = "Adaptive LSH", description = "ANN search")
             TechItem(name = "Cross-Encoder", description = "Result reranking")
         }
+    }
+}
+
+@Composable
+fun LLMStatusCard(capabilities: LLMCapabilities, diagnostics: LLMDiagnostics) {
+    val available = capabilities.isAvailable
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (available) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.errorContainer
+            }
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "LLM Engine", style = MaterialTheme.typography.titleMedium)
+                Icon(
+                    imageVector = if (available) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                    contentDescription = null
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (available) {
+                InfoRow(label = "Model", value = capabilities.name)
+                InfoRow(label = "Provider", value = capabilities.provider)
+                InfoRow(label = "Max Tokens", value = capabilities.maxTokens.toString())
+                InfoRow(label = "Est. Latency", value = "${capabilities.estimatedLatency}ms")
+                InfoRow(label = "Memory Impact", value = capabilities.memoryImpact)
+                InfoRow(label = "Streaming", value = if (capabilities.supportsStreaming) "Yes" else "No")
+            } else {
+                Text(
+                    text = "No LLM available on this device",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Requirements: Android 14+ (Gemini) or phi3.gguf in assets/models",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                capabilities.requiresImplementation?.let {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(text = "Pending implementation: $it", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(text = "Diagnostics", style = MaterialTheme.typography.labelMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            DiagnosticRow(
+                label = "Android Version",
+                value = "SDK ${diagnostics.sdkVersion} (${diagnostics.androidVersion})",
+                passed = diagnostics.sdkVersion >= 34
+            )
+            DiagnosticRow(
+                label = "AICore Installed",
+                value = if (diagnostics.aiCoreFound) "Yes" else "No",
+                passed = diagnostics.aiCoreFound
+            )
+            DiagnosticRow(
+                label = "Phi-3 Model",
+                value = if (diagnostics.phi3Found) "Found" else "Missing",
+                passed = diagnostics.phi3Found
+            )
+            DiagnosticRow(
+                label = "Phi-3 JNI",
+                value = if (diagnostics.phi3JniReady) "Loaded" else "Missing (extractive fallback)",
+                passed = if (!diagnostics.phi3Found) null else diagnostics.phi3JniReady
+            )
+            DiagnosticRow(
+                label = "Device",
+                value = "${diagnostics.manufacturer} ${diagnostics.model}",
+                passed = null
+            )
+            Text(
+                text = "Gemini: ${diagnostics.geminiReason}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+            Text(
+                text = "Phi-3: ${diagnostics.phi3Reason}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodySmall)
+        Text(text = value, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun DiagnosticRow(label: String, value: String, passed: Boolean?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = when (passed) {
+                    true -> Icons.Default.CheckCircle
+                    false -> Icons.Default.Cancel
+                    null -> Icons.Default.Info
+                },
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = label, style = MaterialTheme.typography.bodySmall)
+        }
+        Text(text = value, style = MaterialTheme.typography.bodySmall)
     }
 }
 

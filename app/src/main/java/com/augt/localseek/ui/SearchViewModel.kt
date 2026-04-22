@@ -5,19 +5,20 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.augt.localseek.ml.DenseEncoder
-import com.augt.localseek.logging.measureSuspendTime
+import com.augt.localseek.LocalSeekApplication
 import com.augt.localseek.logging.PerformanceLogger
+import com.augt.localseek.logging.measureSuspendTime
+import com.augt.localseek.ml.DenseEncoder
+import com.augt.localseek.model.SearchResult
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.CrossEncoderReranker
 import com.augt.localseek.retrieval.DenseRetriever
+import com.augt.localseek.retrieval.FileResult
 import com.augt.localseek.retrieval.FusionCandidate
 import com.augt.localseek.retrieval.FusionRanker
-import com.augt.localseek.retrieval.FileResult
 import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.search.query.QueryExpander
 import com.augt.localseek.search.query.QueryProcessor
-import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -38,6 +39,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
+    private val ragEngine
+        get() = (getApplication<Application>() as LocalSeekApplication).ragEngine
+
     private val performanceLogger = PerformanceLogger()
     private val bm25Retriever = BM25Retriever(application)
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
@@ -49,6 +53,12 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private var latestAggregatedResults: List<FileResult> = emptyList()
 
     private var searchJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            refreshRagAvailability()
+        }
+    }
 
     fun onQueryChanged(newQuery: String) {
         _uiState.update { it.copy(query = newQuery) }
@@ -63,146 +73,207 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     loadingStage = "Idle",
                     loadingProgress = 0f,
                     errorMessage = null,
-                    latencyMs = 0L
+                    latencyMs = 0L,
+                    ragAnswer = null,
+                    ragError = null,
+                    ragCitations = emptyList(),
+                    llmLatencyMs = 0L
                 )
             }
             return
         }
 
         searchJob = viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    loadingStage = "Processing query",
-                    loadingProgress = 0.15f,
-                    errorMessage = null,
-                    statusMessage = "Searching..."
-                )
-            }
             delay(200)
+            executeSearch(newQuery, includeRag = false)
+        }
+    }
 
-            val processed = queryProcessor.process(newQuery)
-            _uiState.update { it.copy(loadingStage = "Retrieving results", loadingProgress = 0.45f) }
-            val query = normalizeQuery(processed.normalized.normalized)
-            val analyzedTokens = processed.keyTerms.ifEmpty { analyzeTokens(query) }
-            Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
-
-            val queryFilters = buildFiltersFromProcessed(processed.filters)
-            if (queryFilters.isNotEmpty()) {
-                _uiState.update { it.copy(activeFilters = queryFilters) }
-            }
-
-            val cachedResults = queryCache.get(query)
-            if (cachedResults != null) {
-                latestAggregatedResults = cachedResults
-                _uiState.update {
-                    it.copy(
-                        results = applyFilters(cachedResults, it.activeFilters),
-                        statusMessage = "Cache: ${cachedResults.size} files",
-                        isLoading = false,
-                        loadingStage = "Done",
-                        loadingProgress = 1f,
-                        errorMessage = null,
-                        latencyMs = 2L
-                    )
-                }
-                return@launch
-            }
-
-            val memBeforeMb = performanceLogger.memoryUsageMb()
-            val totalStartMs = System.currentTimeMillis()
-
-            var bm25LatencyMs = 0L
-            var denseLatencyMs = 0L
-            val (bm25Results, denseResults) = coroutineScope {
-                val bm25Deferred = async {
-                    val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(processed.bm25Query, 100) }
-                    result to duration
-                }
-                val denseDeferred = async {
-                    val (result, duration) = measureSuspendTime("Dense") {
-                        denseRetriever?.search(processed.denseQuery, 50).orEmpty()
-                    }
-                    result to duration
-                }
-
-                val (bm25, bm25Duration) = bm25Deferred.await()
-                bm25LatencyMs = bm25Duration
-
-                var denseDuration = 0L
-                val dense = if (ENABLE_DENSE && denseRetriever != null) {
-                    if (denseRetriever.shouldSkipDense(bm25)) {
-                        denseDeferred.cancel()
-                        emptyList()
-                    } else {
-                        val (denseResult, duration) = denseDeferred.await()
-                        denseDuration = duration
-                        denseResult
-                    }
-                } else {
-                    denseDeferred.cancel()
-                    emptyList()
-                }
-
-                denseLatencyMs = denseDuration
-                bm25 to dense
-            }
-
-            val (finalResults, fusionLatencyMs) = measureSuspendTime("Fusion") {
-                rankAndDiversify(query, bm25Results, denseResults)
-            }
-
-            _uiState.update { it.copy(loadingStage = "Reranking", loadingProgress = 0.8f) }
-
-            val (rerankedResults, rerankLatencyMs) = measureSuspendTime("Rerank") {
-                crossEncoderReranker.rerank(query, finalResults)
-            }
-
-            latestAggregatedResults = ResultAggregator.aggregateToFiles(rerankedResults, query)
-            queryCache.put(query, latestAggregatedResults)
-            val filteredResults = applyFilters(latestAggregatedResults, _uiState.value.activeFilters)
-
-            val totalLatencyMs = System.currentTimeMillis() - totalStartMs
-            val memAfterMb = performanceLogger.memoryUsageMb()
-
-            performanceLogger.logQuery(
-                query = query,
-                bm25LatencyMs = bm25LatencyMs,
-                denseLatencyMs = denseLatencyMs,
-                fusionLatencyMs = fusionLatencyMs + rerankLatencyMs,
-                totalLatencyMs = totalLatencyMs,
-                bm25Count = bm25Results.size,
-                denseCount = denseResults.size,
-                finalCount = filteredResults.size,
-                memoryBeforeMb = memBeforeMb,
-                memoryAfterMb = memAfterMb
+    private suspend fun executeSearch(rawQuery: String, includeRag: Boolean) {
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                loadingStage = "Processing query",
+                loadingProgress = 0.15f,
+                errorMessage = null,
+                statusMessage = "Searching...",
+                ragAnswer = null,
+                ragError = null,
+                ragCitations = emptyList(),
+                llmLatencyMs = 0L
             )
+        }
 
-            logTopResults(query, filteredResults)
+        val processed = queryProcessor.process(rawQuery)
+        _uiState.update { it.copy(loadingStage = "Retrieving results", loadingProgress = 0.45f) }
 
+        val query = normalizeQuery(processed.normalized.normalized)
+        val analyzedTokens = processed.keyTerms.ifEmpty { analyzeTokens(query) }
+        Log.d(TAG_VALIDATION, "[VALIDATION] Query analyzed tokens: $analyzedTokens")
+
+        val queryFilters = buildFiltersFromProcessed(processed.filters)
+        if (queryFilters.isNotEmpty()) {
+            _uiState.update { it.copy(activeFilters = queryFilters) }
+        }
+
+        val cachedResults = queryCache.get(query)
+        if (cachedResults != null) {
+            latestAggregatedResults = cachedResults
             _uiState.update {
                 it.copy(
-                    results = filteredResults,
-                    statusMessage = if (filteredResults.isEmpty()) {
-                        "No results"
-                    } else {
-                        if (ENABLE_DENSE) "Hybrid: ${filteredResults.size} files" else "BM25: ${filteredResults.size} files"
-                    },
+                    results = applyFilters(cachedResults, it.activeFilters),
+                    statusMessage = "Cache: ${cachedResults.size} files",
                     isLoading = false,
                     loadingStage = "Done",
                     loadingProgress = 1f,
                     errorMessage = null,
-                    latencyMs = totalLatencyMs
+                    latencyMs = 2L
                 )
             }
+            return
         }
+
+        val memBeforeMb = performanceLogger.memoryUsageMb()
+        val totalStartMs = System.currentTimeMillis()
+
+        var bm25LatencyMs = 0L
+        var denseLatencyMs = 0L
+        val (bm25Results, denseResults) = coroutineScope {
+            val bm25Deferred = async {
+                val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(processed.bm25Query, 100) }
+                result to duration
+            }
+            val denseDeferred = async {
+                val (result, duration) = measureSuspendTime("Dense") {
+                    denseRetriever?.search(processed.denseQuery, 50).orEmpty()
+                }
+                result to duration
+            }
+
+            val (bm25, bm25Duration) = bm25Deferred.await()
+            bm25LatencyMs = bm25Duration
+
+            var denseDuration = 0L
+            val dense = if (ENABLE_DENSE && denseRetriever != null) {
+                if (denseRetriever.shouldSkipDense(bm25)) {
+                    denseDeferred.cancel()
+                    emptyList()
+                } else {
+                    val (denseResult, duration) = denseDeferred.await()
+                    denseDuration = duration
+                    denseResult
+                }
+            } else {
+                denseDeferred.cancel()
+                emptyList()
+            }
+
+            denseLatencyMs = denseDuration
+            bm25 to dense
+        }
+
+        val (finalResults, fusionLatencyMs) = measureSuspendTime("Fusion") {
+            rankAndDiversify(query, bm25Results, denseResults)
+        }
+
+        _uiState.update { it.copy(loadingStage = "Reranking", loadingProgress = 0.8f) }
+
+        val (rerankedResults, rerankLatencyMs) = measureSuspendTime("Rerank") {
+            crossEncoderReranker.rerank(query, finalResults)
+        }
+
+        latestAggregatedResults = ResultAggregator.aggregateToFiles(rerankedResults, query)
+        queryCache.put(query, latestAggregatedResults)
+        val filteredResults = applyFilters(latestAggregatedResults, _uiState.value.activeFilters)
+
+        val totalLatencyMs = System.currentTimeMillis() - totalStartMs
+        val memAfterMb = performanceLogger.memoryUsageMb()
+
+        performanceLogger.logQuery(
+            query = query,
+            bm25LatencyMs = bm25LatencyMs,
+            denseLatencyMs = denseLatencyMs,
+            fusionLatencyMs = fusionLatencyMs + rerankLatencyMs,
+            totalLatencyMs = totalLatencyMs,
+            bm25Count = bm25Results.size,
+            denseCount = denseResults.size,
+            finalCount = filteredResults.size,
+            memoryBeforeMb = memBeforeMb,
+            memoryAfterMb = memAfterMb
+        )
+
+        logTopResults(query, filteredResults)
+
+        var ragAnswer: String? = null
+        var ragError: String? = null
+        var ragCitations: List<String> = emptyList()
+        var llmLatencyMs = 0L
+
+        if (includeRag && _uiState.value.ragMode) {
+            if (!ragEngine.isAvailable()) {
+                refreshRagAvailability(forceInit = true)
+            }
+            if (ragEngine.isAvailable()) {
+                _uiState.update { it.copy(loadingStage = "Generating AI answer", loadingProgress = 0.92f) }
+                val ragResult = ragEngine.generateAnswer(rawQuery, filteredResults)
+                ragAnswer = ragResult.answer
+                ragError = ragResult.error
+                ragCitations = ragResult.citations
+                llmLatencyMs = ragResult.llmLatencyMs
+            } else {
+                ragError = "AI answers are not available on this device"
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                results = filteredResults,
+                statusMessage = if (filteredResults.isEmpty()) {
+                    "No results"
+                } else {
+                    if (ENABLE_DENSE) "Hybrid: ${filteredResults.size} files" else "BM25: ${filteredResults.size} files"
+                },
+                isLoading = false,
+                loadingStage = "Done",
+                loadingProgress = 1f,
+                errorMessage = null,
+                latencyMs = totalLatencyMs,
+                ragAnswer = ragAnswer,
+                ragError = ragError,
+                ragCitations = ragCitations,
+                llmLatencyMs = llmLatencyMs
+            )
+        }
+    }
+
+    private suspend fun refreshRagAvailability(forceInit: Boolean = false) {
+        if (forceInit || !ragEngine.isAvailable()) {
+            ragEngine.initialize()
+        }
+        _uiState.update { it.copy(ragAvailable = ragEngine.isAvailable()) }
     }
 
     // Phase 9 UI compatibility helpers.
     fun updateQuery(newQuery: String) = onQueryChanged(newQuery)
 
     fun search() {
-        onQueryChanged(_uiState.value.query)
+        val query = _uiState.value.query
+        if (query.isBlank()) return
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            executeSearch(query, includeRag = true)
+        }
+    }
+
+    fun toggleRagMode() {
+        val available = ragEngine.isAvailable()
+        _uiState.update {
+            it.copy(
+                ragAvailable = available,
+                ragMode = if (available) !it.ragMode else false,
+                ragError = if (!available) "AI answers are not available on this device" else null
+            )
+        }
     }
 
     fun removeFilter(filterType: FilterType) {

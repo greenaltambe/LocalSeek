@@ -1409,3 +1409,122 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ⏳ Full unit test run after this change pending (recommended before commit)
 
 ---
+
+## Phase 10 - Part 2 Phi-3 Fallback via llama.cpp Scaffold (2026-04-22)
+
+### Objective
+- Add a device-capability-based fallback path for on-device LLM answering: Gemini Nano -> Phi-3-mini -> Search-only mode.
+
+### Implemented Components
+- ✅ Added `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt`
+  - Runtime availability check for AiCore package on Android 14+
+  - Safe placeholder implementation (no hard SDK dependency)
+- ✅ Added `app/src/main/java/com/augt/localseek/ml/llm/Phi3LLM.kt`
+  - Detects `assets/models/phi3.gguf`
+  - Extracts model to cache on first init
+  - Uses `LlamaCppJNI` if native bridge is available
+  - Falls back to `ExtractiveOnDeviceLLM` if JNI is unavailable
+- ✅ Added `app/src/main/java/com/augt/localseek/ml/llm/LlamaCppJNI.kt`
+  - Optional JNI wrapper with graceful handling when `libllama_jni.so` is absent
+- ✅ Added `app/src/main/java/com/augt/localseek/ml/llm/LLMProvider.kt`
+  - Capability + provider resolution chain (Gemini first, then Phi-3, then none)
+- ✅ Added `app/src/main/java/com/augt/localseek/search/rag/RAGEngine.kt`
+  - Initializes best available LLM via provider
+  - Retrieves top chunks and delegates answer generation
+
+### UI / Settings Integration
+- ✅ `SettingsViewModel` now exposes `llmCapabilities` via `LLMProvider`
+- ✅ `SettingsScreen` now includes **AI Features** section with `LLMStatusCard`
+  - Shows model name, max tokens, estimated latency, streaming support, and memory impact
+
+### Optional Native + Model Tooling
+- ✅ Added placeholder JNI sources:
+  - `app/src/main/cpp/llama_jni.cpp`
+  - `app/src/main/cpp/CMakeLists.txt`
+- ✅ Added model download helper: `download_phi3.py`
+- ✅ Added build guide: `docs/BUILD_LLAMA_CPP.md`
+
+### Runtime Behavior (Current Branch)
+- If Gemini runtime detected -> provider selects Gemini placeholder implementation
+- Else if `phi3.gguf` exists -> provider selects Phi-3 runtime
+- If native JNI bridge is missing -> Phi-3 path auto-degrades to extractive fallback answers
+- Else -> Search-only mode (no LLM)
+
+### Validation Status
+- ✅ Kotlin compile passed: `:app:compileDebugKotlin`
+- ✅ LLM unit tests passed: `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest`
+- ⚠️ Remaining warnings are existing Compose deprecations in `SettingsScreen.kt`
+
+---
+
+### Troubleshooting Enhancement (LLM Availability - 2026-04-22)
+- ✅ Added detailed diagnostics in `GeminiNanoLLM.diagnose(...)`
+  - SDK / Android version checks
+  - AICore package probing (`com.google.android.aicore`, `com.google.android.as`, `com.google.android.gms`)
+  - Device metadata + human-readable reason string
+- ✅ Added `Phi3LLM.diagnose(...)`
+  - Asset presence check for `models/phi3.gguf`
+  - JNI bridge readiness check (`LlamaCppJNI.isReady()`)
+  - Reason string for why fallback is/is not available
+- ✅ Added unified provider diagnostics model `LLMDiagnostics` in `LLMProvider`
+- ✅ `SettingsViewModel` now exposes `llmDiagnostics` state
+- ✅ `SettingsScreen` now renders diagnostic rows (Android version, AICore, Phi-3 model, JNI, device)
+
+### Validation (Troubleshooting Update)
+- ✅ Kotlin compile passed: `:app:compileDebugKotlin`
+- ✅ LLM unit test passed: `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest`
+
+---
+
+## Phase 11 - LLM Integration Completion + Polish (2026-04-22)
+
+### RAG / LLM Runtime Stabilization
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/LLMProvider.kt`
+  - Gemini Nano is now the only active runtime path
+  - Phi-3 is detected for diagnostics only and marked **Not Ready** until JNI is finalized
+  - Capability model now includes provider, availability, and implementation requirements
+- ✅ Updated `app/src/main/java/com/augt/localseek/search/rag/RAGEngine.kt`
+  - Added robust initialization logging + availability checks
+  - Added `generateAnswer(query, searchResults)` with context extraction from top file snippets
+  - Added structured `RAGResult` for answer/error/latency/citations payloads
+- ✅ Added app-level RAG bootstrap in `app/src/main/java/com/augt/localseek/LocalSeekApplication.kt`
+  - Initializes RAG asynchronously on app start
+  - Registered in `app/src/main/AndroidManifest.xml` via `android:name=".LocalSeekApplication"`
+
+### Search Flow + UI Wiring
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/SearchUiState.kt`
+  - Added RAG fields (`ragMode`, `ragAvailable`, `ragAnswer`, `ragError`, `ragCitations`, `llmLatencyMs`)
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+  - Added RAG availability refresh and toggle handling
+  - Split query typing path from explicit submit path so AI answer generation occurs on explicit search
+  - Integrated RAG answer generation into end-to-end search pipeline with graceful fallback errors
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+  - Added top-bar AI toggle (`AutoAwesome`) disabled when RAG is unavailable
+  - Added answer card and AI error card above regular results
+  - Added LLM latency and source-path display for generated answers
+
+### Optional Phi-3 Download (Settings)
+- ✅ Added downloader implementation in `app/src/main/java/com/augt/localseek/ml/llm/ModelDownloader.kt`
+  - Streams model download with progress updates
+  - Stores model at `files/models/phi3.gguf`
+- ✅ Added UI card in `app/src/main/java/com/augt/localseek/ui/settings/Phi3DownloadCard.kt`
+  - Not started / downloading / completed / failed states
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/settings/SettingsViewModel.kt`
+  - Added download state and completion handling
+  - Refreshes LLM diagnostics after download
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/settings/SettingsScreen.kt`
+  - Shows download card under AI Features when Phi-3 is not yet downloaded
+
+### Build + Packaging Adjustments
+- ✅ Updated `app/build.gradle.kts`
+  - Added `com.squareup.okhttp3:okhttp:4.12.0`
+  - Added explicit `debug` build-type optimization flags (no minify/shrink)
+  - Enabled release minify + shrink configuration
+  - Added packaging excludes for common duplicate META-INF resources
+- ✅ Updated `app/src/main/AndroidManifest.xml`
+  - Added `android.permission.INTERNET` for model download
+
+### Validation
+- ✅ Kotlin compile passed: `:app:compileDebugKotlin`
+- ✅ LLM unit test passed: `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest`
+- ⚠️ Existing Compose deprecation warnings remain (Divider and a few icon aliases), no functional regression observed

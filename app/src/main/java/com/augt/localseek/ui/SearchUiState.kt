@@ -12,5 +12,11 @@ data class SearchUiState(
     val latencyMs: Long = 0L,
     val errorMessage: String? = null,
     val showScores: Boolean = false,
-    val activeFilters: List<FilterType> = listOf(FilterType.All)
+    val activeFilters: List<FilterType> = listOf(FilterType.All),
+    val ragMode: Boolean = false,
+    val ragAvailable: Boolean = false,
+    val ragAnswer: String? = null,
+    val ragError: String? = null,
+    val ragCitations: List<String> = emptyList(),
+    val llmLatencyMs: Long = 0L
 )

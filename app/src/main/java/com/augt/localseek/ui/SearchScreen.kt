@@ -21,17 +21,22 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -71,8 +76,29 @@ fun SearchScreen(
                     if (uiState.latencyMs > 0L) {
                         PerformanceChip(latencyMs = uiState.latencyMs)
                     }
+                    IconButton(
+                        onClick = { viewModel.toggleRagMode() },
+                        enabled = uiState.ragAvailable,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (uiState.ragMode && uiState.ragAvailable) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = if (uiState.ragAvailable) {
+                                "Toggle AI Answers"
+                            } else {
+                                "AI Answers Not Available"
+                            }
+                        )
+                    }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Toggle scores")
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )
@@ -126,7 +152,11 @@ fun SearchScreen(
 
                     else -> SuccessState(
                         results = uiState.results,
-                        showScore = uiState.showScores
+                        showScore = uiState.showScores,
+                        answer = uiState.ragAnswer,
+                        citations = uiState.ragCitations,
+                        llmLatencyMs = uiState.llmLatencyMs,
+                        ragError = uiState.ragError
                     )
                 }
             }
@@ -278,12 +308,35 @@ private fun LoadingState(stage: String, progress: Float) {
 }
 
 @Composable
-private fun SuccessState(results: List<FileResult>, showScore: Boolean) {
+private fun SuccessState(
+    results: List<FileResult>,
+    showScore: Boolean,
+    answer: String?,
+    citations: List<String>,
+    llmLatencyMs: Long,
+    ragError: String?
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (answer != null) {
+            item {
+                AnswerCard(answer = answer, citations = citations, llmLatencyMs = llmLatencyMs)
+            }
+            item {
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+        } else if (ragError != null) {
+            item {
+                ErrorAnswerCard(error = ragError)
+            }
+            item {
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+        }
+
         item {
             Text(
                 text = "${results.size} results found",
@@ -294,6 +347,76 @@ private fun SuccessState(results: List<FileResult>, showScore: Boolean) {
 
         items(items = results, key = { it.filePath }) { result ->
             FileResultCard(result = result, showScore = showScore)
+        }
+    }
+}
+
+@Composable
+private fun AnswerCard(answer: String, citations: List<String>, llmLatencyMs: Long) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "AI Answer",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = answer,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            if (citations.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Sources: ${citations.joinToString(limit = 2, truncated = "...")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            if (llmLatencyMs > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "LLM latency: ${llmLatencyMs}ms",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorAnswerCard(error: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Error,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "AI Answer Unavailable",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }

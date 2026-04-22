@@ -19,8 +19,13 @@ android {
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            isShrinkResources = false
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -34,6 +39,17 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -45,7 +61,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    // Add Extended Icons
     implementation("androidx.compose.material:material-icons-extended")
 
     testImplementation(libs.junit)
@@ -56,29 +71,21 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    val room_version = "3.0.0-alpha02"
+    val roomVersion = "3.0.0-alpha02"
 
-    implementation("androidx.room3:room3-runtime:$room_version")
-    ksp("androidx.room3:room3-compiler:$room_version")
-    
-    // Bundled SQLite for FTS5 support
+    implementation("androidx.room3:room3-runtime:$roomVersion")
+    ksp("androidx.room3:room3-compiler:$roomVersion")
+
     implementation("androidx.sqlite:sqlite-bundled:2.6.2")
-
-    // WorkManager (for background file indexing)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
-
-    // ViewModel & StateFlow integration with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
-
-    // Kotlin Coroutines (for background tasks)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("co.yml:ycharts:2.1.0")
-    // --- LIBRARIES FOR DENSE RETRIEVAL / RERANKING ---
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
-
-    // PDF Parsing library for Android
     implementation(libs.pdfbox.android)
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
