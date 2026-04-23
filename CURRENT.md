@@ -1605,3 +1605,24 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ `:app:testDebugUnitTest --tests com.augt.localseek.ml.llm.ExtractiveOnDeviceLLMTest` passed
 - ⚠️ Current CMake log indicates `llama.cpp` source was not present locally, so build used JNI stub mode (expected fallback behavior)
 
+---
+
+## Phase 11 - Part 3 Search UI AI Feedback Visibility (2026-04-23)
+
+### Problem Addressed
+- Users could trigger AI mode but receive no obvious UI feedback while generation was running (or when AI failed), especially outside result-success states.
+
+### Implemented
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+  - Added `AiStatusBanner` shown near the search bar with explicit AI state text.
+  - Displays live status for:
+    - `AI is generating an answer...`
+    - `AI answer ready (...)`
+    - `AI unavailable: <reason>`
+    - `AI mode is on. Press search to generate an answer.`
+  - Banner now appears even when result list is empty, improving transparency during/after RAG execution.
+
+### Validation
+- ✅ Kotlin compile passed: `:app:compileDebugKotlin`
+- ⚠️ Existing Compose `Divider` deprecation warnings remain; no functional regression observed
+

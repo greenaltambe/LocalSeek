@@ -90,6 +90,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun executeSearch(rawQuery: String, includeRag: Boolean) {
+        Log.d("RAG_DEBUG", "includeRag=$includeRag, ragMode=${_uiState.value.ragMode}")
+        Log.d("RAG_DEBUG", "ragAvailable=${ragEngine.isAvailable()}")
+
         _uiState.update {
             it.copy(
                 isLoading = true,
@@ -209,13 +212,24 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         var ragCitations: List<String> = emptyList()
         var llmLatencyMs = 0L
 
-        if (includeRag && _uiState.value.ragMode) {
+        Log.d("RAG_DEBUG", "includeRag=$includeRag, ragMode=${_uiState.value.ragMode}")
+        Log.d("RAG_DEBUG", "ragAvailable=${ragEngine.isAvailable()}")
+
+        val ragModeSnapshot = _uiState.value.ragMode
+
+        if (includeRag && ragModeSnapshot) {
             if (!ragEngine.isAvailable()) {
                 refreshRagAvailability(forceInit = true)
             }
             if (ragEngine.isAvailable()) {
                 _uiState.update { it.copy(loadingStage = "Generating AI answer", loadingProgress = 0.92f) }
+                Log.d("RAG_DEBUG", "Entering RAG generation")
+
                 val ragResult = ragEngine.generateAnswer(rawQuery, filteredResults)
+
+                Log.d("RAG_DEBUG", "RAG raw result: $ragResult")
+                Log.d("RAG_DEBUG", "RAG answer length: ${ragResult.answer?.length}")
+                Log.d("RAG_DEBUG", "RAG error: ${ragResult.error}")
                 ragAnswer = ragResult.answer
                 ragError = ragResult.error
                 ragCitations = ragResult.citations
@@ -224,6 +238,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 ragError = "AI answers are not available on this device"
             }
         }
+
+        Log.d("RAG_DEBUG", "ragAnswer=$ragAnswer, ragError=$ragError")
 
         _uiState.update {
             it.copy(

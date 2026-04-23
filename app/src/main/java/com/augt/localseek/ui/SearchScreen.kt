@@ -122,6 +122,21 @@ fun SearchScreen(
                     .padding(16.dp)
             )
 
+            val isGeneratingAi = uiState.isLoading && uiState.loadingStage.contains("Generating AI", ignoreCase = true)
+            if (uiState.ragMode || uiState.ragError != null || isGeneratingAi) {
+                AiStatusBanner(
+                    isGenerating = isGeneratingAi,
+                    ragMode = uiState.ragMode,
+                    ragError = uiState.ragError,
+                    hasAnswer = !uiState.ragAnswer.isNullOrBlank(),
+                    llmLatencyMs = uiState.llmLatencyMs,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+
             val appliedFilters = toAppliedFilters(uiState.activeFilters)
             if (appliedFilters.isNotEmpty()) {
                 FilterChipsRow(
@@ -160,6 +175,52 @@ fun SearchScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AiStatusBanner(
+    isGenerating: Boolean,
+    ragMode: Boolean,
+    ragError: String?,
+    hasAnswer: Boolean,
+    llmLatencyMs: Long,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = when {
+        ragError != null -> MaterialTheme.colorScheme.errorContainer
+        isGenerating -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+
+    val message = when {
+        ragError != null -> "AI unavailable: $ragError"
+        isGenerating -> "AI is generating an answer..."
+        hasAnswer -> "AI answer ready${if (llmLatencyMs > 0) " (${llmLatencyMs}ms)" else ""}"
+        ragMode -> "AI mode is on. Press search to generate an answer."
+        else -> "AI mode is off"
+    }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    imageVector = if (ragError != null) Icons.Default.Error else Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(text = message, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
