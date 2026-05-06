@@ -223,7 +223,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             }
             if (ragEngine.isAvailable()) {
                 _uiState.update { it.copy(loadingStage = "Generating AI answer", loadingProgress = 0.92f) }
-                Log.d("RAG_DEBUG", "Entering RAG generation")
+                Log.d("RAG_DEBUG", "Entering RAG generation block")
 
                 val ragResult = ragEngine.generateAnswer(rawQuery, filteredResults)
 

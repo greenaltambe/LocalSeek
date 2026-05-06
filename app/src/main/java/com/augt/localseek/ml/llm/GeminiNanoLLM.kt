@@ -22,7 +22,7 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
             "com.google.android.as",
             "com.google.android.gms"
         )
-        private const val MODEL_NAME = "gemini-1.5-flash"
+        private const val MODEL_NAME = "gemini-2.0-flash"
         private const val INIT_TIMEOUT_MS = 6_000L
         private const val GENERATION_TIMEOUT_MS = 15_000L
 

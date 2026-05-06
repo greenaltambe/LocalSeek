@@ -1678,5 +1678,32 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 ### Notes
 - Existing non-suspending callers of `CrossEncoder.close()` are still supported because `close()` performs a blocking `runBlocking { mutex.withLock { ... } }` to safely close the Interpreter.
 
+---
+
+## Hotfix (2026-05-06) - RAG/LLM Pipeline Corrections
+
+### Fixes Applied
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt` to use `gemini-2.0-flash` instead of `gemini-1.5-flash`.
+- ✅ Refactored `app/src/main/java/com/augt/localseek/ml/llm/LLMProvider.kt` to cache the actual selected LLM in `selectedLLM` and derive `getCapabilities()` from that cached instance instead of re-running diagnostics.
+- ✅ Added missing RAG debug logging in `app/src/main/java/com/augt/localseek/search/rag/RAGEngine.kt` and `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`.
+  - `RAGEngine.generateAnswer()` now logs entry and result details.
+  - `SearchViewModel.executeSearch()` now logs `Entering RAG generation block` immediately before the `generateAnswer()` call.
+
+### Validation
+- ✅ Kotlin source updated to keep the RAG/LLM pipeline aligned with the actual selected runtime.
+- ⏳ Full Gradle compile/test run recommended to confirm Android build integration.
+
+---
+
+## Hotfix (2026-05-06) - Lenient RAG Context Extraction
+
+### Fix Applied
+- ✅ Updated `app/src/main/java/com/augt/localseek/search/rag/RAGEngine.kt` so `extractContext()` truncates oversized snippets to the remaining context budget instead of skipping them outright.
+- ✅ `extractContext()` now only skips when no context space remains, and logs the final selection with chunk count and total character usage before returning.
+
+### Validation
+- ✅ Keeps `MAX_CONTEXT_CHUNKS` and `MAX_CONTEXT_LENGTH` enforcement intact while improving recall from search results.
+- ⏳ Full Gradle compile/test run recommended to confirm runtime behavior end-to-end.
+
 
 

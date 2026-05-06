@@ -10,7 +10,10 @@ class LLMProvider(private val context: Context) {
         private const val TAG = "LLMProvider"
     }
 
+    private var selectedLLM: OnDeviceLLM? = null
+
     suspend fun getAvailableLLM(): OnDeviceLLM? {
+        selectedLLM = null
         val diagnostics = getDiagnostics()
         Log.d(TAG, "=== LLM Provider Detection ===")
         Log.d(TAG, "Summary: ${diagnostics.summary}")
@@ -20,6 +23,7 @@ class LLMProvider(private val context: Context) {
         try {
             if (gemini.initialize()) {
                 Log.d(TAG, "Gemini initialized successfully")
+                selectedLLM = gemini
                 return gemini
             }
             Log.w(TAG, "Gemini initialization returned false")
@@ -40,6 +44,7 @@ class LLMProvider(private val context: Context) {
                             "Phi-3 initialized in extractive fallback mode (JNI missing)"
                         }
                     )
+                    selectedLLM = phi3
                     phi3
                 } else {
                     Log.w(TAG, "Phi-3 initialization returned false")
@@ -56,9 +61,8 @@ class LLMProvider(private val context: Context) {
     }
 
     fun getCapabilities(): LLMCapabilities {
-        val diagnostics = getDiagnostics()
-        return when {
-            diagnostics.geminiReason.contains("API key configured", ignoreCase = true) -> LLMCapabilities(
+        return when (val llm = selectedLLM) {
+            is GeminiNanoLLM -> LLMCapabilities(
                 name = "Gemini",
                 provider = "Google Generative AI",
                 maxTokens = 2048,
@@ -68,16 +72,16 @@ class LLMProvider(private val context: Context) {
                 isAvailable = true
             )
 
-            diagnostics.phi3Found -> LLMCapabilities(
-                name = if (diagnostics.phi3JniReady) "Phi-3-mini" else "Phi-3-mini (Fallback)",
-                provider = if (diagnostics.phi3JniReady) "llama.cpp" else "Extractive fallback",
+            is Phi3LLM -> LLMCapabilities(
+                name = "Phi-3-mini",
+                provider = "Phi-3 runtime",
                 maxTokens = 512,
                 estimatedLatency = 1500,
                 supportsStreaming = false,
                 memoryImpact = "Medium (~600MB)",
                 isAvailable = true,
                 requiresDownload = false,
-                requiresImplementation = if (diagnostics.phi3JniReady) null else "llama.cpp JNI (optional for generation quality)"
+                requiresImplementation = null
             )
 
             else -> LLMCapabilities(

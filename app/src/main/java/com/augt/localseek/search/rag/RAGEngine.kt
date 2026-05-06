@@ -52,6 +52,7 @@ class RAGEngine(private val context: Context) {
         val startTime = System.currentTimeMillis()
         try {
             val activeLlm = llm
+            Log.d(TAG, "generateAnswer called, llm=$activeLlm, initialized=$isInitialized")
             if (!isInitialized || activeLlm == null) {
                 return@withContext RAGResult(
                     answer = null,
@@ -75,7 +76,7 @@ class RAGEngine(private val context: Context) {
             val citations = extractCitations(searchResults)
             val totalLatency = System.currentTimeMillis() - startTime
 
-            RAGResult(
+            val result = RAGResult(
                 answer = response.answer.takeIf { response.error == null && it.isNotBlank() },
                 error = response.error,
                 searchResults = searchResults,
@@ -83,6 +84,8 @@ class RAGEngine(private val context: Context) {
                 llmLatencyMs = response.latencyMs,
                 totalLatencyMs = totalLatency
             )
+            Log.d(TAG, "generateAnswer result: answer=${result.answer?.take(50)}, error=${result.error}")
+            result
         } catch (e: Exception) {
             Log.e(TAG, "RAG generation failed", e)
             RAGResult(
@@ -102,12 +105,22 @@ class RAGEngine(private val context: Context) {
         for (result in results) {
             for (snippet in result.snippets) {
                 if (chunks.size >= MAX_CONTEXT_CHUNKS) break
-                if (totalLength + snippet.length > MAX_CONTEXT_LENGTH) continue
-                chunks.add(snippet)
-                totalLength += snippet.length
+
+                val availableSpace = MAX_CONTEXT_LENGTH - totalLength
+                if (availableSpace <= 0) break
+
+                val chunk = if (snippet.length > availableSpace) {
+                    snippet.take(availableSpace)
+                } else {
+                    snippet
+                }
+
+                chunks.add(chunk)
+                totalLength += chunk.length
             }
-            if (chunks.size >= MAX_CONTEXT_CHUNKS) break
+            if (chunks.size >= MAX_CONTEXT_CHUNKS || totalLength >= MAX_CONTEXT_LENGTH) break
         }
+        Log.d(TAG, "extractContext: selected ${chunks.size} chunks, total $totalLength chars from ${results.size} results")
         return chunks
     }
 
