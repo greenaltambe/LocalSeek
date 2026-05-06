@@ -21,25 +21,36 @@ class DenseEncoder(context: Context) {
     }
 
     private val tokenizer = BertTokenizer(context)
-    private val interpreter: Interpreter
+    private val interpreter: Interpreter?
+    // Guard interpreter usage because TFLite Interpreter is not thread-safe.
+    // Use a synchronized lock to protect all interpreter calls.
+    private val lock = Object()
+    // Flag to indicate the interpreter has been closed; protects against calls after close()
+    @Volatile
+    private var closed = false
 
     init {
-        val modelBuffer = loadModelFile(context, MODEL_FILE)
-        val options = Interpreter.Options().apply {
-            setUseNNAPI(true)
-            setNumThreads(4)
-        }
-        interpreter = Interpreter(modelBuffer, options)
+        interpreter = try {
+            val modelBuffer = loadModelFile(context, MODEL_FILE)
+            val options = Interpreter.Options().apply {
+                setUseNNAPI(true)
+                setNumThreads(4)
+            }
+            Interpreter(modelBuffer, options).also { interp ->
+                Log.i(TAG, "Loaded $MODEL_FILE | NNAPI=true | threads=4")
 
-        Log.i(TAG, "Loaded $MODEL_FILE | NNAPI=true | threads=4")
-
-        for (i in 0 until interpreter.inputTensorCount) {
-            val tensor = interpreter.getInputTensor(i)
-            Log.d(TAG, "Input $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
-        }
-        for (i in 0 until interpreter.outputTensorCount) {
-            val tensor = interpreter.getOutputTensor(i)
-            Log.d(TAG, "Output $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
+                for (i in 0 until interp.inputTensorCount) {
+                    val tensor = interp.getInputTensor(i)
+                    Log.d(TAG, "Input $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
+                }
+                for (i in 0 until interp.outputTensorCount) {
+                    val tensor = interp.getOutputTensor(i)
+                    Log.d(TAG, "Output $i: name=${tensor.name()}, shape=${tensor.shape().contentToString()}, type=${tensor.dataType()}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load DenseEncoder model", e)
+            null
         }
     }
 
@@ -56,25 +67,43 @@ class DenseEncoder(context: Context) {
 
     /**
      * Converts text into a normalized 384-dimensional semantic vector.
+     * Returns an empty FloatArray if the encoder is closed or interpreter is null.
      */
     fun encode(text: String): FloatArray {
-        val (inputIds, attentionMask) = tokenizer.tokenize(text, MAX_TOKENS)
+        // quick guard: if already closed or interpreter is unavailable, return empty
+        if (closed) return FloatArray(0)
 
-        val outputEmbedding = Array(1) { FloatArray(EMBEDDING_SIZE) }
+        val currentInterpreter = interpreter ?: return FloatArray(0)
 
-        interpreter.runForMultipleInputsOutputs(
-            arrayOf(
-                arrayOf(inputIds),
-                arrayOf(attentionMask)
-            ),
-            mapOf(0 to outputEmbedding)
-        )
+        return try {
+            val (inputIds, attentionMask) = tokenizer.tokenize(text, MAX_TOKENS)
 
-        val result = l2Normalize(outputEmbedding[0])
-        if (result.all { it == 0.0f }) {
-            Log.w(TAG, "Warning: Encoder returned an all-zero vector")
+            val outputEmbedding = Array(1) { FloatArray(EMBEDDING_SIZE) }
+
+            // serialize access to the Interpreter to avoid concurrent native calls
+            synchronized(lock) {
+                if (!closed && interpreter != null) {
+                    currentInterpreter.runForMultipleInputsOutputs(
+                        arrayOf(
+                            arrayOf(inputIds),
+                            arrayOf(attentionMask)
+                        ),
+                        mapOf(0 to outputEmbedding)
+                    )
+                } else {
+                    return FloatArray(0)
+                }
+            }
+
+            val result = l2Normalize(outputEmbedding[0])
+            if (result.all { it == 0.0f }) {
+                Log.w(TAG, "Warning: Encoder returned an all-zero vector")
+            }
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Encoding failed", e)
+            FloatArray(0)
         }
-        return result
     }
 
     fun encodeBatch(texts: List<String>, batchSize: Int = 8): List<FloatArray> {
@@ -92,7 +121,12 @@ class DenseEncoder(context: Context) {
     }
 
     fun close() {
-        interpreter.close()
+        // ensure close does not race with in-flight inference
+        synchronized(lock) {
+            // mark closed so subsequent encode() calls return safely
+            closed = true
+            interpreter?.close()
+        }
     }
 }
 

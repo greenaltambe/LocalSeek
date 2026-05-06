@@ -1763,5 +1763,65 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 ### Validation
 - ⏳ Compile verification recommended after the RAG initialization guard change.
 
+---
+
+## Hotfix (2026-05-06) - DenseEncoder TFLite Thread-Safety
+
+### Problem
+- Concurrent embedding generation could call the same TFLite Interpreter instance from multiple coroutine threads, causing native crashes because the Interpreter is not thread-safe.
+
+### Fix Applied
+- ✅ Changed DenseEncoder `interpreter` from non-nullable to nullable (`Interpreter?`)
+- ✅ Added `private val lock = Object()` to serialize interpreter access using synchronized blocks
+- ✅ Added `@Volatile private var closed = false` flag to track closure state
+- ✅ Updated `init {}` to safely initialize with try-catch; logs errors and sets interpreter to null if model load fails
+- ✅ Protected `interpreter.runForMultipleInputsOutputs()` call in `encode()` with `synchronized(lock)` block
+- ✅ Added null guard in `encode()` to return empty `FloatArray(0)` if encoder is closed or interpreter is null
+- ✅ Protected `interpreter.close()` call in `close()` with `synchronized(lock)` block and set `closed = true` before closing
+- ✅ Updated `close()` to safely handle nullable interpreter
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ml/DenseEncoder.kt` (DenseEncoder: synchronized lock, closed flag, null guards)
+
+### Rationale
+- Using `Object()` with synchronized blocks provides simple, effective mutual exclusion for protecting all interpreter calls
+- Null guards and closed flag prevent crashes from calls after close() or when model fails to load
+- Consistent with CrossEncoder pattern in same file (though CrossEncoder uses Mutex for async compatibility)
+
+### Testing
+- ✅ Kotlin compilation verified
+- ✅ No functional regressions in encode/close paths
+- ⏳ Concurrent embedding stress test on device recommended to validate native stability
+
+### Notes
+- `encodeBatch()` calls `encode()` internally, so the synchronized protection applies to batched operations automatically
+- Unlike CrossEncoder (which uses coroutine Mutex), DenseEncoder uses standard synchronized blocks since `encode()` is synchronous
+
+---
+
+## Hotfix (2026-05-06) - Gemini Nano LLM Token Limit Optimization
+
+### Changes Applied
+- ✅ Reduced `maxOutputTokens` from 512 to 256 in `GeminiNanoLLM.kt` GenerativeModel config
+- ✅ Added import for `ResponseStoppedException` from Google Generative AI SDK
+- ✅ Enhanced `generateAnswer()` method with fallback logic:
+  - Catches `ResponseStoppedException` separately from generic exceptions
+  - Returns a graceful response instead of an error when generation is stopped (likely due to token limits)
+  - Logs the stop event for debugging
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt`:
+  - Line 9: Added `ResponseStoppedException` import
+  - Line 144: Changed `maxOutputTokens = 512` to `maxOutputTokens = 256`
+  - Lines 190-199: Enhanced error handling in `generateAnswer()` with ResponseStoppedException fallback
+
+### Rationale
+- Reducing max output tokens from 512 to 256 improves response speed and reduces token consumption
+- Graceful handling of stopped responses prevents unnecessary errors and improves UX
+- Instead of failing completely, the handler returns a user-friendly message indicating the response was incomplete
+
+### Testing
+- ✅ Kotlin compilation verified (error on unresolved reference fixed)
+- ⏳ Runtime testing on device with token-limited responses recommended
 
 

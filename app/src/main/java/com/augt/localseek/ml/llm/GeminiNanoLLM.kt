@@ -6,6 +6,7 @@ import android.util.Log
 import com.augt.localseek.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
+import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.augt.localseek.ui.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -140,7 +141,7 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
                 apiKey = apiKey,
                 generationConfig = generationConfig {
                     temperature = 0.3f
-                    maxOutputTokens = 512
+                    maxOutputTokens = 256
                     topK = 40
                     topP = 0.95f
                 }
@@ -186,6 +187,16 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
                     latencyMs = latency
                 )
             }
+        } catch (e: ResponseStoppedException) {
+            val latency = System.currentTimeMillis() - start
+            // Handle response stopped exception - likely due to token limit
+            Log.w(TAG, "Gemini generation stopped: ${e.message}")
+            // Return partial success rather than error for better UX
+            LLMResponse(
+                answer = "(Response incomplete - generation stopped)",
+                sourceChunks = chunks.take(3),
+                latencyMs = latency
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Gemini generation failed", e)
             LLMResponse.failure("Gemini error: ${e.message ?: "unknown"}", System.currentTimeMillis() - start)
