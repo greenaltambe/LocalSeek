@@ -191,14 +191,6 @@ fun SearchScreen(
                 )
             }
 
-            val appliedFilters = toAppliedFilters(uiState.activeFilters)
-            if (appliedFilters.isNotEmpty()) {
-                FilterChipsRow(
-                    filters = appliedFilters,
-                    onFilterRemove = { viewModel.removeFilter(it.type) }
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -730,6 +722,7 @@ private fun getDateRangeLabel(activeRange: FilterType.DateRange?): String {
     val now = System.currentTimeMillis()
     val sevenDaysMs = 7 * 24 * 60 * 60 * 1000L
     val thirtyDaysMs = 30 * 24 * 60 * 60 * 1000L
+    val tolerance = 1000L // 1 second tolerance for rounding differences
     
     // Check for "Today"
     val today = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
@@ -741,8 +734,8 @@ private fun getDateRangeLabel(activeRange: FilterType.DateRange?): String {
     
     return when {
         activeRange.start == today && activeRange.end == Long.MAX_VALUE -> "Date: Today"
-        activeRange.start == (now - sevenDaysMs) && activeRange.end == Long.MAX_VALUE -> "Date: Last 7 Days"
-        activeRange.start == (now - thirtyDaysMs) && activeRange.end == Long.MAX_VALUE -> "Date: Last 30 Days"
+        activeRange.end == Long.MAX_VALUE && kotlin.math.abs(activeRange.start - (now - sevenDaysMs)) < tolerance -> "Date: Last 7 Days"
+        activeRange.end == Long.MAX_VALUE && kotlin.math.abs(activeRange.start - (now - thirtyDaysMs)) < tolerance -> "Date: Last 30 Days"
         activeRange.start == 0L && activeRange.end == Long.MAX_VALUE -> "Date: Anytime"
         else -> "Date: Custom"
     }
