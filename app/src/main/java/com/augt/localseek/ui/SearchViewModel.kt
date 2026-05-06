@@ -320,6 +320,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun toggleAiAnswerExpanded() {
+        _uiState.update { it.copy(aiAnswerExpanded = !it.aiAnswerExpanded) }
+    }
+
     fun removeFilter(filterType: FilterType) {
         when (filterType) {
             is FilterType.FileType -> onFileTypeFilterChanged(null)

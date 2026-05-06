@@ -1847,6 +1847,25 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 ### Validation
 - ⏳ Kotlin compilation and UI tap-path verification recommended after the click-handler wiring
 
+---
+
+## Hotfix (2026-05-06) - Collapsible AI Answer Card UX
+
+### Changes Applied
+- ✅ Added `aiAnswerExpanded` state to `SearchUiState` with default `true`
+- ✅ Added `toggleAiAnswerExpanded()` in `SearchViewModel.kt`
+- ✅ Updated `AnswerCard` in `SearchScreen.kt` to support expanded/collapsed rendering
+- ✅ Added a chevron toggle button in the card header and made the header clickable
+- ✅ Collapsed mode now shows a one-line preview and hides citations/latency details
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchUiState.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+
+### Validation
+- ⏳ Kotlin compilation and Compose UI verification recommended after the answer-card UX update
+
 ## Hotfix (2026-05-06) - Android FileProvider Manifest Registration
 
 ### Changes Applied

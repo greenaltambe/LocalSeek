@@ -19,5 +19,6 @@ data class SearchUiState(
     val ragAnswer: String? = null,
     val ragError: String? = null,
     val ragCitations: List<String> = emptyList(),
-    val llmLatencyMs: Long = 0L
+    val llmLatencyMs: Long = 0L,
+    val aiAnswerExpanded: Boolean = true
 )
