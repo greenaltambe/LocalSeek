@@ -1731,6 +1731,17 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 
 ---
 
+## Hotfix (2026-05-06) - Softer Gemini Prompting
+
+### Fix Applied
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt` `buildPrompt()` to encourage summarization of relevant document excerpts instead of refusing too early.
+- ✅ The prompt now only returns a refusal when the excerpts are completely unrelated to the question.
+
+### Validation
+- ⏳ Compile verification recommended after the prompt text update.
+
+---
+
 ## Hotfix (2026-05-06) - AI Toggle Availability Hint
 
 ### Fix Applied

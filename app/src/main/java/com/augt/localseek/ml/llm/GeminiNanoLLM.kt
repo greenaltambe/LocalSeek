@@ -223,15 +223,16 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
 
         return """
             You are a helpful assistant that answers questions about the user's local documents.
-            Use ONLY the provided excerpts.
-            If the answer is not in the excerpts, say: I couldn't find that in your documents.
-            Keep the answer concise and factual.
+            
+            Based on the document excerpts below, provide a clear and concise answer to the question.
+            If the excerpts contain relevant information, summarize it naturally.
+            Only say "I couldn't find relevant information in your documents" if the excerpts are completely unrelated to the question.
 
             DOCUMENT EXCERPTS:
             $contextText
 
             QUESTION: $query
-            ANSWER:
+            ANSWER (be concise and direct):
         """.trimIndent()
     }
 }
