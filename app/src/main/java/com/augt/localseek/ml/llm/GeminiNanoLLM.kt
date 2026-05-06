@@ -233,17 +233,24 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
             .joinToString("\n\n---\n\n") { it.take(800) }
 
         return """
-            You are a helpful assistant that answers questions about the user's local documents.
+            You are a highly capable on-device AI search assistant. Your task is to answer the user's query using only the provided document excerpts.
             
-            Based on the document excerpts below, provide a clear and concise answer to the question.
-            If the excerpts contain relevant information, summarize it naturally.
-            Only say "I couldn't find relevant information in your documents" if the excerpts are completely unrelated to the question.
-
+            Strict Guidelines:
+            1. Base your answer ONLY on the document excerpts provided below. Do not use external knowledge or invent facts.
+            2. Format your response beautifully using clean Markdown:
+               - Use bold titles or inline headers (**Concept**) for readability.
+               - Use bullet points or numbered lists instead of large blocks of text where appropriate.
+               - Keep paragraphs short and concise.
+            3. If the excerpts do not contain enough information to answer the question, respond with exactly:
+               "I couldn't find relevant information in your documents to answer this."
+            4. Do not refer to "excerpts" or "the document" in your final answer (e.g., instead of "According to the excerpts, QIN is...", write "QIN is..."). Keep it natural.
+            
             DOCUMENT EXCERPTS:
             $contextText
-
+            
             QUESTION: $query
-            ANSWER (be concise and direct):
+            
+            STRUCTURED ANSWER:
         """.trimIndent()
     }
 }
