@@ -1626,3 +1626,52 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ Kotlin compile passed: `:app:compileDebugKotlin`
 - ⚠️ Existing Compose `Divider` deprecation warnings remain; no functional regression observed
 
+---
+
+## Phase 12 - RAG Answer Rendering + Multi-word BM25 Recall (2026-04-23)
+
+### Problems Addressed
+- AI answer/error cards could be hidden by result-state branching in search UI.
+- Multi-word BM25 queries were overly strict due to AND-only matching.
+
+### Implemented
+- ✅ Updated `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+  - Moved AI answer/error card rendering to top-level screen layout (outside success-only list branch).
+  - AI outcome is now visible whenever generation completes, even if list branch changes would otherwise hide it.
+  - Kept existing `AiStatusBanner` behavior for live generation/error state visibility.
+
+- ✅ Updated `app/src/main/java/com/augt/localseek/retrieval/BM25Retriever.kt`
+  - Added recall-oriented fallback strategy for multi-word search:
+    1. precision-first `AND` query
+    2. `OR` fallback when results are sparse
+    3. per-term union fallback as last recall pass
+  - Preserved current chunk aggregation and normalized score mapping.
+
+### Validation
+- ✅ Kotlin compile passed: `:app:compileDebugKotlin`
+- ✅ Unit tests passed: `:app:testDebugUnitTest`
+
+
+---
+
+## Hotfix (2026-05-06) - Cross-Encoder TFLite Thread-Safety
+
+### Problem
+- Concurrent reranking could call the same TFLite Interpreter instance from multiple coroutine threads, causing native crashes (SIGABRT: Invalid pointer passed to free) due to interpreter not being thread-safe.
+
+### Fix Applied
+- ✅ Serialized Cross-encoder interpreter access by adding an `interpreterLock` and wrapping `runForMultipleInputsOutputs(...)` and `close()` in `synchronized(interpreterLock)`.
+- Files changed:
+  - `app/src/main/java/com/augt/localseek/ml/DenseEncoder.kt` (CrossEncoder: add lock + synchronized inference & close)
+
+### Rationale
+- Minimal, low-risk fix: guarantees only one thread uses the Interpreter at a time. Avoids changing public API or introducing pooling.
+
+### Testing
+- ✅ Built host debug: `:app:assembleDebug` (compile-time verified).
+- ✅ Basic manual concurrency stress: launched multiple parallel rerank calls from UI flow and observed no Interpreter-related crashes during short stress run.
+
+### Next steps (optional)
+- Consider migrating to a coroutine-friendly `Mutex` and making `score(...)` suspend, or implementing a small pool of Interpreter instances for higher throughput if needed.
+
+

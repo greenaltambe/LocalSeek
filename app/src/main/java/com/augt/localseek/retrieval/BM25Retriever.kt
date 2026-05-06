@@ -8,18 +8,40 @@ import kotlin.math.max
 class BM25Retriever(context: Context) {
 
     private val chunkDao = AppDatabase.getInstance(context).chunkDao()
+    private val minPreferredHits = 3
 
     suspend fun search(rawQuery: String, limit: Int = 50): List<SearchResult> {
         if (rawQuery.isBlank()) return emptyList()
 
-        // Sanitize the user input into a format FTS5 understands.
-        val ftsQuery = buildFtsQuery(rawQuery)
-        if (ftsQuery.isBlank()) return emptyList()
-        
-        println("FTS Query: $ftsQuery")
-
         return try {
-            val chunkHits = chunkDao.searchChunks(ftsQuery, max(limit * 3, limit))
+            val tokens = tokenize(rawQuery)
+            if (tokens.isEmpty()) return emptyList()
+
+            val andQuery = buildFtsQuery(tokens, useAnd = true)
+            val andHits = chunkDao.searchChunks(andQuery, max(limit * 3, limit))
+
+            val chunkHits = when {
+                andHits.size >= minPreferredHits || tokens.size == 1 -> andHits
+                else -> {
+                    val orQuery = buildFtsQuery(tokens, useAnd = false)
+                    val orHits = chunkDao.searchChunks(orQuery, max(limit * 3, limit))
+                    if (orHits.size >= minPreferredHits) {
+                        orHits
+                    } else {
+                        // Last-recall fallback: union top hits from each term.
+                        val union = linkedMapOf<Long, com.augt.localseek.data.ChunkWithMetadata>()
+                        val perTermLimit = max(10, limit)
+                        tokens.forEach { term ->
+                            val termQuery = buildFtsQuery(listOf(term), useAnd = true)
+                            chunkDao.searchChunks(termQuery, perTermLimit).forEach { hit ->
+                                union.putIfAbsent(hit.chunkId, hit)
+                            }
+                        }
+                        union.values.toList()
+                    }
+                }
+            }
+
             if (chunkHits.isEmpty()) return emptyList()
 
             val aggregated = ChunkAggregator.aggregateChunks(chunkHits)
@@ -51,7 +73,7 @@ class BM25Retriever(context: Context) {
             }
         } catch (e: Exception) {
             // FTS5 can throw an exception if the query syntax is invalid.
-            android.util.Log.e("BM25Retriever", "Search failed for query: $ftsQuery", e)
+            android.util.Log.e("BM25Retriever", "Search failed for query: $rawQuery", e)
             emptyList()
         }
     }
@@ -62,16 +84,17 @@ class BM25Retriever(context: Context) {
      * Changed to use AND logic and prefix matching (*) to make search much more flexible.
      * Example: "kotlin guide" -> "\"kotlin\"* AND \"guide\"*"
      */
-    private fun buildFtsQuery(query: String): String {
-        val tokens = query.trim()
+    private fun tokenize(query: String): List<String> {
+        return query.trim()
             .split("\\s+".toRegex()) // Split on one or more spaces
             .filter { it.isNotBlank() }
-            
-        if (tokens.isEmpty()) return ""
+    }
 
-        // Join terms with AND to ensure all terms must be present, but anywhere in the doc.
-        // Add * to the end of each term for prefix matching (e.g. "andro" matches "android").
-        return tokens.joinToString(" AND ") { token ->
+    private fun buildFtsQuery(tokens: List<String>, useAnd: Boolean): String {
+        if (tokens.isEmpty()) return ""
+        val operator = if (useAnd) " AND " else " OR "
+
+        return tokens.joinToString(operator) { token ->
             // Escape any double quotes within the token.
             val escaped = token.replace("\"", "\"\"")
             "\"$escaped\"*"

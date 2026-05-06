@@ -103,6 +103,9 @@ class CrossEncoder(context: Context) {
 
     private val tokenizer = BertTokenizer(context)
     private val interpreter: Interpreter?
+    // Guard interpreter usage because TFLite Interpreter is not thread-safe.
+    // Concurrent calls can cause native crashes (double-free / use-after-free).
+    private val interpreterLock = Any()
 
     val isAvailable: Boolean
         get() = interpreter != null
@@ -130,10 +133,13 @@ class CrossEncoder(context: Context) {
             val (inputIds, attentionMask) = tokenizer.tokenize("$query [SEP] $document", MAX_LENGTH)
             val output = Array(1) { FloatArray(1) }
 
-            current.runForMultipleInputsOutputs(
-                arrayOf(arrayOf(inputIds), arrayOf(attentionMask)),
-                mapOf(0 to output)
-            )
+            // serialize access to the Interpreter to avoid concurrent native calls
+            synchronized(interpreterLock) {
+                current.runForMultipleInputsOutputs(
+                    arrayOf(arrayOf(inputIds), arrayOf(attentionMask)),
+                    mapOf(0 to output)
+                )
+            }
 
             output[0][0]
         } catch (e: Exception) {
@@ -143,7 +149,10 @@ class CrossEncoder(context: Context) {
     }
 
     fun close() {
-        interpreter?.close()
+        // ensure close does not race with in-flight inference
+        synchronized(interpreterLock) {
+            interpreter?.close()
+        }
     }
 
     private fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {

@@ -137,6 +137,26 @@ fun SearchScreen(
                 )
             }
 
+            if (!uiState.isLoading && !uiState.ragAnswer.isNullOrBlank()) {
+                AnswerCard(
+                    answer = uiState.ragAnswer.orEmpty(),
+                    citations = uiState.ragCitations,
+                    llmLatencyMs = uiState.llmLatencyMs,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+            } else if (!uiState.isLoading && uiState.ragError != null) {
+                ErrorAnswerCard(
+                    error = uiState.ragError.orEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+
             val appliedFilters = toAppliedFilters(uiState.activeFilters)
             if (appliedFilters.isNotEmpty()) {
                 FilterChipsRow(
@@ -167,11 +187,7 @@ fun SearchScreen(
 
                     else -> SuccessState(
                         results = uiState.results,
-                        showScore = uiState.showScores,
-                        answer = uiState.ragAnswer,
-                        citations = uiState.ragCitations,
-                        llmLatencyMs = uiState.llmLatencyMs,
-                        ragError = uiState.ragError
+                        showScore = uiState.showScores
                     )
                 }
             }
@@ -371,33 +387,13 @@ private fun LoadingState(stage: String, progress: Float) {
 @Composable
 private fun SuccessState(
     results: List<FileResult>,
-    showScore: Boolean,
-    answer: String?,
-    citations: List<String>,
-    llmLatencyMs: Long,
-    ragError: String?
+    showScore: Boolean
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (answer != null) {
-            item {
-                AnswerCard(answer = answer, citations = citations, llmLatencyMs = llmLatencyMs)
-            }
-            item {
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-            }
-        } else if (ragError != null) {
-            item {
-                ErrorAnswerCard(error = ragError)
-            }
-            item {
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-            }
-        }
-
         item {
             Text(
                 text = "${results.size} results found",
@@ -413,9 +409,14 @@ private fun SuccessState(
 }
 
 @Composable
-private fun AnswerCard(answer: String, citations: List<String>, llmLatencyMs: Long) {
+private fun AnswerCard(
+    answer: String,
+    citations: List<String>,
+    llmLatencyMs: Long,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -451,9 +452,9 @@ private fun AnswerCard(answer: String, citations: List<String>, llmLatencyMs: Lo
 }
 
 @Composable
-private fun ErrorAnswerCard(error: String) {
+private fun ErrorAnswerCard(error: String, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
     ) {
         Row(
