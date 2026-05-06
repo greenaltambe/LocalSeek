@@ -45,6 +45,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
@@ -66,6 +67,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.augt.localseek.retrieval.FileResult
 import java.util.Calendar
 import java.util.TimeZone
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -276,10 +286,26 @@ private fun SearchInput(
     isSearching: Boolean,
     modifier: Modifier = Modifier
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val elevation by animateDpAsState(
+        targetValue = if (isFocused) 4.dp else 0.dp,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+    )
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+    )
+
+    val focusedModifier = modifier
+        .shadow(elevation = elevation, shape = MaterialTheme.shapes.extraLarge)
+        .onFocusChanged { isFocused = it.isFocused }
+
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier,
+        modifier = focusedModifier,
         placeholder = { Text("Search your files...") },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
         trailingIcon = {
@@ -297,7 +323,11 @@ private fun SearchInput(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
         singleLine = true,
-        shape = MaterialTheme.shapes.extraLarge
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor
+        )
     )
 }
 
@@ -451,9 +481,16 @@ private fun AnswerCard(
 ) {
     val firstLine = answer.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
     val displayAnswer = if (isExpanded) answer else if (firstLine.isBlank()) "..." else "$firstLine..."
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "answerChevronRotation"
+    )
 
     Card(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(
+            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -480,7 +517,10 @@ private fun AnswerCard(
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
-                IconButton(onClick = onToggleExpanded) {
+                IconButton(
+                    onClick = onToggleExpanded,
+                    modifier = Modifier.rotate(chevronRotation)
+                ) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = if (isExpanded) "Collapse answer" else "Expand answer",
