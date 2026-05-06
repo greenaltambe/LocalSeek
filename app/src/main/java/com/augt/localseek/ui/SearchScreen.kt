@@ -36,6 +36,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -49,6 +52,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +64,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.augt.localseek.retrieval.FileResult
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,6 +142,16 @@ fun SearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
+            )
+
+            FilterControlRow(
+                activeFilters = uiState.activeFilters,
+                onFileTypeSelected = viewModel::onFileTypeFilterChanged,
+                onDateRangeSelected = viewModel::onDateRangeFilterChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp)
             )
 
             val isGeneratingAi = uiState.isLoading && uiState.loadingStage.contains("Generating AI", ignoreCase = true)
@@ -596,6 +614,161 @@ private fun EmptyState(query: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun FilterControlRow(
+    activeFilters: List<FilterType>,
+    onFileTypeSelected: (String?) -> Unit,
+    onDateRangeSelected: (Long, Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var fileTypeMenuExpanded by remember { mutableStateOf(false) }
+    var dateMenuExpanded by remember { mutableStateOf(false) }
+
+    val activeFileType = activeFilters.filterIsInstance<FilterType.FileType>().firstOrNull()?.type
+    val activeFileTypeLabel = if (activeFileType != null) "File Type: ${activeFileType.uppercase()}" else "File Type: All"
+
+    val activeDateRange = activeFilters.filterIsInstance<FilterType.DateRange>().firstOrNull()
+    val activeDateLabel = getDateRangeLabel(activeDateRange)
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // File Type Filter
+        Box(modifier = Modifier.weight(1f)) {
+            AssistChip(
+                onClick = { fileTypeMenuExpanded = true },
+                label = { Text(activeFileTypeLabel) }
+            )
+            DropdownMenu(
+                expanded = fileTypeMenuExpanded,
+                onDismissRequest = { fileTypeMenuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("All") },
+                    onClick = {
+                        onFileTypeSelected(null)
+                        fileTypeMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("PDF") },
+                    onClick = {
+                        onFileTypeSelected("pdf")
+                        fileTypeMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Markdown") },
+                    onClick = {
+                        onFileTypeSelected("md")
+                        fileTypeMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Text") },
+                    onClick = {
+                        onFileTypeSelected("txt")
+                        fileTypeMenuExpanded = false
+                    }
+                )
+            }
+        }
+
+        // Date Range Filter
+        Box(modifier = Modifier.weight(1f)) {
+            AssistChip(
+                onClick = { dateMenuExpanded = true },
+                label = { Text(activeDateLabel) }
+            )
+            DropdownMenu(
+                expanded = dateMenuExpanded,
+                onDismissRequest = { dateMenuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Anytime") },
+                    onClick = {
+                        onDateRangeSelected(0L, Long.MAX_VALUE)
+                        dateMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Today") },
+                    onClick = {
+                        val (start, end) = getDateRangeMillis("Today")
+                        onDateRangeSelected(start, end)
+                        dateMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Last 7 Days") },
+                    onClick = {
+                        val (start, end) = getDateRangeMillis("Last 7 Days")
+                        onDateRangeSelected(start, end)
+                        dateMenuExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Last 30 Days") },
+                    onClick = {
+                        val (start, end) = getDateRangeMillis("Last 30 Days")
+                        onDateRangeSelected(start, end)
+                        dateMenuExpanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun getDateRangeLabel(activeRange: FilterType.DateRange?): String {
+    if (activeRange == null) return "Date: Anytime"
+    
+    val now = System.currentTimeMillis()
+    val sevenDaysMs = 7 * 24 * 60 * 60 * 1000L
+    val thirtyDaysMs = 30 * 24 * 60 * 60 * 1000L
+    
+    // Check for "Today"
+    val today = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    
+    return when {
+        activeRange.start == today && activeRange.end == Long.MAX_VALUE -> "Date: Today"
+        activeRange.start == (now - sevenDaysMs) && activeRange.end == Long.MAX_VALUE -> "Date: Last 7 Days"
+        activeRange.start == (now - thirtyDaysMs) && activeRange.end == Long.MAX_VALUE -> "Date: Last 30 Days"
+        activeRange.start == 0L && activeRange.end == Long.MAX_VALUE -> "Date: Anytime"
+        else -> "Date: Custom"
+    }
+}
+
+private fun getDateRangeMillis(option: String): Pair<Long, Long> {
+    val now = System.currentTimeMillis()
+    return when (option) {
+        "Today" -> {
+            val today = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            today to Long.MAX_VALUE
+        }
+        "Last 7 Days" -> {
+            val sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000L)
+            sevenDaysAgo to Long.MAX_VALUE
+        }
+        "Last 30 Days" -> {
+            val thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000L)
+            thirtyDaysAgo to Long.MAX_VALUE
+        }
+        else -> 0L to Long.MAX_VALUE
     }
 }
 
