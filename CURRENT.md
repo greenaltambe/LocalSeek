@@ -1824,4 +1824,40 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ Kotlin compilation verified (error on unresolved reference fixed)
 - ⏳ Runtime testing on device with token-limited responses recommended
 
+---
+
+## Hotfix (2026-05-06) - Search Result File Opening Flow
+
+### Changes Applied
+- ✅ Replaced `SearchViewModel.openFile()` with a `FileProvider`-backed `Intent.ACTION_VIEW` implementation
+- ✅ Added MIME type resolution for common file types (`pdf`, `txt`, `md`, `json`, `html`)
+- ✅ Made `FileResultCard` fully clickable so tapping a card opens the selected file
+- ✅ Wired `SearchScreen` result taps to `viewModel::openFile`
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchResultCard.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+- `app/src/main/java/com/augt/localseek/ui/search/SearchScreen.kt`
+
+### Notes
+- Uses the existing `androidx.core.content.FileProvider` manifest registration already added earlier
+- File-open failures now surface through the ViewModel’s UI error state for the search screen
+
+### Validation
+- ⏳ Kotlin compilation and UI tap-path verification recommended after the click-handler wiring
+
+## Hotfix (2026-05-06) - Android FileProvider Manifest Registration
+
+### Changes Applied
+- ✅ Added `FileProvider` in `app/src/main/AndroidManifest.xml` inside the `<application>` tag
+- ✅ Used authorities `${applicationId}.fileprovider` with `grantUriPermissions="true"`
+- ✅ Added provider `meta-data` mapping `android.support.FILE_PROVIDER_PATHS` to `@xml/file_paths`
+
+### Placement
+- ✅ Inserted immediately after `MainActivity` closing `</activity>` tag, as requested
+
+### Files Changed
+- `app/src/main/AndroidManifest.xml`
+
 

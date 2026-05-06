@@ -316,7 +316,8 @@ fun SuccessState(
         items(results, key = { it.filePath }) { result ->
             FileResultCard(
                 result = result,
-                showScore = showScore
+                showScore = showScore,
+                onFileClick = onResultClick
             )
         }
     }

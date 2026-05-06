@@ -31,7 +31,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -199,7 +198,8 @@ fun SearchScreen(
 
                     else -> SuccessState(
                         results = uiState.results,
-                        showScore = uiState.showScores
+                        showScore = uiState.showScores,
+                        onResultClick = viewModel::openFile
                     )
                 }
             }
@@ -399,7 +399,8 @@ private fun LoadingState(stage: String, progress: Float) {
 @Composable
 private fun SuccessState(
     results: List<FileResult>,
-    showScore: Boolean
+    showScore: Boolean,
+    onResultClick: (FileResult) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -415,7 +416,11 @@ private fun SuccessState(
         }
 
         items(items = results, key = { it.filePath }) { result ->
-            FileResultCard(result = result, showScore = showScore)
+            FileResultCard(
+                result = result,
+                showScore = showScore,
+                onFileClick = onResultClick
+            )
         }
     }
 }

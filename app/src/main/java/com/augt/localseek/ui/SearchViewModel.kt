@@ -1,6 +1,8 @@
 package com.augt.localseek.ui
 
 import android.app.Application
+import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
@@ -21,6 +23,7 @@ import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.search.query.QueryExpander
 import com.augt.localseek.search.query.QueryProcessor
 import com.augt.localseek.ui.settings.SettingsRepository
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -325,7 +329,47 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun openFile(result: FileResult) {
-        Log.d(TAG_VALIDATION, "[UI] Open file requested: ${result.filePath}")
+        viewModelScope.launch {
+            try {
+                val file = File(result.filePath)
+                if (!file.exists()) {
+                    _uiState.update { it.copy(errorMessage = "File not found: ${file.name}") }
+                    return@launch
+                }
+
+                val uri = FileProvider.getUriForFile(
+                    getApplication(),
+                    "${getApplication<Application>().packageName}.fileprovider",
+                    file
+                )
+
+                val mimeType = when (result.fileType.lowercase()) {
+                    "pdf" -> "application/pdf"
+                    "txt" -> "text/plain"
+                    "md", "markdown" -> "text/markdown"
+                    "json" -> "application/json"
+                    "html" -> "text/html"
+                    else -> "text/plain"
+                }
+
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                try {
+                    getApplication<Application>().startActivity(intent)
+                } catch (_: ActivityNotFoundException) {
+                    _uiState.update {
+                        it.copy(errorMessage = "No app found to open ${result.fileType} files")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SearchViewModel", "Error opening file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to open file: ${e.message}") }
+            }
+        }
     }
 
     fun onFileTypeFilterChanged(type: String?) {

@@ -1,6 +1,7 @@
 package com.augt.localseek.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,12 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AssistChip
@@ -27,7 +28,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
@@ -50,13 +50,18 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun FileResultCard(result: FileResult, showScore: Boolean) {
+fun FileResultCard(
+    result: FileResult,
+    showScore: Boolean,
+    onFileClick: (FileResult) -> Unit = {}
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .animateContentSize(),
+            .animateContentSize()
+            .clickable { onFileClick(result) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -174,10 +179,10 @@ private fun Meta(icon: ImageVector, text: String) {
 private fun getFileIcon(type: String): ImageVector = when (type.lowercase()) {
     "pdf" -> Icons.Default.PictureAsPdf
     "txt", "md" -> Icons.Default.Description
-    "doc", "docx" -> Icons.Default.Article
+    "doc", "docx" -> Icons.AutoMirrored.Filled.Article
     "json", "xml" -> Icons.Default.Code
     "jpg", "png", "jpeg" -> Icons.Default.Image
-    else -> Icons.Default.InsertDriveFile
+    else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }
 
 private fun getFileColor(type: String): Color = when (type.lowercase()) {
