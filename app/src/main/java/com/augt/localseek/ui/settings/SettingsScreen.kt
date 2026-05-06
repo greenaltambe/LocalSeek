@@ -49,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -64,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.augt.localseek.ml.llm.LLMCapabilities
@@ -105,6 +107,14 @@ fun SettingsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item { SectionHeader(title = "AI Configuration") }
+            item {
+                GeminiApiKeyCard(
+                    apiKey = settings.geminiApiKey,
+                    onApiKeyChange = viewModel::updateGeminiApiKey
+                )
+            }
+
             item { SectionHeader(title = "Index Status") }
             item {
                 IndexStatusCard(
@@ -288,6 +298,38 @@ fun SectionHeader(title: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
     )
+}
+
+@Composable
+fun GeminiApiKeyCard(
+    apiKey: String,
+    onApiKeyChange: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Gemini API Key",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = onApiKeyChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Gemini API Key (optional)") },
+                placeholder = { Text("Enter your API key or leave blank to use build default") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Get a free key at ai.google.dev",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable
@@ -542,8 +584,12 @@ fun LLMStatusCard(capabilities: LLMCapabilities, diagnostics: LLMDiagnostics) {
             )
             DiagnosticRow(
                 label = "Gemini API Key",
-                value = if (diagnostics.aiCoreFound) "Configured" else "Missing (local.properties)",
-                passed = diagnostics.aiCoreFound
+                value = if (diagnostics.geminiReason.contains("configured", ignoreCase = true)) {
+                    "Configured"
+                } else {
+                    "Missing"
+                },
+                passed = diagnostics.geminiReason.contains("configured", ignoreCase = true)
             )
             DiagnosticRow(
                 label = "Phi-3 Model",

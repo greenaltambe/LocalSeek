@@ -22,6 +22,7 @@ class SettingsRepository(private val context: Context) {
             enableDenseRetrieval = pref[Keys.ENABLE_DENSE] ?: true,
             enableReranking = pref[Keys.ENABLE_RERANKING] ?: true,
             enableQueryExpansion = pref[Keys.ENABLE_QUERY_EXPANSION] ?: true,
+            geminiApiKey = pref[Keys.GEMINI_API_KEY] ?: "",
             maxResults = pref[Keys.MAX_RESULTS] ?: 20,
             batteryAwareMode = pref[Keys.BATTERY_AWARE] ?: true,
             adaptiveLsh = pref[Keys.ADAPTIVE_LSH] ?: true,
@@ -40,6 +41,7 @@ class SettingsRepository(private val context: Context) {
             pref[Keys.ENABLE_DENSE] = updated.enableDenseRetrieval
             pref[Keys.ENABLE_RERANKING] = updated.enableReranking
             pref[Keys.ENABLE_QUERY_EXPANSION] = updated.enableQueryExpansion
+            pref[Keys.GEMINI_API_KEY] = updated.geminiApiKey
             pref[Keys.MAX_RESULTS] = updated.maxResults
             pref[Keys.BATTERY_AWARE] = updated.batteryAwareMode
             pref[Keys.ADAPTIVE_LSH] = updated.adaptiveLsh
@@ -54,6 +56,12 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun reset() {
         context.settingsDataStore.edit { it.clear() }
+    }
+
+    suspend fun updateGeminiApiKey(key: String) {
+        context.settingsDataStore.edit { pref ->
+            pref[Keys.GEMINI_API_KEY] = key.trim()
+        }
     }
 
     suspend fun indexStats(): IndexStats {
@@ -75,6 +83,7 @@ class SettingsRepository(private val context: Context) {
         val ENABLE_DENSE = booleanPreferencesKey("enable_dense")
         val ENABLE_RERANKING = booleanPreferencesKey("enable_reranking")
         val ENABLE_QUERY_EXPANSION = booleanPreferencesKey("enable_query_expansion")
+        val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
         val MAX_RESULTS = intPreferencesKey("max_results")
         val BATTERY_AWARE = booleanPreferencesKey("battery_aware")
         val ADAPTIVE_LSH = booleanPreferencesKey("adaptive_lsh")

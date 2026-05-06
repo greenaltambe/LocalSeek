@@ -66,7 +66,6 @@ fun SearchScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
-
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -76,26 +75,39 @@ fun SearchScreen(
                     if (uiState.latencyMs > 0L) {
                         PerformanceChip(latencyMs = uiState.latencyMs)
                     }
-                    IconButton(
-                        onClick = { viewModel.toggleRagMode() },
-                        enabled = uiState.ragAvailable,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (uiState.ragMode && uiState.ragAvailable) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = if (uiState.ragAvailable) {
-                                "Toggle AI Answers"
-                            } else {
-                                "AI Answers Not Available"
-                            }
-                        )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = { viewModel.toggleRagMode() },
+                            enabled = uiState.ragAvailable,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = if (uiState.ragMode && uiState.ragAvailable) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = if (uiState.ragAvailable) {
+                                    "Toggle AI Answers"
+                                } else {
+                                    "AI Answers Not Available"
+                                }
+                            )
+                        }
+                        if (!uiState.ragAvailable && !uiState.ragAvailabilityHint.isNullOrBlank()) {
+                            Text(
+                                text = uiState.ragAvailabilityHint.orEmpty(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .width(116.dp)
+                                    .padding(top = 2.dp)
+                            )
+                        }
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")

@@ -7,6 +7,8 @@ import com.augt.localseek.ml.llm.OnDeviceLLM
 import com.augt.localseek.retrieval.FileResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class RAGEngine(private val context: Context) {
 
@@ -19,31 +21,46 @@ class RAGEngine(private val context: Context) {
     private val llmProvider = LLMProvider(context)
     private var llm: OnDeviceLLM? = null
     private var isInitialized: Boolean = false
+    private val initMutex = Mutex()
+    private var initInProgress = false
 
     suspend fun initialize(): Boolean {
         if (isInitialized) {
-            Log.d(TAG, "RAG already initialized")
+            Log.d(TAG, "RAG already initialized, skipping")
             return true
         }
 
-        return withContext(Dispatchers.IO) {
+        if (initInProgress) {
+            Log.d(TAG, "RAG initialization already in progress, waiting...")
+            initMutex.withLock { /* wait for ongoing init */ }
+            return isInitialized
+        }
+
+        return initMutex.withLock {
+            initInProgress = true
             try {
-                Log.d(TAG, "=== RAG Engine Initialization ===")
-                llm = llmProvider.getAvailableLLM()
-                if (llm != null) {
-                    val capabilities = llmProvider.getCapabilities()
-                    Log.d(TAG, "RAG ready with ${capabilities.name} (${capabilities.provider})")
-                    isInitialized = true
-                    true
-                } else {
-                    Log.w(TAG, "No LLM available; RAG disabled")
-                    isInitialized = false
-                    false
+                withContext(Dispatchers.IO) {
+                    try {
+                        Log.d(TAG, "=== RAG Engine Initialization ===")
+                        llm = llmProvider.getAvailableLLM()
+                        if (llm != null) {
+                            val capabilities = llmProvider.getCapabilities()
+                            Log.d(TAG, "RAG ready with ${capabilities.name} (${capabilities.provider})")
+                            isInitialized = true
+                            true
+                        } else {
+                            Log.w(TAG, "No LLM available; RAG disabled")
+                            isInitialized = false
+                            false
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "RAG initialization failed", e)
+                        isInitialized = false
+                        false
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "RAG initialization failed", e)
-                isInitialized = false
-                false
+            } finally {
+                initInProgress = false
             }
         }
     }

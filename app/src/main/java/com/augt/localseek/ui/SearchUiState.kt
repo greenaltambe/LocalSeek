@@ -15,6 +15,7 @@ data class SearchUiState(
     val activeFilters: List<FilterType> = listOf(FilterType.All),
     val ragMode: Boolean = false,
     val ragAvailable: Boolean = false,
+    val ragAvailabilityHint: String? = null,
     val ragAnswer: String? = null,
     val ragError: String? = null,
     val ragCitations: List<String> = emptyList(),

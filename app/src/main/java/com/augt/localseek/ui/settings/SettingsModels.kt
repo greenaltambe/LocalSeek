@@ -4,6 +4,7 @@ data class AppSettings(
     val enableDenseRetrieval: Boolean = true,
     val enableReranking: Boolean = true,
     val enableQueryExpansion: Boolean = true,
+    val geminiApiKey: String = "",
     val maxResults: Int = 20,
     val batteryAwareMode: Boolean = true,
     val adaptiveLsh: Boolean = true,

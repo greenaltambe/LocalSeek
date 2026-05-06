@@ -84,6 +84,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateGeminiApiKey(key: String) {
+        viewModelScope.launch {
+            repository.updateGeminiApiKey(key)
+            _settings.update { current -> current.copy(geminiApiKey = key.trim()) }
+        }
+    }
+
     fun rebuildIndex() {
         IndexScheduler.scheduleImmediateIndex(getApplication())
         refreshIndexStats()

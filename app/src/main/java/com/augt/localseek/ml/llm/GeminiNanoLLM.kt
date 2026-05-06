@@ -6,9 +6,12 @@ import android.util.Log
 import com.augt.localseek.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
+import com.augt.localseek.ui.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 /**
  * Gemini runtime adapter using Google Generative AI SDK.
@@ -22,11 +25,18 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
             "com.google.android.as",
             "com.google.android.gms"
         )
-        private const val MODEL_NAME = "gemini-2.0-flash"
+        private const val MODEL_NAME = "gemini-2.5-flash"
         private const val INIT_TIMEOUT_MS = 6_000L
         private const val GENERATION_TIMEOUT_MS = 15_000L
 
+        private fun resolveUserApiKeyFromContext(context: Context): String = runBlocking(Dispatchers.IO) {
+            SettingsRepository(context).settings.first().geminiApiKey.trim()
+        }
+
         private fun resolveApiKeyFromContext(context: Context): String {
+            val fromUserSettings = resolveUserApiKeyFromContext(context)
+            if (fromUserSettings.isNotBlank()) return fromUserSettings
+
             val fromBuildConfig = BuildConfig.GEMINI_API_KEY.trim()
             if (fromBuildConfig.isNotBlank()) return fromBuildConfig
 
@@ -182,11 +192,17 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
         }
     }
 
-    private fun resolveApiKey(): String {
+    private suspend fun resolveApiKey(): String = withContext(Dispatchers.IO) {
+        val fromUserSettings = resolveUserApiKeyFromContext(context)
+        if (fromUserSettings.isNotBlank()) {
+            Log.d(TAG, "Gemini key source: settings/app_settings")
+            return@withContext fromUserSettings
+        }
+
         val fromBuildConfig = BuildConfig.GEMINI_API_KEY.trim()
         if (fromBuildConfig.isNotBlank()) {
             Log.d(TAG, "Gemini key source: BuildConfig")
-            return fromBuildConfig
+            return@withContext fromBuildConfig
         }
 
         val fromAsset = runCatching {
@@ -195,7 +211,7 @@ class GeminiNanoLLM(private val context: Context) : OnDeviceLLM {
         if (fromAsset.isNotBlank()) {
             Log.d(TAG, "Gemini key source: assets/gemini_key.txt")
         }
-        return fromAsset
+        fromAsset
     }
 
     private fun buildPrompt(query: String, chunks: List<String>): String {

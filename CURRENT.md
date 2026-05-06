@@ -1705,5 +1705,52 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ Keeps `MAX_CONTEXT_CHUNKS` and `MAX_CONTEXT_LENGTH` enforcement intact while improving recall from search results.
 - ⏳ Full Gradle compile/test run recommended to confirm runtime behavior end-to-end.
 
+---
+
+## Hotfix (2026-05-06) - User-Editable Gemini API Key
+
+### Fixes Applied
+- ✅ Added `geminiApiKey` to `AppSettings` and persisted it in `SettingsRepository` via DataStore.
+- ✅ Added `updateGeminiApiKey(key: String)` to save the user-entered key without overwriting other settings.
+- ✅ Added an **AI Configuration** section in `SettingsScreen.kt` with a masked Gemini API key field and helper text.
+- ✅ Updated `GeminiNanoLLM.kt` to prefer the saved user key before `BuildConfig.GEMINI_API_KEY`, with asset fallback still available.
+
+### Validation
+- ✅ Settings UI and Gemini initialization path remain aligned with the existing app settings flow.
+- ✅ Kotlin compile verified: `:app:compileDebugKotlin`
+
+---
+
+## Hotfix (2026-05-06) - Gemini Stable Free-Tier Model
+
+### Fix Applied
+- ✅ Updated `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt` to use `gemini-2.5-flash` as the current stable production free-tier model.
+
+### Validation
+- ⏳ Compile verification recommended after the model-name change.
+
+---
+
+## Hotfix (2026-05-06) - AI Toggle Availability Hint
+
+### Fix Applied
+- ✅ Added `ragAvailabilityHint` to `SearchUiState` and populated it in `SearchViewModel` from the saved Gemini API key plus Phi-3 availability.
+- ✅ Updated `SearchScreen.kt` to show a subtle helper line below the AI toggle when AI answers are unavailable.
+- ✅ The helper text now distinguishes between missing configuration and Gemini quota / fallback situations.
+
+### Validation
+- ⏳ Compile verification recommended after the SearchScreen/ViewModel changes.
+
+---
+
+## Hotfix (2026-05-06) - RAG Initialization Concurrency Guard
+
+### Fix Applied
+- ✅ Added a coroutine `Mutex` and `initInProgress` flag in `app/src/main/java/com/augt/localseek/search/rag/RAGEngine.kt`.
+- ✅ `initialize()` now skips immediately when already initialized, waits for an in-progress initialization to finish, and ensures only one init body runs at a time.
+
+### Validation
+- ⏳ Compile verification recommended after the RAG initialization guard change.
+
 
 

@@ -9,6 +9,7 @@ import com.augt.localseek.LocalSeekApplication
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.logging.measureSuspendTime
 import com.augt.localseek.ml.DenseEncoder
+import com.augt.localseek.ml.llm.Phi3LLM
 import com.augt.localseek.model.SearchResult
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.CrossEncoderReranker
@@ -19,6 +20,7 @@ import com.augt.localseek.retrieval.FusionRanker
 import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.search.query.QueryExpander
 import com.augt.localseek.search.query.QueryProcessor
+import com.augt.localseek.ui.settings.SettingsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -26,6 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -47,6 +50,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val denseRetriever: DenseRetriever? = if (ENABLE_DENSE) DenseRetriever(application) else null
     private val queryProcessorEncoder = DenseEncoder(application)
     private val queryProcessor = QueryProcessor(application, queryProcessorEncoder)
+    private val settingsRepository = SettingsRepository(application)
     private val fusionRanker = FusionRanker()
     private val crossEncoderReranker = CrossEncoderReranker(application)
     private val queryCache = QueryCache(maxSize = 50)
@@ -266,7 +270,26 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         if (forceInit || !ragEngine.isAvailable()) {
             ragEngine.initialize()
         }
-        _uiState.update { it.copy(ragAvailable = ragEngine.isAvailable()) }
+        val available = ragEngine.isAvailable()
+        val hint = if (available) null else resolveRagAvailabilityHint()
+        _uiState.update {
+            it.copy(
+                ragAvailable = available,
+                ragAvailabilityHint = hint
+            )
+        }
+    }
+
+    private suspend fun resolveRagAvailabilityHint(): String? {
+        val settings = settingsRepository.settings.first()
+        val hasGeminiKey = settings.geminiApiKey.isNotBlank()
+        val phi3Available = Phi3LLM.isAvailable(getApplication())
+
+        return when {
+            !hasGeminiKey && !phi3Available -> "AI answers require Gemini API key or Phi-3 model. Configure in settings."
+            hasGeminiKey && !phi3Available -> "AI answers unavailable: Gemini quota exceeded. Download Phi-3 as backup or retry later."
+            else -> null
+        }
     }
 
     // Phase 9 UI compatibility helpers.
@@ -286,6 +309,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.update {
             it.copy(
                 ragAvailable = available,
+                ragAvailabilityHint = if (available) null else _uiState.value.ragAvailabilityHint,
                 ragMode = if (available) !it.ragMode else false,
                 ragError = if (!available) "AI answers are not available on this device" else null
             )
