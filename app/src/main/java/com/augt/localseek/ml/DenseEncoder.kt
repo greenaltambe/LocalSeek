@@ -7,6 +7,9 @@ import java.io.FileInputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import kotlin.math.sqrt
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class DenseEncoder(context: Context) {
 
@@ -104,11 +107,14 @@ class CrossEncoder(context: Context) {
     private val tokenizer = BertTokenizer(context)
     private val interpreter: Interpreter?
     // Guard interpreter usage because TFLite Interpreter is not thread-safe.
-    // Concurrent calls can cause native crashes (double-free / use-after-free).
-    private val interpreterLock = Any()
+    // Use a coroutines Mutex so suspend functions can serialize access safely.
+    private val interpreterMutex = Mutex()
+    // Flag to indicate the interpreter has been closed; protects against calls after close()
+    @Volatile
+    private var closed = false
 
     val isAvailable: Boolean
-        get() = interpreter != null
+        get() = interpreter != null && !closed
 
     init {
         interpreter = try {
@@ -126,7 +132,10 @@ class CrossEncoder(context: Context) {
         }
     }
 
-    fun score(query: String, document: String): Float {
+    suspend fun score(query: String, document: String): Float {
+        // quick guard: if already closed, return 0f immediately
+        if (closed) return 0f
+
         val current = interpreter ?: return 0f
 
         return try {
@@ -134,14 +143,18 @@ class CrossEncoder(context: Context) {
             val output = Array(1) { FloatArray(1) }
 
             // serialize access to the Interpreter to avoid concurrent native calls
-            synchronized(interpreterLock) {
-                current.runForMultipleInputsOutputs(
-                    arrayOf(arrayOf(inputIds), arrayOf(attentionMask)),
-                    mapOf(0 to output)
-                )
+            var ran = false
+            interpreterMutex.withLock {
+                if (!closed) {
+                    current.runForMultipleInputsOutputs(
+                        arrayOf(arrayOf(inputIds), arrayOf(attentionMask)),
+                        mapOf(0 to output)
+                    )
+                    ran = true
+                }
             }
 
-            output[0][0]
+            if (ran) output[0][0] else 0f
         } catch (e: Exception) {
             Log.e(TAG, "Cross-encoder scoring failed", e)
             0f
@@ -150,8 +163,13 @@ class CrossEncoder(context: Context) {
 
     fun close() {
         // ensure close does not race with in-flight inference
-        synchronized(interpreterLock) {
-            interpreter?.close()
+        // Use runBlocking here so callers can call close() from non-suspending contexts
+        runBlocking {
+            interpreterMutex.withLock {
+                // mark closed so subsequent score() calls return safely
+                closed = true
+                interpreter?.close()
+            }
         }
     }
 

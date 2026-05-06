@@ -31,16 +31,23 @@ class CrossEncoderReranker(context: Context) {
 
         val topCandidates = candidates.take(RERANK_TOP_K)
         val reranked = withTimeoutOrNull(MAX_RERANK_TIME_MS) {
-            topCandidates.map { candidate ->
+            val out = mutableListOf<SearchResult>()
+            for (candidate in topCandidates) {
                 val cacheKey = "${query.lowercase()}::${candidate.id}"
-                val crossScore = scoreCache.get(cacheKey) ?: crossEncoder.score(query, candidate.snippet).also {
-                    scoreCache.put(cacheKey, it)
+                val cached = scoreCache.get(cacheKey)
+                val crossScore = if (cached != null) {
+                    cached
+                } else {
+                    val s = crossEncoder.score(query, candidate.snippet)
+                    scoreCache.put(cacheKey, s)
+                    s
                 }
 
                 val hybridScore = (CROSS_WEIGHT * crossScore) + (INITIAL_WEIGHT * candidate.score)
                 Log.v(TAG, "rerank id=${candidate.id} initial=${candidate.score} cross=$crossScore final=$hybridScore")
-                candidate.copy(score = hybridScore)
+                out.add(candidate.copy(score = hybridScore))
             }
+            out
         }
 
         if (reranked == null) {

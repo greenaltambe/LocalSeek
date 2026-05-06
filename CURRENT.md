@@ -1654,24 +1654,29 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 
 ---
 
+
 ## Hotfix (2026-05-06) - Cross-Encoder TFLite Thread-Safety
 
 ### Problem
-- Concurrent reranking could call the same TFLite Interpreter instance from multiple coroutine threads, causing native crashes (SIGABRT: Invalid pointer passed to free) due to interpreter not being thread-safe.
+- Concurrent reranking could call the same TFLite Interpreter instance from multiple coroutine threads, causing native crashes (SIGABRT: Invalid pointer passed to free) because the Interpreter is not thread-safe.
 
 ### Fix Applied
-- ✅ Serialized Cross-encoder interpreter access by adding an `interpreterLock` and wrapping `runForMultipleInputsOutputs(...)` and `close()` in `synchronized(interpreterLock)`.
+- ✅ Migrated Cross-encoder synchronization to a coroutine-friendly Mutex and made `score(...)` a suspend function. Access to `runForMultipleInputsOutputs(...)` is now serialized using `kotlinx.coroutines.sync.Mutex.withLock`.
+ - ✅ Kept `close()` protected as well — it uses `runBlocking { mutex.withLock { interpreter?.close() } }` so callers can still invoke `close()` from non-suspending contexts without racing inflight inferences.
+ - ✅ Added a `closed` guard so calls to `score(...)` after `close()` return `0f` safely instead of attempting to run inference on a closed Interpreter.
 - Files changed:
-  - `app/src/main/java/com/augt/localseek/ml/DenseEncoder.kt` (CrossEncoder: add lock + synchronized inference & close)
+  - `app/src/main/java/com/augt/localseek/ml/DenseEncoder.kt` (CrossEncoder: use kotlinx.coroutines.sync.Mutex, make score suspend, close uses mutex.withLock)
+  - `app/src/main/java/com/augt/localseek/retrieval/CrossEncoderReranker.kt` (call sites updated: sequential suspend-aware rerank loop)
 
 ### Rationale
-- Minimal, low-risk fix: guarantees only one thread uses the Interpreter at a time. Avoids changing public API or introducing pooling.
+- Using a coroutine Mutex avoids mixing synchronized blocks with suspend code and makes the public scoring API suspension-friendly so callers running in coroutines can naturally await serialized inference calls.
 
 ### Testing
 - ✅ Built host debug: `:app:assembleDebug` (compile-time verified).
-- ✅ Basic manual concurrency stress: launched multiple parallel rerank calls from UI flow and observed no Interpreter-related crashes during short stress run.
+- ✅ Ran basic concurrency stress by issuing multiple parallel rerank calls from the UI flow; no Interpreter-related crashes observed and reranking respects the 500ms timeout.
 
-### Next steps (optional)
-- Consider migrating to a coroutine-friendly `Mutex` and making `score(...)` suspend, or implementing a small pool of Interpreter instances for higher throughput if needed.
+### Notes
+- Existing non-suspending callers of `CrossEncoder.close()` are still supported because `close()` performs a blocking `runBlocking { mutex.withLock { ... } }` to safely close the Interpreter.
+
 
 
