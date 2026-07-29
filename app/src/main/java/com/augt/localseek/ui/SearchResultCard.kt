@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AssistChip
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.augt.localseek.model.EntityType
 import com.augt.localseek.retrieval.FileResult
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,12 +73,7 @@ fun FileResultCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(modifier = Modifier.weight(1f)) {
-                    Icon(
-                        imageVector = getFileIcon(result.fileType),
-                        contentDescription = null,
-                        tint = getFileColor(result.fileType),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    ResultIcon(result)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = result.title,
@@ -88,7 +86,13 @@ fun FileResultCard(
                 }
 
                 Badge {
-                    Text(result.fileType.uppercase())
+                    Text(
+                        when (result.entityType) {
+                            EntityType.FILE -> result.fileType.uppercase()
+                            EntityType.APP -> "APPLICATION"
+                            EntityType.CONTACT -> "CONTACT"
+                        }
+                    )
                 }
             }
 
@@ -121,7 +125,9 @@ fun FileResultCard(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Meta(icon = Icons.Default.CalendarToday, text = formatDate(result.modifiedAt))
-                    Meta(icon = Icons.Default.Storage, text = formatSize(result.sizeBytes))
+                    if (result.entityType == EntityType.FILE) {
+                        Meta(icon = Icons.Default.Storage, text = formatSize(result.sizeBytes))
+                    }
                 }
 
                 val scoreText = if (showScore) {
@@ -155,6 +161,36 @@ fun FileResultCard(
                     )
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ResultIcon(result: FileResult) {
+    when (result.entityType) {
+        EntityType.FILE -> {
+            Icon(
+                imageVector = getFileIcon(result.fileType),
+                contentDescription = null,
+                tint = getFileColor(result.fileType),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        EntityType.APP -> {
+            Icon(
+                imageVector = Icons.Default.Apps,
+                contentDescription = null,
+                tint = Color(0xFF673AB7),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        EntityType.CONTACT -> {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = Color(0xFF009688),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -219,6 +255,7 @@ private fun highlightMarkdownBold(snippet: String): AnnotatedString {
 }
 
 private fun formatDate(timestamp: Long): String {
+    if (timestamp <= 0L) return "Unknown"
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     return formatter.format(Date(timestamp))
 }
@@ -232,8 +269,3 @@ private fun formatSize(bytes: Long): String {
 }
 
 fun Double.format(decimals: Int): String = "%.${decimals}f".format(this)
-
-
-
-
-

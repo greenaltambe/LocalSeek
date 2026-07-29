@@ -100,6 +100,19 @@ class FileIndexer(private val context: Context) {
             }
         }
 
+        // 4. Index Apps and Contacts
+        try {
+            AppIndexer(context).indexApps(denseEncoder)
+        } catch (e: Exception) {
+            Log.e("FileIndexer", "App indexing failed", e)
+        }
+
+        try {
+            ContactIndexer(context).indexContacts(denseEncoder)
+        } catch (e: Exception) {
+            Log.e("FileIndexer", "Contact indexing failed", e)
+        }
+
         // Cleanup AI from memory when done
         denseEncoder?.close()
 

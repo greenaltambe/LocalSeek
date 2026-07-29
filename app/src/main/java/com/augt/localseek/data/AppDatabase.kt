@@ -15,8 +15,11 @@ import androidx.sqlite.execSQL
 @SuppressLint("RestrictedApi")
 @Database(
     // List all of @Entity classes here.
-    entities = [DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class],
-    version = 12,
+    entities = [
+        DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class,
+        AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class
+    ],
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
@@ -24,6 +27,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun documentDao(): DocumentDao
     abstract fun chunkDao(): ChunkDao
+    abstract fun appDao(): AppDao
+    abstract fun contactDao(): ContactDao
 
     private object Migration1To2 : Migration(1, 2) {
         override suspend fun migrate(connection: SQLiteConnection) {
@@ -146,6 +151,60 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 
+    private object Migration12To13 : Migration(12, 13) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            // Apps table
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS apps (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    packageName TEXT NOT NULL,
+                    appName TEXT NOT NULL,
+                    textRepresentation TEXT NOT NULL,
+                    embedding BLOB,
+                    lastIndexedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts
+                USING fts5(textRepresentation, content=apps, content_rowid=id, tokenize='unicode61')
+                """.trimIndent()
+            )
+            
+            // Triggers for apps_fts
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_insert AFTER INSERT ON apps BEGIN INSERT INTO apps_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_delete AFTER DELETE ON apps BEGIN INSERT INTO apps_fts(apps_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_update AFTER UPDATE ON apps BEGIN INSERT INTO apps_fts(apps_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); INSERT INTO apps_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+
+            // Contacts table
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    contactId TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    textRepresentation TEXT NOT NULL,
+                    embedding BLOB,
+                    lastIndexedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS contacts_fts
+                USING fts5(textRepresentation, content=contacts, content_rowid=id, tokenize='unicode61')
+                """.trimIndent()
+            )
+            
+            // Triggers for contacts_fts
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_insert AFTER INSERT ON contacts BEGIN INSERT INTO contacts_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_delete AFTER DELETE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_update AFTER UPDATE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); INSERT INTO contacts_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+        }
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -159,7 +218,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration1To2, Migration10To11, Migration11To12)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13)
                 // Temporary dev safety valve for unsupported legacy version hops.
                 .fallbackToDestructiveMigration()
                 .build()

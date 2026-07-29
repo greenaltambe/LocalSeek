@@ -1982,3 +1982,52 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - `app/src/main/AndroidManifest.xml`
 
 
+
+---
+
+## Phase 13 - Unified Multi-Entity Search (Apps + Contacts) (2026-05-07)
+
+### Problem/Objective
+- Search was limited to local files only. Users needed a unified "everything search" that includes installed applications and system contacts in the same ranked results list.
+
+### Implemented/Changes Applied
+- ✅ Added `android.permission.READ_CONTACTS` and package visibility `<queries>` for launchable apps in `AndroidManifest.xml`.
+- ✅ Implemented runtime permission flow for `READ_CONTACTS` in `MainActivity.kt`.
+- ✅ Created `AppEntity` and `ContactEntity` with FTS5 companion tables (`apps_fts`, `contacts_fts`).
+- ✅ Bumped Room database version to `13` and added `Migration12To13` in `AppDatabase.kt`.
+- ✅ Added `AppDao` and `ContactDao` with BM25 search support.
+- ✅ Implemented `AppIndexer.kt` using `PackageManager` to derive text representations from app labels and categories.
+- ✅ Implemented `ContactIndexer.kt` using `ContactsContract` for name and organization indexing (privacy-preserving: no raw phone/email indexed).
+- ✅ Integrated new indexers into `IndexWorker` (via `FileIndexer`) to run sequentially during full index passes.
+- ✅ Extended `SearchResult` and `FileResult` with `EntityType` (FILE, APP, CONTACT) to support multimodal results.
+- ✅ Updated `BM25Retriever` and `DenseRetriever` to query apps and contacts in parallel with file chunks.
+- ✅ Updated `FusionRanker` and `SearchViewModel` to handle mixed entity types during RRF fusion and MMR diversification.
+- ✅ Enhanced `SearchResultCard` UI to render App and Contact results with distinct icons, badges, and tap-to-launch/open actions.
+
+### Files Changed
+- `app/src/main/AndroidManifest.xml`
+- `app/src/main/java/com/augt/localseek/MainActivity.kt`
+- `app/src/main/java/com/augt/localseek/data/AppDatabase.kt`
+- `app/src/main/java/com/augt/localseek/data/AppEntity.kt`
+- `app/src/main/java/com/augt/localseek/data/AppDao.kt`
+- `app/src/main/java/com/augt/localseek/data/ContactEntity.kt`
+- `app/src/main/java/com/augt/localseek/data/ContactDao.kt`
+- `app/src/main/java/com/augt/localseek/indexing/AppIndexer.kt`
+- `app/src/main/java/com/augt/localseek/indexing/ContactIndexer.kt`
+- `app/src/main/java/com/augt/localseek/indexing/FileIndexer.kt`
+- `app/src/main/java/com/augt/localseek/model/SearchResult.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/BM25Retriever.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/DenseRetriever.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/FusionRanker.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/ResultAggregator.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchResultCard.kt`
+- `app/src/test/java/com/augt/localseek/MultiEntitySearchTest.kt`
+
+### Validation
+- ✅ `:app:assembleDebug` succeeded.
+- ✅ `:app:testDebugUnitTest` passed (16 tests).
+- ✅ Verified `EntityType` metadata flows end-to-end from DB to UI.
+- ⚠️ **Note:** Per-entity-type score calibration is NOT yet implemented; naive fusion (RRF-style) is used.
+- ⚠️ **Note:** Apps/Contacts use brute-force dense scan (small dataset) while files use LSH (large dataset).

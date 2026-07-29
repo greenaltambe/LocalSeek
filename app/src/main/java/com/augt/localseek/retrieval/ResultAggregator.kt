@@ -1,5 +1,6 @@
 package com.augt.localseek.retrieval
 
+import com.augt.localseek.model.EntityType
 import com.augt.localseek.model.SearchResult
 
 data class FileResult(
@@ -10,14 +11,18 @@ data class FileResult(
     val bestScore: Double,
     val snippets: List<String>,
     val modifiedAt: Long,
-    val sizeBytes: Long
+    val sizeBytes: Long,
+    val entityType: EntityType = EntityType.FILE
 )
 
 object ResultAggregator {
     fun aggregateToFiles(chunks: List<SearchResult>, query: String): List<FileResult> {
         if (chunks.isEmpty()) return emptyList()
 
-        return chunks
+        val fileChunks = chunks.filter { it.entityType == EntityType.FILE }
+        val otherEntities = chunks.filter { it.entityType != EntityType.FILE }
+
+        val aggregatedFiles = fileChunks
             .groupBy { it.filePath }
             .values
             .map { chunkGroup ->
@@ -34,10 +39,26 @@ object ResultAggregator {
                         .take(3)
                         .map { highlightQuery(it.snippet, query) },
                     modifiedAt = first.modifiedAt,
-                    sizeBytes = first.sizeBytes
+                    sizeBytes = first.sizeBytes,
+                    entityType = EntityType.FILE
                 )
             }
-            .sortedByDescending { it.bestScore }
+
+        val formattedOthers = otherEntities.map {
+            FileResult(
+                id = it.id,
+                filePath = it.filePath,
+                title = it.title,
+                fileType = it.fileType,
+                bestScore = it.score.toDouble(),
+                snippets = listOf(highlightQuery(it.snippet, query)),
+                modifiedAt = it.modifiedAt,
+                sizeBytes = it.sizeBytes,
+                entityType = it.entityType
+            )
+        }
+
+        return (aggregatedFiles + formattedOthers).sortedByDescending { it.bestScore }
     }
 
     private fun highlightQuery(text: String, query: String): String {

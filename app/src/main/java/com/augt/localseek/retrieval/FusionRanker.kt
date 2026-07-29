@@ -1,5 +1,6 @@
 package com.augt.localseek.retrieval
 
+import com.augt.localseek.model.EntityType
 import kotlin.math.exp
 import kotlin.math.sqrt
 
@@ -14,7 +15,8 @@ data class FusionCandidate(
     val bm25Score: Double? = null,
     val denseScore: Double? = null,
     val embedding: FloatArray? = null,
-    val finalScore: Double = 0.0
+    val finalScore: Double = 0.0,
+    val entityType: EntityType = EntityType.FILE
 )
 
 class FusionRanker {

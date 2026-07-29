@@ -224,7 +224,7 @@ fun SearchScreen(
                     else -> SuccessState(
                         results = uiState.results,
                         showScore = uiState.showScores,
-                        onResultClick = viewModel::openFile
+                        onResultClick = viewModel::onResultClick
                     )
                 }
             }

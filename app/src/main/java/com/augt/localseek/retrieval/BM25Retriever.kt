@@ -2,12 +2,16 @@ package com.augt.localseek.retrieval
 
 import android.content.Context
 import com.augt.localseek.data.AppDatabase
+import com.augt.localseek.model.EntityType
 import com.augt.localseek.model.SearchResult
 import kotlin.math.max
 
 class BM25Retriever(context: Context) {
 
-    private val chunkDao = AppDatabase.getInstance(context).chunkDao()
+    private val db = AppDatabase.getInstance(context)
+    private val chunkDao = db.chunkDao()
+    private val appDao = db.appDao()
+    private val contactDao = db.contactDao()
     private val minPreferredHits = 3
 
     suspend fun search(rawQuery: String, limit: Int = 50): List<SearchResult> {
@@ -18,9 +22,14 @@ class BM25Retriever(context: Context) {
             if (tokens.isEmpty()) return emptyList()
 
             val andQuery = buildFtsQuery(tokens, useAnd = true)
+            
+            // 1. Fetch hits from all sources
             val andHits = chunkDao.searchChunks(andQuery, max(limit * 3, limit))
+            val appHits = appDao.searchApps(andQuery, limit)
+            val contactHits = contactDao.searchContacts(andQuery, limit)
 
-            val chunkHits = when {
+            // Fallback logic for file chunks
+            val finalChunkHits = when {
                 andHits.size >= minPreferredHits || tokens.size == 1 -> andHits
                 else -> {
                     val orQuery = buildFtsQuery(tokens, useAnd = false)
@@ -28,7 +37,6 @@ class BM25Retriever(context: Context) {
                     if (orHits.size >= minPreferredHits) {
                         orHits
                     } else {
-                        // Last-recall fallback: union top hits from each term.
                         val union = linkedMapOf<Long, com.augt.localseek.data.ChunkWithMetadata>()
                         val perTermLimit = max(10, limit)
                         tokens.forEach { term ->
@@ -42,60 +50,72 @@ class BM25Retriever(context: Context) {
                 }
             }
 
-            if (chunkHits.isEmpty()) return emptyList()
+            // 2. Aggregate chunks (files)
+            val aggregatedFiles = ChunkAggregator.aggregateChunks(finalChunkHits)
 
-            val aggregated = ChunkAggregator.aggregateChunks(chunkHits)
-            if (aggregated.isEmpty()) return emptyList()
+            // 3. Merge all entity types into a common list for normalization
+            data class RawCandidate(
+                val id: Long,
+                val title: String,
+                val snippet: String,
+                val path: String,
+                val type: String,
+                val score: Float,
+                val modifiedAt: Long,
+                val size: Long,
+                val entityType: EntityType
+            )
 
-            // Normalize the scores to a 0.0-1.0 range for the UI.
-            // Raw BM25 scores are negative (e.g., -8.3, -2.1), where a more negative
-            // number means a better match. We need to flip and scale them.
-            val minScore = aggregated.minOf { it.bestScore }
-            val maxScore = aggregated.maxOf { it.bestScore }
+            val allRaw = mutableListOf<RawCandidate>()
+            aggregatedFiles.forEach { r ->
+                allRaw.add(RawCandidate(r.parentFileId, r.title, r.relevantChunks.joinToString(" ... "), r.filePath, r.fileType, r.bestScore, r.modifiedAt, r.sizeBytes, EntityType.FILE))
+            }
+            appHits.forEach { r ->
+                allRaw.add(RawCandidate(r.id, r.appName, r.textRepresentation, r.packageName, "app", r.score, r.lastIndexedAt, 0L, EntityType.APP))
+            }
+            contactHits.forEach { r ->
+                allRaw.add(RawCandidate(r.id, r.displayName, r.textRepresentation, r.contactId, "contact", r.score, r.lastIndexedAt, 0L, EntityType.CONTACT))
+            }
+
+            if (allRaw.isEmpty()) return emptyList()
+
+            // 4. Normalize and convert to SearchResult
+            val minScore = allRaw.minOf { it.score }
+            val maxScore = allRaw.maxOf { it.score }
             val range = maxScore - minScore
 
-            aggregated.take(limit).map { r ->
-                // This formula maps the most relevant item (minScore) to 1.0
-                // and the least relevant item (maxScore) to 0.0.
+            allRaw.sortedBy { it.score }.take(limit).map { r ->
                 val normalizedScore = if (range == 0f) 1f
-                else (maxScore - r.bestScore) / range
+                else (maxScore - r.score) / range
 
                 SearchResult(
-                    id = r.parentFileId,
+                    id = r.id,
                     title = r.title,
-                    snippet = r.relevantChunks.joinToString(" ... "),
-                    filePath = r.filePath,
-                    fileType = r.fileType,
+                    snippet = r.snippet,
+                    filePath = r.path,
+                    fileType = r.type,
                     score = normalizedScore,
                     modifiedAt = r.modifiedAt,
-                    sizeBytes = r.sizeBytes
+                    sizeBytes = r.size,
+                    entityType = r.entityType
                 )
             }
         } catch (e: Exception) {
-            // FTS5 can throw an exception if the query syntax is invalid.
             android.util.Log.e("BM25Retriever", "Search failed for query: $rawQuery", e)
             emptyList()
         }
     }
 
-
-    /**
-     * Prepares a raw user query for FTS5.
-     * Changed to use AND logic and prefix matching (*) to make search much more flexible.
-     * Example: "kotlin guide" -> "\"kotlin\"* AND \"guide\"*"
-     */
     private fun tokenize(query: String): List<String> {
         return query.trim()
-            .split("\\s+".toRegex()) // Split on one or more spaces
+            .split("\\s+".toRegex())
             .filter { it.isNotBlank() }
     }
 
     private fun buildFtsQuery(tokens: List<String>, useAnd: Boolean): String {
         if (tokens.isEmpty()) return ""
         val operator = if (useAnd) " AND " else " OR "
-
         return tokens.joinToString(operator) { token ->
-            // Escape any double quotes within the token.
             val escaped = token.replace("\"", "\"\"")
             "\"$escaped\"*"
         }

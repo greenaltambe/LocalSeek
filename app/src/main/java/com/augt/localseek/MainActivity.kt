@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (Environment.isExternalStorageManager()) {
-                startIndexing()
+                checkContactsPermissionAndIndex()
             }
         }
     }
@@ -40,7 +40,15 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted) startIndexing()
+        if (isGranted) checkContactsPermissionAndIndex()
+    }
+
+    private val requestContactsPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // We continue to indexing regardless of whether contacts permission is granted.
+        // The ContactIndexer will handle the missing permission gracefully.
+        startIndexing()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +81,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Android 11+ (API 30+)
             if (Environment.isExternalStorageManager()) {
-                startIndexing()
+                checkContactsPermissionAndIndex()
             } else {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
                 val uri = Uri.fromParts("package", packageName, null)
@@ -83,10 +91,18 @@ class MainActivity : ComponentActivity() {
         } else {
             // Android 10 and below
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                startIndexing()
+                checkContactsPermissionAndIndex()
             } else {
                 requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             }
+        }
+    }
+
+    private fun checkContactsPermissionAndIndex() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            startIndexing()
+        } else {
+            requestContactsPermissionLauncher.launch(android.Manifest.permission.READ_CONTACTS)
         }
     }
 

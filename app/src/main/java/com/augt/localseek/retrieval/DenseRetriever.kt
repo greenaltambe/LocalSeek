@@ -3,8 +3,11 @@ package com.augt.localseek.retrieval
 import android.content.Context
 import android.util.Log
 import com.augt.localseek.data.AppDatabase
+import com.augt.localseek.data.AppWithScore
+import com.augt.localseek.data.ContactWithScore
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.ml.VectorUtils.cosineSimilarity
+import com.augt.localseek.model.EntityType
 import com.augt.localseek.model.SearchResult
 import com.augt.localseek.search.vector.LshIndexManager
 import java.util.PriorityQueue
@@ -20,7 +23,10 @@ class DenseRetriever(context: Context) {
         private const val USE_ANN = true
     }
 
-    private val chunkDao = AppDatabase.getInstance(context).chunkDao()
+    private val db = AppDatabase.getInstance(context)
+    private val chunkDao = db.chunkDao()
+    private val appDao = db.appDao()
+    private val contactDao = db.contactDao()
     private val encoder = DenseEncoder(context)
     private val indexManager = LshIndexManager(context)
     private var annInitialized = false
@@ -61,6 +67,7 @@ class DenseRetriever(context: Context) {
         val queryVector = encoder.encode(query)
         val threshold = 0.3f
 
+        // 1. ANN Search for file chunks
         val annResults = if (USE_ANN) {
             initializeIndex()
             indexManager.search(queryVector, topK, chunkDao)
@@ -70,12 +77,50 @@ class DenseRetriever(context: Context) {
             emptyList()
         }
 
-        if (annResults.isNotEmpty()) {
-            return@withContext hydrateResults(annResults.map { it.chunkId to it.score }, topK)
+        val chunkResults = if (annResults.isNotEmpty()) {
+            annResults.map { it.chunkId to it.score }
+        } else {
+            searchBruteForce(queryVector, topK, pageSize, threshold)
         }
 
-        val fallbackResults = searchBruteForce(queryVector, topK, pageSize, threshold)
-        hydrateResults(fallbackResults, topK)
+        // 2. Brute-force for Apps and Contacts (relatively small sets)
+        val appResults = searchAppsBruteForce(queryVector, threshold)
+        val contactResults = searchContactsBruteForce(queryVector, threshold)
+
+        // 3. Hydrate and merge
+        val hydratedFiles = hydrateResults(chunkResults, topK)
+        
+        val hydratedApps = appResults.map { r ->
+            SearchResult(
+                id = r.id,
+                title = r.appName,
+                snippet = r.textRepresentation,
+                filePath = r.packageName,
+                fileType = "app",
+                score = r.score,
+                modifiedAt = r.lastIndexedAt,
+                embedding = r.embedding,
+                entityType = EntityType.APP
+            )
+        }
+
+        val hydratedContacts = contactResults.map { r ->
+            SearchResult(
+                id = r.id,
+                title = r.displayName,
+                snippet = r.textRepresentation,
+                filePath = r.contactId,
+                fileType = "contact",
+                score = r.score,
+                modifiedAt = r.lastIndexedAt,
+                embedding = r.embedding,
+                entityType = EntityType.CONTACT
+            )
+        }
+
+        (hydratedFiles + hydratedApps + hydratedContacts)
+            .sortedByDescending { it.score }
+            .take(topK)
     }
 
     private suspend fun searchBruteForce(
@@ -123,6 +168,28 @@ class DenseRetriever(context: Context) {
             .map { it.chunkId to it.score }
     }
 
+    private suspend fun searchAppsBruteForce(queryVector: FloatArray, threshold: Float): List<AppWithScore> {
+        val apps = appDao.getAllApps()
+        return apps.mapNotNull { app ->
+            val embedding = app.embedding ?: return@mapNotNull null
+            val score = cosineSimilarity(queryVector, embedding)
+            if (score >= threshold) {
+                AppWithScore(app.id, app.packageName, app.appName, app.textRepresentation, app.embedding, app.lastIndexedAt, score)
+            } else null
+        }.sortedByDescending { it.score }
+    }
+
+    private suspend fun searchContactsBruteForce(queryVector: FloatArray, threshold: Float): List<ContactWithScore> {
+        val contacts = contactDao.getAllContacts()
+        return contacts.mapNotNull { contact ->
+            val embedding = contact.embedding ?: return@mapNotNull null
+            val score = cosineSimilarity(queryVector, embedding)
+            if (score >= threshold) {
+                ContactWithScore(contact.id, contact.contactId, contact.displayName, contact.textRepresentation, contact.embedding, contact.lastIndexedAt, score)
+            } else null
+        }.sortedByDescending { it.score }
+    }
+
     private suspend fun hydrateResults(scoredChunkIds: List<Pair<Long, Float>>, topK: Int): List<SearchResult> {
         if (scoredChunkIds.isEmpty()) return emptyList()
 
@@ -149,7 +216,8 @@ class DenseRetriever(context: Context) {
                     score = bestScore,
                     modifiedAt = bestRow.modifiedAt,
                     embedding = bestRow.embedding,
-                    sizeBytes = bestRow.sizeBytes
+                    sizeBytes = bestRow.sizeBytes,
+                    entityType = EntityType.FILE
                 )
             }
             .sortedByDescending { it.score }

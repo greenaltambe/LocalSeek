@@ -12,6 +12,7 @@ import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.logging.measureSuspendTime
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.ml.llm.Phi3LLM
+import com.augt.localseek.model.EntityType
 import com.augt.localseek.model.SearchResult
 import com.augt.localseek.retrieval.BM25Retriever
 import com.augt.localseek.retrieval.CrossEncoderReranker
@@ -133,7 +134,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.update {
                 it.copy(
                     results = applyFilters(cachedResults, it.activeFilters),
-                    statusMessage = "Cache: ${cachedResults.size} files",
+                    statusMessage = "Cache: ${cachedResults.size} results",
                     isLoading = false,
                     loadingStage = "Done",
                     loadingProgress = 1f,
@@ -255,7 +256,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 statusMessage = if (filteredResults.isEmpty()) {
                     "No results"
                 } else {
-                    if (ENABLE_DENSE) "Hybrid: ${filteredResults.size} files" else "BM25: ${filteredResults.size} files"
+                    "Found ${filteredResults.size} results"
                 },
                 isLoading = false,
                 loadingStage = "Done",
@@ -332,7 +333,15 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun openFile(result: FileResult) {
+    fun onResultClick(result: FileResult) {
+        when (result.entityType) {
+            EntityType.FILE -> openFile(result)
+            EntityType.APP -> launchApp(result.filePath)
+            EntityType.CONTACT -> openContact(result.filePath)
+        }
+    }
+
+    private fun openFile(result: FileResult) {
         viewModelScope.launch {
             try {
                 val file = File(result.filePath)
@@ -376,6 +385,29 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun launchApp(packageName: String) {
+        val pm = getApplication<Application>().packageManager
+        val intent = pm.getLaunchIntentForPackage(packageName)
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            getApplication<Application>().startActivity(intent)
+        } else {
+            _uiState.update { it.copy(errorMessage = "Cannot launch app: $packageName") }
+        }
+    }
+
+    private fun openContact(contactId: String) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = android.net.Uri.withAppendedPath(android.provider.ContactsContract.Contacts.CONTENT_URI, contactId)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            getApplication<Application>().startActivity(intent)
+        } catch (e: Exception) {
+            _uiState.update { it.copy(errorMessage = "Cannot open contact") }
+        }
+    }
+
     fun onFileTypeFilterChanged(type: String?) {
         val filters = if (type.isNullOrBlank()) {
             listOf(FilterType.All)
@@ -396,7 +428,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 activeFilters = filters,
                 results = filtered,
-                statusMessage = if (filtered.isEmpty()) "No results" else "${filtered.size} files"
+                statusMessage = if (filtered.isEmpty()) "No results" else "${filtered.size} results"
             )
         }
     }
@@ -448,17 +480,17 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         bm25Results: List<SearchResult>,
         denseResults: List<SearchResult>
     ): List<SearchResult> {
-        val bm25Map = bm25Results.associateBy { it.id }
-        val denseMap = denseResults.associateBy { it.id }
-        val allIds = (bm25Map.keys + denseMap.keys).distinct()
+        val bm25Map = bm25Results.associateBy { it.entityType to it.id }
+        val denseMap = denseResults.associateBy { it.entityType to it.id }
+        val allKeys = (bm25Map.keys + denseMap.keys).distinct()
 
-        val candidates = allIds.mapNotNull { id ->
-            val bm25 = bm25Map[id]
-            val dense = denseMap[id]
+        val candidates = allKeys.mapNotNull { key ->
+            val bm25 = bm25Map[key]
+            val dense = denseMap[key]
             val source = dense ?: bm25
             source?.let {
                 FusionCandidate(
-                    id = id,
+                    id = it.id,
                     title = it.title,
                     snippet = it.snippet,
                     filePath = it.filePath,
@@ -467,7 +499,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     sizeBytes = it.sizeBytes,
                     bm25Score = bm25?.score?.toDouble(),
                     denseScore = dense?.score?.toDouble(),
-                    embedding = dense?.embedding
+                    embedding = dense?.embedding,
+                    entityType = it.entityType
                 )
             }
         }
@@ -485,7 +518,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 score = it.finalScore.toFloat(),
                 modifiedAt = it.modifiedAt,
                 embedding = it.embedding,
-                sizeBytes = it.sizeBytes
+                sizeBytes = it.sizeBytes,
+                entityType = it.entityType
             )
         }
     }
