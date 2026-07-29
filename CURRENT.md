@@ -1866,6 +1866,108 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 ### Validation
 - ⏳ Kotlin compilation and Compose UI verification recommended after the answer-card UX update
 
+---
+
+## Hotfix (2026-05-06) - Manual Filter Selection UI
+
+### Changes Applied
+- ✅ Created `FilterControlRow` composable with two AssistChips for manual filtering
+- ✅ File Type chip: Dropdown with options "All", "PDF", "Markdown", "Text"
+- ✅ Date Range chip: Dropdown with options "Anytime", "Today", "Last 7 Days", "Last 30 Days"
+- ✅ Integrated with existing `viewModel.onFileTypeFilterChanged()` and `viewModel.onDateRangeFilterChanged()`
+- ✅ Active filters are displayed on the chip labels (e.g., "File Type: PDF", "Date: Last 7 Days")
+- ✅ Date range calculations use UTC calendar to ensure consistency
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+  - Added imports for AssistChip, DropdownMenu, DropdownMenuItem, state management
+  - Added `FilterControlRow` composable
+  - Added `getDateRangeLabel()` helper to parse active date range
+  - Added `getDateRangeMillis()` helper to calculate milliseconds for date ranges
+  - Inserted `FilterControlRow` after SearchInput in the main SearchScreen layout
+
+### Validation
+- ⏳ Kotlin compilation and Compose UI tap verification recommended after the filter control addition
+
+---
+
+## Hotfix (2026-05-06) - Duplicate Filter UI Removal and Robustness Improvements
+
+### Problem
+- Two separate filter representations were visible: the new `FilterControlRow` dropdowns and the old `FilterChipsRow` from `toAppliedFilters()`
+- Date range label matching could fail due to millisecond calculation drift
+
+### Changes Applied
+- ✅ Removed the duplicate `FilterChipsRow` that displayed `toAppliedFilters(uiState.activeFilters)`
+- ✅ `FilterControlRow` now serves as the single source for viewing and editing active filters
+- ✅ Improved `getDateRangeLabel()` to use tolerance-based millisecond matching (1 second window)
+- ✅ Chip labels now accurately reflect active filters from `uiState.activeFilters`
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+  - Removed duplicate FilterChipsRow rendering
+  - Enhanced date range label detection with tolerance-based matching
+
+### Result
+- Single, unified filter UI at the top of search results
+- Consistent filter representation whether set manually or auto-detected from query
+
+### Validation
+- ⏳ Kotlin compilation and filter switching behavior verification recommended
+
+---
+
+## Enhancement (2026-05-06) - Gemini Prompt Optimization for Structured Markdown
+
+### Changes Applied
+- ✅ Updated the on-device Gemini prompt used in `GeminiNanoLLM.kt` to encourage highly structured, professional Markdown summaries
+- ✅ Prompt enforces strict guidelines: only use provided excerpts, exact fallback phrase when insufficient data, and Markdown formatting rules (bold headers, lists, short paragraphs)
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ml/llm/GeminiNanoLLM.kt` (updated `buildPrompt()` template)
+
+### Rationale
+- Produces clearer, presentation-ready answers suitable for copy-paste into notes or reports
+- Reduces hallucination risk by instructing the model to rely solely on supplied document excerpts
+
+### Testing
+- ⏳ Run RAG generation flows and validate output formatting (Markdown with headers/lists) and correct fallback message when information is missing
+
+---
+
+## UI Polish (2026-05-06) - Smooth Material 3 Animations
+
+### Changes Applied
+- ✅ Added animated height transitions to the AI Answer card using `animateContentSize()` with a 300ms `FastOutSlowInEasing` tween
+- ✅ Animated the AI Answer chevron rotation with `animateFloatAsState()` so expand/collapse feels smooth
+- ✅ Added a focus-driven animated shadow to the search bar using `animateDpAsState()`
+- ✅ Animated the search bar border color with `animateColorAsState()` for smoother focus transitions
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+
+### Validation
+- ⏳ Run Compose UI interactions to verify the search field focus animation and AI card expand/collapse animation feel smooth on-device
+
+---
+
+## Fix (2026-05-06) - Material 3 Search Field API Compatibility
+
+### Problem
+- `SearchScreen.kt` referenced the obsolete `TextFieldDefaults.outlinedTextFieldColors(...)` API, which caused a Kotlin compilation failure with the current Material 3 dependency set
+
+### Changes Applied
+- ✅ Replaced `TextFieldDefaults.outlinedTextFieldColors(...)` with `OutlinedTextFieldDefaults.colors(...)`
+- ✅ Kept the animated focus border color behavior intact while restoring compatibility
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/ui/SearchScreen.kt`
+
+### Validation
+- ✅ Kotlin compilation check passed for `SearchScreen.kt`
+
+---
+
 ## Hotfix (2026-05-06) - Android FileProvider Manifest Registration
 
 ### Changes Applied
