@@ -1,6 +1,7 @@
 package com.augt.localseek.ui
 
 import com.augt.localseek.retrieval.FileResult
+import com.augt.localseek.retrieval.FusionMode
 
 data class SearchUiState(
     val query: String = "",
@@ -12,6 +13,7 @@ data class SearchUiState(
     val latencyMs: Long = 0L,
     val errorMessage: String? = null,
     val showScores: Boolean = false,
+    val fusionMode: FusionMode = FusionMode.GLOBAL_NORMALIZATION,
     val activeFilters: List<FilterType> = listOf(FilterType.All),
     val ragMode: Boolean = false,
     val ragAvailable: Boolean = false,

@@ -13,7 +13,8 @@ data class AppSettings(
     val chunkOverlap: Int = 40,
     val autoReindex: Boolean = false,
     val showDebugInfo: Boolean = false,
-    val verboseLogging: Boolean = false
+    val verboseLogging: Boolean = false,
+    val enablePerTypeNormalization: Boolean = false
 )
 
 enum class MemoryMode {

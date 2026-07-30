@@ -4,6 +4,11 @@ import com.augt.localseek.model.EntityType
 import kotlin.math.exp
 import kotlin.math.sqrt
 
+enum class FusionMode {
+    GLOBAL_NORMALIZATION,
+    PER_TYPE_NORMALIZATION
+}
+
 data class FusionCandidate(
     val id: Long,
     val title: String,
@@ -25,9 +30,21 @@ class FusionRanker {
     private val wRecency = 0.10
     private val wTitle = 0.10
 
-    fun rank(query: String, results: List<FusionCandidate>): List<FusionCandidate> {
+    fun rank(
+        query: String,
+        results: List<FusionCandidate>,
+        mode: FusionMode = FusionMode.GLOBAL_NORMALIZATION
+    ): List<FusionCandidate> {
         if (results.isEmpty()) return emptyList()
 
+        return if (mode == FusionMode.GLOBAL_NORMALIZATION) {
+            rankGlobal(query, results)
+        } else {
+            rankPerType(query, results)
+        }
+    }
+
+    private fun rankGlobal(query: String, results: List<FusionCandidate>): List<FusionCandidate> {
         val bm25Scores = results.map { it.bm25Score ?: 0.0 }
         val denseScores = results.map { it.denseScore ?: 0.0 }
         val recencyScores = results.map { calculateRecency(it.modifiedAt) }
@@ -37,23 +54,46 @@ class FusionRanker {
         val recencyNorm = ScoreNormalizer.minMaxNorm(recencyScores)
 
         return results.mapIndexed { i, result ->
-            var score =
-                wBm25 * bm25Norm[i] +
-                wDense * denseNorm[i] +
-                wRecency * recencyNorm[i]
-
-            if (query.isNotBlank() && result.title.contains(query, ignoreCase = true)) {
-                score += wTitle
-            }
-
-            score *= when (result.fileType.lowercase()) {
-                "pdf", "txt", "md" -> 1.1
-                "jpg", "png", "jpeg", "gif", "webp" -> 0.9
-                else -> 1.0
-            }
-
+            val score = combineScores(query, result, bm25Norm[i], denseNorm[i], recencyNorm[i])
             result.copy(finalScore = score)
         }.sortedByDescending { it.finalScore }
+    }
+
+    private fun rankPerType(query: String, results: List<FusionCandidate>): List<FusionCandidate> {
+        val bm25NormMap = ScoreNormalizer.minMaxNormPerGroup(results, { it.bm25Score ?: 0.0 }, { it.entityType })
+        val denseNormMap = ScoreNormalizer.minMaxNormPerGroup(results, { it.denseScore ?: 0.0 }, { it.entityType })
+        val recencyNormMap = ScoreNormalizer.minMaxNormPerGroup(results, { calculateRecency(it.modifiedAt) }, { it.entityType })
+
+        return results.map { result ->
+            val key = Pair(result.entityType, result.id)
+            val bm25Norm = bm25NormMap[key] ?: 0.5
+            val denseNorm = denseNormMap[key] ?: 0.5
+            val recencyNorm = recencyNormMap[key] ?: 0.5
+
+            val score = combineScores(query, result, bm25Norm, denseNorm, recencyNorm)
+            result.copy(finalScore = score)
+        }.sortedByDescending { it.finalScore }
+    }
+
+    private fun combineScores(
+        query: String,
+        result: FusionCandidate,
+        bm25Norm: Double,
+        denseNorm: Double,
+        recencyNorm: Double
+    ): Double {
+        var score = wBm25 * bm25Norm + wDense * denseNorm + wRecency * recencyNorm
+
+        if (query.isNotBlank() && result.title.contains(query, ignoreCase = true)) {
+            score += wTitle
+        }
+
+        score *= when (result.fileType.lowercase()) {
+            "pdf", "txt", "md" -> 1.1
+            "jpg", "png", "jpeg", "gif", "webp" -> 0.9
+            else -> 1.0
+        }
+        return score
     }
 
     fun diversify(results: List<FusionCandidate>, lambda: Double = 0.7, limit: Int = 20): List<FusionCandidate> {
@@ -109,4 +149,3 @@ class FusionRanker {
         return dot / (sqrt(normA) * sqrt(normB))
     }
 }
-

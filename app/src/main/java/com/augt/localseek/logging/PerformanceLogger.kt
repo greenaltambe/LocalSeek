@@ -2,6 +2,8 @@ package com.augt.localseek.logging
 
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import com.augt.localseek.model.EntityType
+import com.augt.localseek.retrieval.FusionCandidate
 
 class PerformanceLogger(
     private val tag: String = "SearchPerf"
@@ -55,6 +57,26 @@ class PerformanceLogger(
         )
     }
 
+    fun logCalibrationComparison(
+        query: String,
+        globalList: List<FusionCandidate>,
+        perTypeList: List<FusionCandidate>
+    ) {
+        val globalTop10 = globalList.take(10)
+        val perTypeTop10 = perTypeList.take(10)
+        
+        val globalDist = globalTop10.groupingBy { it.entityType }.eachCount()
+        val perTypeDist = perTypeTop10.groupingBy { it.entityType }.eachCount()
+        
+        fun formatDist(dist: Map<EntityType, Int>): String {
+            return dist.entries.joinToString(", ") { "${it.value} ${it.key}" }
+        }
+
+        Log.d("Calibration", "[CALIBRATION] Query: \"$query\"")
+        Log.d("Calibration", "[CALIBRATION]   GLOBAL:   [${formatDist(globalDist)}] -> ${globalTop10.take(5).map { it.title }}")
+        Log.d("Calibration", "[CALIBRATION]   PER_TYPE: [${formatDist(perTypeDist)}] -> ${perTypeTop10.take(5).map { it.title }}")
+    }
+
     @VisibleForTesting
     internal fun formatLine(
         query: String,
@@ -73,4 +95,3 @@ class PerformanceLogger(
             "Total: ${totalLatencyMs}ms ($finalCount results) | Mem: ${memoryBeforeMb}MB -> ${memoryAfterMb}MB"
     }
 }
-

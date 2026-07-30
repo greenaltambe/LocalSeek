@@ -19,6 +19,7 @@ import com.augt.localseek.retrieval.CrossEncoderReranker
 import com.augt.localseek.retrieval.DenseRetriever
 import com.augt.localseek.retrieval.FileResult
 import com.augt.localseek.retrieval.FusionCandidate
+import com.augt.localseek.retrieval.FusionMode
 import com.augt.localseek.retrieval.FusionRanker
 import com.augt.localseek.retrieval.ResultAggregator
 import com.augt.localseek.search.query.QueryExpander
@@ -66,6 +67,14 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     init {
         viewModelScope.launch {
             refreshRagAvailability()
+        }
+        viewModelScope.launch {
+            settingsRepository.settings.collect { settings ->
+                _uiState.update { it.copy(
+                    showScores = settings.showDebugInfo,
+                    fusionMode = if (settings.enablePerTypeNormalization) FusionMode.PER_TYPE_NORMALIZATION else FusionMode.GLOBAL_NORMALIZATION
+                ) }
+            }
         }
     }
 
@@ -505,7 +514,13 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        val ranked = fusionRanker.rank(query, candidates)
+        // TASK 3: Comparison logging
+        val globalRanked = fusionRanker.rank(query, candidates, FusionMode.GLOBAL_NORMALIZATION)
+        val perTypeRanked = fusionRanker.rank(query, candidates, FusionMode.PER_TYPE_NORMALIZATION)
+        performanceLogger.logCalibrationComparison(query, globalRanked, perTypeRanked)
+
+        val currentMode = _uiState.value.fusionMode
+        val ranked = if (currentMode == FusionMode.GLOBAL_NORMALIZATION) globalRanked else perTypeRanked
         val diversified = fusionRanker.diversify(ranked)
 
         return diversified.map {

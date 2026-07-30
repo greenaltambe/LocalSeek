@@ -273,6 +273,15 @@ fun SettingsScreen(
                     icon = Icons.Default.Terminal
                 )
             }
+            item {
+                SettingSwitch(
+                    title = "Per-Entity Calibration",
+                    subtitle = "Normalize scores independently per type (Exp)",
+                    checked = settings.enablePerTypeNormalization,
+                    onCheckedChange = { viewModel.updateSetting { copy(enablePerTypeNormalization = it) } },
+                    icon = Icons.Default.MergeType
+                )
+            }
 
             item { SectionHeader(title = "About") }
             item { AboutCard() }

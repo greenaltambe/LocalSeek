@@ -2031,3 +2031,38 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - ✅ Verified `EntityType` metadata flows end-to-end from DB to UI.
 - ⚠️ **Note:** Per-entity-type score calibration is NOT yet implemented; naive fusion (RRF-style) is used.
 - ⚠️ **Note:** Apps/Contacts use brute-force dense scan (small dataset) while files use LSH (large dataset).
+
+---
+
+## Phase 14 - Per-Entity-Type Score Calibration Experiment (2026-05-08)
+
+### Problem/Objective
+- **Hypothesis**: Global min-max normalization across mixed entity types (FILE, APP, CONTACT) is suboptimal because raw score distributions differ significantly between long-text file chunks and short synthetic text for apps/contacts. Global normalization tends to suppress entity types with lower raw scales (e.g., Apps) even if they are highly relevant.
+
+### Implemented/Changes Applied
+- ✅ Added `minMaxNormPerGroup` to `ScoreNormalizer.kt` to allow independent normalization within entity groups.
+- ✅ Added `FusionMode` enum (GLOBAL_NORMALIZATION vs. PER_TYPE_NORMALIZATION) to `FusionRanker.kt`.
+- ✅ Wired a toggle into `SearchUiState` and `SearchViewModel` (defaulting to `GLOBAL_NORMALIZATION` for now).
+- ✅ Implemented side-by-side comparison logging in `PerformanceLogger.kt` and `SearchViewModel.kt`. Every query now logs top-10 results and distribution for both modes to the `Calibration` tag.
+- ✅ Added `ScoreCalibrationTest.kt` to numerically prove the skew hypothesis and verify the fix.
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/retrieval/ScoreNormalizer.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/FusionRanker.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchUiState.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+- `app/src/main/java/com/augt/localseek/logging/PerformanceLogger.kt`
+- `app/src/test/java/com/augt/localseek/retrieval/ScoreCalibrationTest.kt`
+
+### Validation
+- ✅ `:app:assembleDebug` succeeded.
+- ✅ `:app:testDebugUnitTest` passed (18 tests).
+- ✅ **Numeric Evidence**: Unit tests confirmed that under global normalization, high-relevance Apps were suppressed (score ~0.17) by high-scale File results, while per-type normalization correctly boosted them to comparable levels (score ~0.85).
+- ✅ **Sample Comparison (Mock Data)**:
+    - **GLOBAL**: [File 3 (0.93), File 2 (0.83), File 1 (0.73), App 6 (0.17), App 5 (0.11)]
+    - **PER_TYPE**: [File 3 (0.93), App 6 (0.85), File 2 (0.49), App 5 (0.45), File 1 (0.05)]
+
+### Next Steps
+- Review `[CALIBRATION]` log output from real-world usage.
+- If per-type normalization consistently feels more balanced, promote it to the default mode.
+- Consider further refining weights (`wBm25`, `wDense`) specifically for short-text entities in a future phase.
