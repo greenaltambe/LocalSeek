@@ -2066,3 +2066,40 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 - Review `[CALIBRATION]` log output from real-world usage.
 - If per-type normalization consistently feels more balanced, promote it to the default mode.
 - Consider further refining weights (`wBm25`, `wDense`) specifically for short-text entities in a future phase.
+
+---
+
+## Phase 15 - Threshold-Gated Per-Type Calibration + Aggregation Dedup Fix (2026-05-09)
+
+### Problem/Objective
+- **Duplicate Bug**: Some files and apps appeared twice in results (e.g., "Final features.md" in "whatsapp" query) because the aggregator didn't collapse results properly across mixed entity types or when multiple chunks matched.
+- **Calibration Flaw**: Per-type normalization from Phase 14 successfully promoted Apps (good), but it also "forced" weak/irrelevant candidates from every group toward the top because each group was stretched to a 0..1 scale regardless of absolute relevance.
+
+### Implemented/Changes Applied
+- ✅ **Dedup Fix**: Rewrote `ResultAggregator.aggregateToFiles` to group ALL search results by `entityType` and `filePath` (or package/ID) before mapping to the final UI result list. This ensures each unique entity appears at most once.
+- ✅ **New Fusion Mode**: Added `PER_TYPE_WITH_THRESHOLD` to `FusionRanker.kt`.
+- ✅ **Threshold Gating**:
+    - **Dense floor**: 0.35 (absolute cosine similarity).
+    - **BM25 floor**: 50% of the top BM25 score found across all types for the current query (dynamic per-query floor).
+    - **Logic**: An entity type is fully excluded from the results if its best candidate clears NEITHER floor (uses **OR** logic).
+- ✅ **3-Way Logging**: Updated `PerformanceLogger` to log `GLOBAL`, `PER_TYPE`, and `THRESHOLD` modes side-by-side for every query to facilitate tuning.
+- ✅ **Unit Tests**: Added `ResultAggregatorTest.kt` and `FusionThresholdTest.kt` to verify deduping and gating logic.
+
+### Files Changed
+- `app/src/main/java/com/augt/localseek/retrieval/ResultAggregator.kt`
+- `app/src/main/java/com/augt/localseek/retrieval/FusionRanker.kt`
+- `app/src/main/java/com/augt/localseek/logging/PerformanceLogger.kt`
+- `app/src/main/java/com/augt/localseek/ui/SearchViewModel.kt`
+- `app/src/test/java/com/augt/localseek/retrieval/ResultAggregatorTest.kt`
+- `app/src/test/java/com/augt/localseek/retrieval/FusionThresholdTest.kt`
+
+### Validation
+- ✅ `:app:assembleDebug` succeeded.
+- ✅ `:app:testDebugUnitTest` passed (22 tests total).
+- ✅ **Threshold Rationale**: OR logic was chosen because sparse (BM25) and dense signals are complementary; a strong filename match should keep a group in even if semantic similarity is low, and vice versa.
+- ✅ **Case Study (whatsapp)**: Verified via unit test that if File matches are weak (BM25=1.0, Dense=0.2) and an App match is strong (BM25=20.0), the File group is excluded entirely from the `THRESHOLD` mode, fixing the "forced promotion" flaw while keeping the App at #1.
+- ✅ **Case Study (load of bread)**: Verified that in all-File queries, the File group remains included because it clears its own relative BM25 floor.
+
+### Next Steps
+- Evaluation against real labeled data (qrels) to tune the provisional `0.35` and `50%` constants.
+- Maintain `GLOBAL_NORMALIZATION` as default for users until full evaluation confirms `PER_TYPE_WITH_THRESHOLD` is superior across the board.

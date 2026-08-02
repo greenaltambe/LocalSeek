@@ -19,14 +19,11 @@ object ResultAggregator {
     fun aggregateToFiles(chunks: List<SearchResult>, query: String): List<FileResult> {
         if (chunks.isEmpty()) return emptyList()
 
-        val fileChunks = chunks.filter { it.entityType == EntityType.FILE }
-        val otherEntities = chunks.filter { it.entityType != EntityType.FILE }
-
-        val aggregatedFiles = fileChunks
-            .groupBy { it.filePath }
+        return chunks
+            .groupBy { it.entityType to it.filePath }
             .values
-            .map { chunkGroup ->
-                val topChunks = chunkGroup.sortedByDescending { it.score }
+            .map { group ->
+                val topChunks = group.sortedByDescending { it.score }
                 val first = topChunks.first()
 
                 FileResult(
@@ -35,30 +32,17 @@ object ResultAggregator {
                     title = first.title,
                     fileType = first.fileType,
                     bestScore = topChunks.maxOf { it.score.toDouble() },
-                    snippets = topChunks
-                        .take(3)
-                        .map { highlightQuery(it.snippet, query) },
+                    snippets = if (first.entityType == EntityType.FILE) {
+                        topChunks.take(3).map { highlightQuery(it.snippet, query) }
+                    } else {
+                        listOf(highlightQuery(first.snippet, query))
+                    },
                     modifiedAt = first.modifiedAt,
                     sizeBytes = first.sizeBytes,
-                    entityType = EntityType.FILE
+                    entityType = first.entityType
                 )
             }
-
-        val formattedOthers = otherEntities.map {
-            FileResult(
-                id = it.id,
-                filePath = it.filePath,
-                title = it.title,
-                fileType = it.fileType,
-                bestScore = it.score.toDouble(),
-                snippets = listOf(highlightQuery(it.snippet, query)),
-                modifiedAt = it.modifiedAt,
-                sizeBytes = it.sizeBytes,
-                entityType = it.entityType
-            )
-        }
-
-        return (aggregatedFiles + formattedOthers).sortedByDescending { it.bestScore }
+            .sortedByDescending { it.bestScore }
     }
 
     private fun highlightQuery(text: String, query: String): String {

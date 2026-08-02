@@ -60,21 +60,25 @@ class PerformanceLogger(
     fun logCalibrationComparison(
         query: String,
         globalList: List<FusionCandidate>,
-        perTypeList: List<FusionCandidate>
+        perTypeList: List<FusionCandidate>,
+        perTypeWithThresholdList: List<FusionCandidate>
     ) {
         val globalTop10 = globalList.take(10)
         val perTypeTop10 = perTypeList.take(10)
+        val thresholdTop10 = perTypeWithThresholdList.take(10)
         
         val globalDist = globalTop10.groupingBy { it.entityType }.eachCount()
         val perTypeDist = perTypeTop10.groupingBy { it.entityType }.eachCount()
+        val thresholdDist = thresholdTop10.groupingBy { it.entityType }.eachCount()
         
         fun formatDist(dist: Map<EntityType, Int>): String {
             return dist.entries.joinToString(", ") { "${it.value} ${it.key}" }
         }
 
         Log.d("Calibration", "[CALIBRATION] Query: \"$query\"")
-        Log.d("Calibration", "[CALIBRATION]   GLOBAL:   [${formatDist(globalDist)}] -> ${globalTop10.take(5).map { it.title }}")
-        Log.d("Calibration", "[CALIBRATION]   PER_TYPE: [${formatDist(perTypeDist)}] -> ${perTypeTop10.take(5).map { it.title }}")
+        Log.d("Calibration", "[CALIBRATION]   GLOBAL:     [${formatDist(globalDist)}] -> ${globalTop10.take(5).map { it.title }}")
+        Log.d("Calibration", "[CALIBRATION]   PER_TYPE:   [${formatDist(perTypeDist)}] -> ${perTypeTop10.take(5).map { it.title }}")
+        Log.d("Calibration", "[CALIBRATION]   THRESHOLD:  [${formatDist(thresholdDist)}] -> ${thresholdTop10.take(5).map { it.title }}")
     }
 
     @VisibleForTesting

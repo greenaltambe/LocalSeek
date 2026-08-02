@@ -517,10 +517,15 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         // TASK 3: Comparison logging
         val globalRanked = fusionRanker.rank(query, candidates, FusionMode.GLOBAL_NORMALIZATION)
         val perTypeRanked = fusionRanker.rank(query, candidates, FusionMode.PER_TYPE_NORMALIZATION)
-        performanceLogger.logCalibrationComparison(query, globalRanked, perTypeRanked)
+        val perTypeWithThresholdRanked = fusionRanker.rank(query, candidates, FusionMode.PER_TYPE_WITH_THRESHOLD)
+        performanceLogger.logCalibrationComparison(query, globalRanked, perTypeRanked, perTypeWithThresholdRanked)
 
         val currentMode = _uiState.value.fusionMode
-        val ranked = if (currentMode == FusionMode.GLOBAL_NORMALIZATION) globalRanked else perTypeRanked
+        val ranked = when (currentMode) {
+            FusionMode.GLOBAL_NORMALIZATION -> globalRanked
+            FusionMode.PER_TYPE_NORMALIZATION -> perTypeRanked
+            FusionMode.PER_TYPE_WITH_THRESHOLD -> perTypeWithThresholdRanked
+        }
         val diversified = fusionRanker.diversify(ranked)
 
         return diversified.map {

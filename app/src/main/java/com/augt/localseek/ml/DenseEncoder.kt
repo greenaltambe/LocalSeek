@@ -174,7 +174,7 @@ class CrossEncoder(context: Context) {
 
         return try {
             val (inputIds, attentionMask) = tokenizer.tokenize("$query [SEP] $document", MAX_LENGTH)
-            val output = Array(1) { FloatArray(1) }
+            val output = FloatArray(1)
 
             // serialize access to the Interpreter to avoid concurrent native calls
             var ran = false
@@ -188,7 +188,7 @@ class CrossEncoder(context: Context) {
                 }
             }
 
-            if (ran) output[0][0] else 0f
+            if (ran) output[0] else 0f
         } catch (e: Exception) {
             Log.e(TAG, "Cross-encoder scoring failed", e)
             0f

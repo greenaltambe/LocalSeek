@@ -6,7 +6,8 @@ import kotlin.math.sqrt
 
 enum class FusionMode {
     GLOBAL_NORMALIZATION,
-    PER_TYPE_NORMALIZATION
+    PER_TYPE_NORMALIZATION,
+    PER_TYPE_WITH_THRESHOLD
 }
 
 data class FusionCandidate(
@@ -30,6 +31,11 @@ class FusionRanker {
     private val wRecency = 0.10
     private val wTitle = 0.10
 
+    companion object {
+        const val DENSE_THRESHOLD_FLOOR = 0.35
+        const val BM25_THRESHOLD_FRACTION = 0.5
+    }
+
     fun rank(
         query: String,
         results: List<FusionCandidate>,
@@ -37,10 +43,10 @@ class FusionRanker {
     ): List<FusionCandidate> {
         if (results.isEmpty()) return emptyList()
 
-        return if (mode == FusionMode.GLOBAL_NORMALIZATION) {
-            rankGlobal(query, results)
-        } else {
-            rankPerType(query, results)
+        return when (mode) {
+            FusionMode.GLOBAL_NORMALIZATION -> rankGlobal(query, results)
+            FusionMode.PER_TYPE_NORMALIZATION -> rankPerType(query, results)
+            FusionMode.PER_TYPE_WITH_THRESHOLD -> rankPerTypeWithThreshold(query, results)
         }
     }
 
@@ -73,6 +79,23 @@ class FusionRanker {
             val score = combineScores(query, result, bm25Norm, denseNorm, recencyNorm)
             result.copy(finalScore = score)
         }.sortedByDescending { it.finalScore }
+    }
+
+    private fun rankPerTypeWithThreshold(query: String, results: List<FusionCandidate>): List<FusionCandidate> {
+        val topBm25 = results.maxOfOrNull { it.bm25Score ?: 0.0 } ?: 0.0
+        val bm25Floor = topBm25 * BM25_THRESHOLD_FRACTION
+
+        val validGroups = results.groupBy { it.entityType }.filter { (_, candidates) ->
+            val bestBm25 = candidates.maxOfOrNull { it.bm25Score ?: 0.0 } ?: 0.0
+            val bestDense = candidates.maxOfOrNull { it.denseScore ?: 0.0 } ?: 0.0
+            
+            bestBm25 >= bm25Floor || bestDense >= DENSE_THRESHOLD_FLOOR
+        }.keys
+
+        val filteredResults = results.filter { it.entityType in validGroups }
+        if (filteredResults.isEmpty()) return emptyList()
+
+        return rankPerType(query, filteredResults)
     }
 
     private fun combineScores(
