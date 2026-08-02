@@ -2103,3 +2103,44 @@ Raw Query -> Smart Normalization -> Tokenization -> Entity Extraction -> Query E
 ### Next Steps
 - Evaluation against real labeled data (qrels) to tune the provisional `0.35` and `50%` constants.
 - Maintain `GLOBAL_NORMALIZATION` as default for users until full evaluation confirms `PER_TYPE_WITH_THRESHOLD` is superior across the board.
+
+---
+
+## Phase 16 - Research Benchmark Infrastructure (2026-05-10)
+
+### Problem/Objective
+- Ad-hoc Logcat-based comparison is insufficient for formal IR metric computation (P@5, nDCG, Recall@10).
+- Need structured, persisted, and exportable data to perform offline evaluation of different retrieval backends and fusion modes.
+
+### Implemented/Changes Applied
+- ✅ **Schema Design**: Created `benchmark_runs` table (`BenchmarkRunEntity`) storing:
+    - Metadata: Session ID, stable Query ID, timestamp, device/OS info.
+    - Context: Corpus sizes (chunks, apps, contacts).
+    - Performance: Latencies for BM25, Dense, Fusion, Rerank, and Total.
+    - Efficiency: Peak memory (PSS) and battery delta (for batch runs).
+    - Results: Top-20 result IDs, scores, and entity types as JSON arrays.
+- ✅ **BenchmarkLogger**: Singleton utility for background persistence and CSV/JSON export.
+- ✅ **Always-on Logging**: Normal searches now automatically log a single record for the active backend.
+- ✅ **Benchmark Mode**: Added developer toggle to log all five internal modes (`bm25`, `dense`, `hybrid_global`, `hybrid_per_type`, `hybrid_threshold`) for a single query to enable direct side-by-side comparison without redundant retrieval calls.
+- ✅ **Export UI**: Added "Benchmark Data" card in Settings with CSV/JSON export buttons (triggering Share Intent) and record count display.
+- ✅ **Room Migration**: Bumped DB version to `14` and added `Migration13To14`.
+
+### Infrastructure vs. PerformanceLogger
+- **PerformanceLogger (Existing)**: Designed for real-time UI feedback and the Performance Dashboard. In-memory and lightweight.
+- **Benchmark Infrastructure (New)**: Designed for formal research. Persisted to Room, detailed results stored, suitable for export to Python/Pandas for offline analysis.
+
+### Export Formats
+- **CSV**: One row per run, list fields pipe-delimited (`|`) for easy spreadsheet/pandas import.
+- **JSON**: Full object array, preserved types, best for automated analysis scripts.
+- **Location**: `context.getExternalFilesDir(null)` (adb pull-friendly).
+
+### Validation
+- ✅ `:app:assembleDebug` succeeded.
+- ✅ `:app:connectedDebugAndroidTest` passed all infrastructure tests (3/3).
+- ✅ Verified multi-row production in Benchmark Mode (5 rows per query).
+- ✅ Verified normal search latency remains unaffected by background logging.
+- ⚠️ **Note**: No retrieval or ranking logic was modified during this phase; this was purely an instrumentation task.
+
+### Next Steps
+- Implement **Phase 17 - Qrels Relevance Labeling UI** to allow manual ground-truth marking of these benchmark records.
+- Build offline evaluation script to consume these exports.

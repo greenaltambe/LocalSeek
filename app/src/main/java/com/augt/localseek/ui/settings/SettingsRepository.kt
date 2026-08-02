@@ -31,7 +31,9 @@ class SettingsRepository(private val context: Context) {
             chunkOverlap = pref[Keys.CHUNK_OVERLAP] ?: 40,
             autoReindex = pref[Keys.AUTO_REINDEX] ?: false,
             showDebugInfo = pref[Keys.SHOW_DEBUG] ?: false,
-            verboseLogging = pref[Keys.VERBOSE_LOGGING] ?: false
+            verboseLogging = pref[Keys.VERBOSE_LOGGING] ?: false,
+            enablePerTypeNormalization = pref[Keys.ENABLE_PER_TYPE_NORM] ?: false,
+            enableBenchmarkMode = pref[Keys.ENABLE_BENCHMARK] ?: false
         )
     }
 
@@ -51,6 +53,8 @@ class SettingsRepository(private val context: Context) {
             pref[Keys.AUTO_REINDEX] = updated.autoReindex
             pref[Keys.SHOW_DEBUG] = updated.showDebugInfo
             pref[Keys.VERBOSE_LOGGING] = updated.verboseLogging
+            pref[Keys.ENABLE_PER_TYPE_NORM] = updated.enablePerTypeNormalization
+            pref[Keys.ENABLE_BENCHMARK] = updated.enableBenchmarkMode
         }
     }
 
@@ -93,6 +97,8 @@ class SettingsRepository(private val context: Context) {
         val AUTO_REINDEX = booleanPreferencesKey("auto_reindex")
         val SHOW_DEBUG = booleanPreferencesKey("show_debug")
         val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
+        val ENABLE_PER_TYPE_NORM = booleanPreferencesKey("enable_per_type_norm")
+        val ENABLE_BENCHMARK = booleanPreferencesKey("enable_benchmark")
     }
 }
 

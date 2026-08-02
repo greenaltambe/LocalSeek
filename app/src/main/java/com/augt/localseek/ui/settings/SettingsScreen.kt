@@ -70,6 +70,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.augt.localseek.ml.llm.LLMCapabilities
 import com.augt.localseek.ml.llm.LLMDiagnostics
+import android.content.Intent
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.SdCard
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import com.augt.localseek.logging.BenchmarkLogger
+import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -87,6 +97,24 @@ fun SettingsScreen(
     val llmDiagnostics by viewModel.llmDiagnostics.collectAsState()
     val phi3Downloaded by viewModel.isPhi3Downloaded.collectAsState()
     val phi3DownloadState by viewModel.phi3DownloadState.collectAsState()
+    val benchmarkCount by viewModel.benchmarkCount.collectAsState()
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    fun shareFile(file: File) {
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Benchmark Data"))
+    }
 
     Scaffold(
         topBar = {
@@ -282,6 +310,33 @@ fun SettingsScreen(
                     icon = Icons.Default.MergeType
                 )
             }
+            item {
+                SettingSwitch(
+                    title = "Benchmark Mode",
+                    subtitle = "Log multiple backend results per query",
+                    checked = settings.enableBenchmarkMode,
+                    onCheckedChange = { viewModel.updateSetting { copy(enableBenchmarkMode = it) } },
+                    icon = Icons.Default.Assessment
+                )
+            }
+            item {
+                BenchmarkExportCard(
+                    recordCount = benchmarkCount,
+                    onExportCsv = {
+                        scope.launch {
+                            val file = viewModel.exportBenchmarkCsv()
+                            shareFile(file)
+                        }
+                    },
+                    onExportJson = {
+                        scope.launch {
+                            val file = viewModel.exportBenchmarkJson()
+                            shareFile(file)
+                        }
+                    },
+                    onClear = { viewModel.clearBenchmarkData() }
+                )
+            }
 
             item { SectionHeader(title = "About") }
             item { AboutCard() }
@@ -294,6 +349,89 @@ fun SettingsScreen(
                     onConfirm = { viewModel.clearAllData() },
                     icon = Icons.Default.DeleteForever
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun BenchmarkExportCard(
+    recordCount: Int,
+    onExportCsv: () -> Unit,
+    onExportJson: () -> Unit,
+    onClear: () -> Unit
+) {
+    var showClearConfirm by remember { mutableStateOf(false) }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear Benchmark Data") },
+            text = { Text("Are you sure you want to delete all stored benchmark records? This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClear()
+                        showClearConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Clear")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Benchmark Data",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "$recordCount benchmark records stored",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onExportCsv,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("CSV", maxLines = 1)
+                }
+                OutlinedButton(
+                    onClick = onExportJson,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("JSON", maxLines = 1)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { showClearConfirm = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Clear Benchmark Data")
             }
         }
     }

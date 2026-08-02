@@ -14,7 +14,8 @@ data class AppSettings(
     val autoReindex: Boolean = false,
     val showDebugInfo: Boolean = false,
     val verboseLogging: Boolean = false,
-    val enablePerTypeNormalization: Boolean = false
+    val enablePerTypeNormalization: Boolean = false,
+    val enableBenchmarkMode: Boolean = false
 )
 
 enum class MemoryMode {

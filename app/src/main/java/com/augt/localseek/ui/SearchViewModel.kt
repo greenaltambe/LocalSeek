@@ -8,8 +8,11 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.augt.localseek.LocalSeekApplication
+import com.augt.localseek.logging.BenchmarkLogger
 import com.augt.localseek.logging.PerformanceLogger
 import com.augt.localseek.logging.measureSuspendTime
+import com.augt.localseek.data.BenchmarkRunEntity
+import com.augt.localseek.data.AppDatabase
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.ml.llm.Phi3LLM
 import com.augt.localseek.model.EntityType
@@ -62,6 +65,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     private val queryCache = QueryCache(maxSize = 50)
     private var latestAggregatedResults: List<FileResult> = emptyList()
 
+    private val runSessionId = java.util.UUID.randomUUID().toString()
+
     private var searchJob: Job? = null
 
     init {
@@ -72,7 +77,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             settingsRepository.settings.collect { settings ->
                 _uiState.update { it.copy(
                     showScores = settings.showDebugInfo,
-                    fusionMode = if (settings.enablePerTypeNormalization) FusionMode.PER_TYPE_NORMALIZATION else FusionMode.GLOBAL_NORMALIZATION
+                    fusionMode = if (settings.enablePerTypeNormalization) FusionMode.PER_TYPE_NORMALIZATION else FusionMode.GLOBAL_NORMALIZATION,
+                    benchmarkMode = settings.enableBenchmarkMode
                 ) }
             }
         }
@@ -224,6 +230,19 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         )
 
         logTopResults(query, filteredResults)
+
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            runBenchmarkSuite(
+                query = query,
+                bm25Results = bm25Results,
+                denseResults = denseResults,
+                bm25LatencyMs = bm25LatencyMs,
+                denseLatencyMs = denseLatencyMs,
+                fusionLatencyMs = fusionLatencyMs,
+                rerankLatencyMs = rerankLatencyMs,
+                totalLatencyMs = totalLatencyMs
+            )
+        }
 
         var ragAnswer: String? = null
         var ragError: String? = null
@@ -483,6 +502,127 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun normalizeQuery(query: String): String = query.trim().lowercase()
+
+    private suspend fun runBenchmarkSuite(
+        query: String,
+        bm25Results: List<SearchResult>,
+        denseResults: List<SearchResult>,
+        bm25LatencyMs: Long,
+        denseLatencyMs: Long,
+        fusionLatencyMs: Long,
+        rerankLatencyMs: Long,
+        totalLatencyMs: Long
+    ) {
+        val db = AppDatabase.getInstance(getApplication())
+        val corpusSizeChunks = db.chunkDao().countAllChunks()
+        val corpusSizeApps = db.appDao().getCount()
+        val corpusSizeContacts = db.contactDao().getCount()
+
+        val bm25Map = bm25Results.associateBy { it.entityType to it.id }
+        val denseMap = denseResults.associateBy { it.entityType to it.id }
+        val allKeys = (bm25Map.keys + denseMap.keys).distinct()
+
+        val candidates = allKeys.mapNotNull { key ->
+            val bm25 = bm25Map[key]
+            val dense = denseMap[key]
+            val source = dense ?: bm25
+            source?.let {
+                FusionCandidate(
+                    id = it.id,
+                    title = it.title,
+                    snippet = it.snippet,
+                    filePath = it.filePath,
+                    fileType = it.fileType,
+                    modifiedAt = it.modifiedAt,
+                    sizeBytes = it.sizeBytes,
+                    bm25Score = bm25?.score?.toDouble(),
+                    denseScore = dense?.score?.toDouble(),
+                    embedding = dense?.embedding,
+                    entityType = it.entityType
+                )
+            }
+        }
+
+        val queryId = query.trim().lowercase().hashCode().toString()
+        val timestamp = System.currentTimeMillis()
+        val deviceModel = android.os.Build.MODEL
+        val androidVersion = android.os.Build.VERSION.RELEASE
+
+        fun getMem(): Float {
+            val mi = android.os.Debug.MemoryInfo()
+            android.os.Debug.getMemoryInfo(mi)
+            return mi.totalPss / 1024f
+        }
+
+        fun getBat(): Int {
+            val bm = getApplication<Application>().getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager
+            return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        }
+
+        val memBefore = getMem()
+        val batBefore = if (_uiState.value.benchmarkMode) getBat() else null
+
+        // We'll capture peak as we go
+        var peakMem = memBefore
+
+        fun logMode(modeName: String, rankedResults: List<FusionCandidate>, batAfter: Int? = null) {
+            val currentMem = getMem()
+            if (currentMem > peakMem) peakMem = currentMem
+
+            viewModelScope.launch {
+                val record = BenchmarkRunEntity(
+                    runSessionId = runSessionId,
+                    queryId = queryId,
+                    queryText = query,
+                    timestamp = timestamp,
+                    deviceModel = deviceModel,
+                    androidVersion = androidVersion,
+                    backend = modeName,
+                    corpusSizeChunks = corpusSizeChunks,
+                    corpusSizeApps = corpusSizeApps,
+                    corpusSizeContacts = corpusSizeContacts,
+                    latencyBm25Ms = bm25LatencyMs,
+                    latencyDenseMs = denseLatencyMs,
+                    latencyFusionMs = fusionLatencyMs,
+                    latencyRerankMs = if (modeName.startsWith("hybrid")) rerankLatencyMs else 0L,
+                    latencyTotalMs = totalLatencyMs,
+                    memoryMbPeak = peakMem,
+                    batteryPctBefore = batBefore,
+                    batteryPctAfter = batAfter,
+                    resultIdsJson = org.json.JSONArray(rankedResults.take(20).map { "${it.entityType}:${it.id}" }).toString(),
+                    resultScoresJson = org.json.JSONArray(rankedResults.take(20).map { it.finalScore }).toString(),
+                    resultEntityTypesJson = org.json.JSONArray(rankedResults.take(20).map { it.entityType.name }).toString()
+                )
+                BenchmarkLogger.logRun(getApplication(), record)
+            }
+        }
+
+        if (_uiState.value.benchmarkMode) {
+            // BM25-only
+            val bm25Only = candidates.filter { it.bm25Score != null }
+                .sortedByDescending { it.bm25Score ?: 0.0 }
+            logMode("bm25", bm25Only)
+
+            // Dense-only
+            val denseOnly = candidates.filter { it.denseScore != null }
+                .sortedByDescending { it.denseScore ?: 0.0 }
+            logMode("dense_lsh", denseOnly)
+
+            // Fusion modes
+            logMode("hybrid_global", fusionRanker.rank(query, candidates, FusionMode.GLOBAL_NORMALIZATION))
+            logMode("hybrid_per_type", fusionRanker.rank(query, candidates, FusionMode.PER_TYPE_NORMALIZATION))
+            logMode("hybrid_threshold", fusionRanker.rank(query, candidates, FusionMode.PER_TYPE_WITH_THRESHOLD), getBat())
+        } else {
+            // Log only active mode
+            val currentMode = _uiState.value.fusionMode
+            val backendName = when (currentMode) {
+                FusionMode.GLOBAL_NORMALIZATION -> "hybrid_global"
+                FusionMode.PER_TYPE_NORMALIZATION -> "hybrid_per_type"
+                FusionMode.PER_TYPE_WITH_THRESHOLD -> "hybrid_threshold"
+            }
+            logMode(backendName, fusionRanker.rank(query, candidates, currentMode))
+        }
+    }
 
     private fun rankAndDiversify(
         query: String,

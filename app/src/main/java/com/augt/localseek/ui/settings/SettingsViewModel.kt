@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.augt.localseek.LocalSeekApplication
 import com.augt.localseek.indexing.IndexScheduler
+import com.augt.localseek.data.AppDatabase
+import com.augt.localseek.logging.BenchmarkLogger
 import com.augt.localseek.ml.llm.DownloadProgress
 import com.augt.localseek.ml.llm.LLMCapabilities
 import com.augt.localseek.ml.llm.LLMDiagnostics
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -67,6 +70,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
     val phi3DownloadState: StateFlow<DownloadState> = _phi3DownloadState.asStateFlow()
 
+    private val _benchmarkCount = MutableStateFlow(0)
+    val benchmarkCount: StateFlow<Int> = _benchmarkCount.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.settings.collect { saved ->
@@ -75,6 +81,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         refreshIndexStats()
         refreshLlmCapabilities()
+        refreshBenchmarkCount()
     }
 
     fun updateSetting(transform: AppSettings.() -> AppSettings) {
@@ -119,6 +126,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         if (downloaded && _phi3DownloadState.value !is DownloadState.Downloading) {
             _phi3DownloadState.value = DownloadState.Completed
         }
+    }
+
+    fun refreshBenchmarkCount() {
+        viewModelScope.launch {
+            _benchmarkCount.value = AppDatabase.getInstance(getApplication()).benchmarkRunDao().getCount()
+        }
+    }
+
+    fun clearBenchmarkData() {
+        viewModelScope.launch {
+            AppDatabase.getInstance(getApplication()).benchmarkRunDao().clearAll()
+            _benchmarkCount.value = 0
+        }
+    }
+
+    suspend fun exportBenchmarkCsv(): File {
+        return BenchmarkLogger.exportToCsv(getApplication())
+    }
+
+    suspend fun exportBenchmarkJson(): File {
+        return BenchmarkLogger.exportToJson(getApplication())
     }
 
     fun downloadPhi3() {

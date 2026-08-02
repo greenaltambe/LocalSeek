@@ -17,9 +17,10 @@ import androidx.sqlite.execSQL
     // List all of @Entity classes here.
     entities = [
         DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class,
-        AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class
+        AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class,
+        BenchmarkRunEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun chunkDao(): ChunkDao
     abstract fun appDao(): AppDao
     abstract fun contactDao(): ContactDao
+    abstract fun benchmarkRunDao(): BenchmarkRunDao
 
     private object Migration1To2 : Migration(1, 2) {
         override suspend fun migrate(connection: SQLiteConnection) {
@@ -205,6 +207,39 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 
+    private object Migration13To14 : Migration(13, 14) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS benchmark_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    runSessionId TEXT NOT NULL,
+                    queryId TEXT NOT NULL,
+                    queryText TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    deviceModel TEXT NOT NULL,
+                    androidVersion TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    corpusSizeChunks INTEGER NOT NULL,
+                    corpusSizeApps INTEGER NOT NULL,
+                    corpusSizeContacts INTEGER NOT NULL,
+                    latencyBm25Ms INTEGER NOT NULL,
+                    latencyDenseMs INTEGER NOT NULL,
+                    latencyFusionMs INTEGER NOT NULL,
+                    latencyRerankMs INTEGER,
+                    latencyTotalMs INTEGER NOT NULL,
+                    memoryMbPeak REAL NOT NULL,
+                    batteryPctBefore INTEGER,
+                    batteryPctAfter INTEGER,
+                    resultIdsJson TEXT NOT NULL,
+                    resultScoresJson TEXT NOT NULL,
+                    resultEntityTypesJson TEXT NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -218,7 +253,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14)
                 // Temporary dev safety valve for unsupported legacy version hops.
                 .fallbackToDestructiveMigration()
                 .build()

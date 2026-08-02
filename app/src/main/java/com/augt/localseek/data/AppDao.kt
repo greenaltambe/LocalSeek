@@ -16,6 +16,9 @@ interface AppDao {
     @Query("DELETE FROM apps")
     suspend fun clearAll()
 
+    @Query("SELECT COUNT(*) FROM apps")
+    suspend fun getCount(): Int
+
     @Query(
         """
         SELECT
