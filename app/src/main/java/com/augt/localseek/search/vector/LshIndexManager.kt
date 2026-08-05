@@ -23,7 +23,8 @@ data class LshConfig(
     val numHashBits: Int,
     val projectionDim: Int,
     val searchCandidates: Int,
-    val memoryMode: MemoryMode
+    val memoryMode: MemoryMode,
+    val probeRadius: Int = 0
 ) {
     enum class MemoryMode {
         IN_MEMORY,
@@ -32,34 +33,45 @@ data class LshConfig(
 
     companion object {
         fun forDatasetSize(size: Int, batteryLevel: Int = 100): LshConfig {
+            val targetOccupancy = 25.0
+            // Continuous bit-depth scaling: log2(N / target_occupancy)
+            // For N=2094, target=25 -> ~6.3 bits -> 7 bits.
+            val derivedBits = if (size > 0) {
+                kotlin.math.ceil(kotlin.math.log2(size.toDouble() / targetOccupancy)).toInt().coerceIn(6, 16)
+            } else 10
+
             return when {
                 size < 10_000 -> LshConfig(
                     numTables = 5,
-                    numHashBits = 10,
+                    numHashBits = derivedBits,
                     projectionDim = 48,
                     searchCandidates = 80,
-                    memoryMode = MemoryMode.IN_MEMORY
+                    memoryMode = MemoryMode.IN_MEMORY,
+                    probeRadius = 1
                 )
                 size < 50_000 -> LshConfig(
                     numTables = 10,
-                    numHashBits = 12,
+                    numHashBits = derivedBits,
                     projectionDim = 64,
                     searchCandidates = 100,
-                    memoryMode = MemoryMode.IN_MEMORY
+                    memoryMode = MemoryMode.IN_MEMORY,
+                    probeRadius = 1
                 )
                 size < 200_000 -> LshConfig(
                     numTables = 15,
-                    numHashBits = 14,
+                    numHashBits = derivedBits,
                     projectionDim = 80,
                     searchCandidates = 120,
-                    memoryMode = if (batteryLevel > 50) MemoryMode.IN_MEMORY else MemoryMode.STREAMING
+                    memoryMode = if (batteryLevel > 50) MemoryMode.IN_MEMORY else MemoryMode.STREAMING,
+                    probeRadius = 1
                 )
                 else -> LshConfig(
                     numTables = 20,
-                    numHashBits = 16,
+                    numHashBits = derivedBits,
                     projectionDim = 96,
                     searchCandidates = 150,
-                    memoryMode = MemoryMode.STREAMING
+                    memoryMode = MemoryMode.STREAMING,
+                    probeRadius = 1
                 )
             }
         }
@@ -118,11 +130,6 @@ class LshIndexManager(private val context: Context) {
         val avgBucketSize: Float,
         val buildTimeMs: Long,
         val sizeBytes: Long
-    )
-
-    data class SearchResult(
-        val chunkId: Long,
-        val score: Float
     )
 
     private var config: LshConfig = LshConfig.forDatasetSize(0)
@@ -260,7 +267,7 @@ class LshIndexManager(private val context: Context) {
         queryEmbedding: FloatArray,
         topK: Int = 50,
         chunkDao: ChunkDao? = null
-    ): List<SearchResult> = withContext(Dispatchers.Default) {
+    ): List<ScoredResult> = withContext(Dispatchers.Default) {
         if (!isInitialized || queryEmbedding.size != EMBEDDING_DIM || topK <= 0) {
             return@withContext emptyList()
         }
@@ -270,13 +277,27 @@ class LshIndexManager(private val context: Context) {
         val activeTables = minOf(runtimeConfig.numTables, hashTables.size)
 
         val candidates = linkedSetOf<Long>()
+        var probeCount = 0
         for (tableIdx in 0 until activeTables) {
-            val hash = computeHash(queryEmbedding, tableIdx)
-            hashTables[tableIdx][hash]?.let { candidates.addAll(it) }
+            val baseHash = computeHash(queryEmbedding, tableIdx)
+            
+            // Exact match bucket
+            hashTables[tableIdx][baseHash]?.let { candidates.addAll(it) }
+            
+            // Multi-probe (Hamming distance 1)
+            if (runtimeConfig.probeRadius >= 1) {
+                for (bit in 0 until runtimeConfig.numHashBits) {
+                    val probedHash = baseHash xor (1 shl bit)
+                    hashTables[tableIdx][probedHash]?.let { 
+                        candidates.addAll(it)
+                        probeCount++
+                    }
+                }
+            }
         }
 
         val limitedCandidates = candidates.take(runtimeConfig.searchCandidates)
-        Log.d(TAG, "Found ${limitedCandidates.size} candidates (limited from ${candidates.size})")
+        Log.e(TAG, "LSH_CANDIDATES: Found ${candidates.size} raw candidates (multi-probe checked $probeCount extra buckets), limited to ${limitedCandidates.size} for search (Corpus size: $indexedVectorCount, bits=${runtimeConfig.numHashBits})")
 
         val mode = when {
             runtimeConfig.memoryMode == LshConfig.MemoryMode.STREAMING -> LshConfig.MemoryMode.STREAMING
@@ -288,7 +309,7 @@ class LshIndexManager(private val context: Context) {
             LshConfig.MemoryMode.IN_MEMORY -> {
                 limitedCandidates.mapNotNull { chunkId ->
                     val embedding = embeddingStore[chunkId] ?: return@mapNotNull null
-                    SearchResult(chunkId = chunkId, score = cosineSimilarity(queryEmbedding, embedding))
+                    ScoredResult(id = chunkId, score = cosineSimilarity(queryEmbedding, embedding))
                 }
             }
             LshConfig.MemoryMode.STREAMING -> {
@@ -337,7 +358,8 @@ class LshIndexManager(private val context: Context) {
                     numHashBits = input.readInt(),
                     projectionDim = input.readInt(),
                     searchCandidates = input.readInt(),
-                    memoryMode = LshConfig.MemoryMode.entries[input.readInt().coerceIn(0, LshConfig.MemoryMode.entries.lastIndex)]
+                    memoryMode = LshConfig.MemoryMode.entries[input.readInt().coerceIn(0, LshConfig.MemoryMode.entries.lastIndex)],
+                    probeRadius = if (input.available() > 0) input.readInt() else 0
                 )
                 initializeAdaptiveStructures(persistedConfig)
 
@@ -391,6 +413,7 @@ class LshIndexManager(private val context: Context) {
                 output.writeInt(config.projectionDim)
                 output.writeInt(config.searchCandidates)
                 output.writeInt(config.memoryMode.ordinal)
+                output.writeInt(config.probeRadius)
                 output.writeInt(serializable.size)
                 serializable.forEach { (chunkId, embedding) ->
                     output.writeLong(chunkId)
@@ -451,11 +474,11 @@ class LshIndexManager(private val context: Context) {
         candidateIds: List<Long>,
         queryEmbedding: FloatArray,
         chunkDao: ChunkDao
-    ): List<SearchResult> = withContext(Dispatchers.IO) {
+    ): List<ScoredResult> = withContext(Dispatchers.IO) {
         candidateIds.mapNotNull { chunkId ->
             try {
                 val embedding = chunkDao.getChunkById(chunkId)?.embedding ?: return@mapNotNull null
-                SearchResult(chunkId, cosineSimilarity(queryEmbedding, embedding))
+                ScoredResult(chunkId, cosineSimilarity(queryEmbedding, embedding))
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to fetch embedding for chunkId=$chunkId", e)
                 null

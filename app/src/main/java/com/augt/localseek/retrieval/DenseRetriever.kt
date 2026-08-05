@@ -10,7 +10,8 @@ import com.augt.localseek.ml.VectorUtils.cosineSimilarity
 import com.augt.localseek.model.EntityType
 import com.augt.localseek.model.SearchResult
 import com.augt.localseek.search.vector.LshIndexManager
-import java.util.PriorityQueue
+import com.augt.localseek.search.vector.LshVectorIndex
+import com.augt.localseek.search.vector.VectorIndex
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -29,9 +30,14 @@ class DenseRetriever(context: Context) {
     private val contactDao = db.contactDao()
     private val encoder = DenseEncoder(context)
     private val indexManager = LshIndexManager(context)
+    private var vectorIndex: VectorIndex = LshVectorIndex(indexManager, chunkDao)
     private var annInitialized = false
 
-    private data class ScoredChunk(val chunkId: Long, val score: Float)
+    fun setVectorIndex(index: VectorIndex) {
+        this.vectorIndex = index
+    }
+
+    fun getVectorIndex(): VectorIndex = vectorIndex
 
     fun shouldSkipDense(bm25Results: List<SearchResult>, threshold: Float = 0.85f): Boolean {
         return bm25Results.size >= 50 && (bm25Results.firstOrNull()?.score ?: 0f) >= threshold
@@ -67,21 +73,15 @@ class DenseRetriever(context: Context) {
         val queryVector = encoder.encode(query)
         val threshold = 0.3f
 
-        // 1. ANN Search for file chunks
-        val annResults = if (USE_ANN) {
+        // 1. Search for file chunks via vector index (LSH or BruteForce)
+        if (vectorIndex is LshVectorIndex) {
             initializeIndex()
-            indexManager.search(queryVector, topK, chunkDao)
-                .filter { it.score >= threshold }
-                .take(topK)
-        } else {
-            emptyList()
         }
+        val fileResults = vectorIndex.search(queryVector, topK)
+            .filter { it.score >= threshold }
+            .take(topK)
 
-        val chunkResults = if (annResults.isNotEmpty()) {
-            annResults.map { it.chunkId to it.score }
-        } else {
-            searchBruteForce(queryVector, topK, pageSize, threshold)
-        }
+        val chunkResults = fileResults.map { it.id to it.score }
 
         // 2. Brute-force for Apps and Contacts (relatively small sets)
         val appResults = searchAppsBruteForce(queryVector, threshold)
@@ -121,51 +121,6 @@ class DenseRetriever(context: Context) {
         (hydratedFiles + hydratedApps + hydratedContacts)
             .sortedByDescending { it.score }
             .take(topK)
-    }
-
-    private suspend fun searchBruteForce(
-        queryVector: FloatArray,
-        topK: Int,
-        pageSize: Int,
-        threshold: Float
-    ): List<Pair<Long, Float>> {
-        val boundedTopK = topK.coerceAtLeast(1)
-        val pageLimit = pageSize.coerceAtLeast(1)
-
-        val topChunks = PriorityQueue(compareBy<ScoredChunk> { it.score })
-        var offset = 0
-        var totalScored = 0
-        var totalKept = 0
-
-        while (true) {
-            if (!currentCoroutineContext().isActive) break
-            val page = chunkDao.getEmbeddingsPage(limit = pageLimit, offset = offset)
-            if (page.isEmpty()) break
-
-            page.forEach { chunk ->
-                totalScored++
-                val score = cosineSimilarity(queryVector, chunk.embedding)
-                if (score < threshold) return@forEach
-
-                totalKept++
-                if (topChunks.size < boundedTopK) {
-                    topChunks.add(ScoredChunk(chunk.id, score))
-                } else {
-                    val smallest = topChunks.peek()
-                    if (smallest != null && score > smallest.score) {
-                        topChunks.poll()
-                        topChunks.add(ScoredChunk(chunk.id, score))
-                    }
-                }
-            }
-
-            offset += pageLimit
-        }
-
-        Log.d(TAG, "Brute-force dense scored=$totalScored kept=$totalKept top=${topChunks.size}")
-        return topChunks.toList()
-            .sortedByDescending { it.score }
-            .map { it.chunkId to it.score }
     }
 
     private suspend fun searchAppsBruteForce(queryVector: FloatArray, threshold: Float): List<AppWithScore> {

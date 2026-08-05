@@ -565,7 +565,13 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         // We'll capture peak as we go
         var peakMem = memBefore
 
-        fun logMode(modeName: String, rankedResults: List<FusionCandidate>, batAfter: Int? = null) {
+        fun logMode(
+            modeName: String,
+            rankedResults: List<FusionCandidate>,
+            batAfter: Int? = null,
+            customDenseLatency: Long? = null,
+            customTotalLatency: Long? = null
+        ) {
             val currentMem = getMem()
             if (currentMem > peakMem) peakMem = currentMem
 
@@ -582,10 +588,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     corpusSizeApps = corpusSizeApps,
                     corpusSizeContacts = corpusSizeContacts,
                     latencyBm25Ms = bm25LatencyMs,
-                    latencyDenseMs = denseLatencyMs,
+                    latencyDenseMs = customDenseLatency ?: denseLatencyMs,
                     latencyFusionMs = fusionLatencyMs,
                     latencyRerankMs = if (modeName.startsWith("hybrid")) rerankLatencyMs else 0L,
-                    latencyTotalMs = totalLatencyMs,
+                    latencyTotalMs = customTotalLatency ?: totalLatencyMs,
                     memoryMbPeak = peakMem,
                     batteryPctBefore = batBefore,
                     batteryPctAfter = batAfter,
@@ -603,10 +609,50 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 .sortedByDescending { it.bm25Score ?: 0.0 }
             logMode("bm25", bm25Only)
 
-            // Dense-only
-            val denseOnly = candidates.filter { it.denseScore != null }
+            // Dense-only (LSH)
+            val denseOnlyLsh = candidates.filter { it.denseScore != null }
                 .sortedByDescending { it.denseScore ?: 0.0 }
-            logMode("dense_lsh", denseOnly)
+            logMode("dense_lsh", denseOnlyLsh)
+
+            // Dense-only (Brute Force)
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                denseRetriever?.let { retriever ->
+                    val originalIndex = retriever.getVectorIndex()
+                    val bruteForceIndex = com.augt.localseek.search.vector.BruteForceVectorIndex(db.chunkDao())
+                    retriever.setVectorIndex(bruteForceIndex)
+                    val (bfResults, bfLatency) = measureSuspendTime("DenseBF") {
+                        retriever.search(query)
+                    }
+                    retriever.setVectorIndex(originalIndex)
+
+                    val bfCandidates = bfResults.map {
+                        FusionCandidate(
+                            id = it.id,
+                            title = it.title,
+                            snippet = it.snippet,
+                            filePath = it.filePath,
+                            fileType = it.fileType,
+                            modifiedAt = it.modifiedAt,
+                            sizeBytes = it.sizeBytes,
+                            denseScore = it.score.toDouble(),
+                            entityType = it.entityType,
+                            finalScore = it.score.toDouble()
+                        )
+                    }
+                    logMode("dense_bruteforce", bfCandidates, customDenseLatency = bfLatency, customTotalLatency = bm25LatencyMs + bfLatency)
+
+                    // Compute and Log Recall@K
+                    val bfIds10 = bfResults.take(10).map { it.id }.toSet()
+                    val bfIds20 = bfResults.take(20).map { it.id }.toSet()
+                    val lshIds10 = denseResults.take(10).map { it.id }.toSet()
+                    val lshIds20 = denseResults.take(20).map { it.id }.toSet()
+
+                    val r10 = if (bfIds10.isEmpty()) 1.0f else bfIds10.intersect(lshIds10).size.toFloat() / 10
+                    val r20 = if (bfIds20.isEmpty()) 1.0f else bfIds20.intersect(lshIds20).size.toFloat() / 20
+
+                    Log.e("RECALL_MEASURE", "QUERY: \"$query\" | R@10: ${String.format("%.2f", r10)} | R@20: ${String.format("%.2f", r20)} | LSH: ${denseLatencyMs}ms | BF: ${bfLatency}ms")
+                }
+            }
 
             // Fusion modes
             logMode("hybrid_global", fusionRanker.rank(query, candidates, FusionMode.GLOBAL_NORMALIZATION))
