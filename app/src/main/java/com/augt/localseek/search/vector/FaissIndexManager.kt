@@ -72,14 +72,16 @@ class FaissIndexManager(private val context: Context) {
 
     suspend fun rebuildFromDatabase(chunkDao: ChunkDao): IndexStats = withContext(Dispatchers.IO) {
         val embeddings = mutableListOf<Pair<Long, FloatArray>>()
-        var offset = 0
+        var lastId = -1L
         val pageSize = 1000
 
         while (true) {
-            val page = chunkDao.getEmbeddingsPage(pageSize, offset)
+            val page = chunkDao.getEmbeddingsPage(pageSize, lastId)
             if (page.isEmpty()) break
-            page.forEach { embeddings.add(it.id to it.embedding) }
-            offset += pageSize
+            page.forEach { 
+                embeddings.add(it.id to it.embedding)
+                lastId = it.id
+            }
         }
 
         buildIndex(embeddings)

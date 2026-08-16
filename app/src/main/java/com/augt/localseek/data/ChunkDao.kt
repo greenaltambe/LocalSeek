@@ -24,11 +24,15 @@ interface ChunkDao {
         """
         SELECT id, embedding
         FROM document_chunks
-        WHERE embedding IS NOT NULL
-        LIMIT :limit OFFSET :offset
+        WHERE id > :lastId AND embedding IS NOT NULL
+        ORDER BY id ASC
+        LIMIT :limit
         """
     )
-    suspend fun getEmbeddingsPage(limit: Int, offset: Int): List<ChunkEmbedding>
+    suspend fun getEmbeddingsPage(limit: Int, lastId: Long): List<ChunkEmbedding>
+
+    @Query("SELECT * FROM document_chunks WHERE text MATCH :query LIMIT 1")
+    suspend fun debugCheckFts(query: String): DocumentChunk?
 
     @Query("SELECT * FROM document_chunks WHERE id = :chunkId LIMIT 1")
     suspend fun getChunkById(chunkId: Long): DocumentChunk?

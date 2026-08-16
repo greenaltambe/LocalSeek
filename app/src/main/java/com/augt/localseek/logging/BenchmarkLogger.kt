@@ -27,19 +27,21 @@ object BenchmarkLogger {
                     "corpusSizeChunks,corpusSizeApps,corpusSizeContacts," +
                     "latencyBm25Ms,latencyDenseMs,latencyFusionMs,latencyRerankMs,latencyTotalMs," +
                     "memoryMbPeak,batteryPctBefore,batteryPctAfter," +
-                    "resultIds,resultScores,resultEntityTypes")
+                    "resultIds,resultScores,resultEntityTypes,resultTitles,resultSnippets")
 
             allRuns.forEach { run ->
                 val resultIds = flattenJsonArray(run.resultIdsJson)
                 val resultScores = flattenJsonArray(run.resultScoresJson)
                 val resultEntityTypes = flattenJsonArray(run.resultEntityTypesJson)
+                val resultTitles = flattenJsonArray(run.resultTitlesJson)
+                val resultSnippets = flattenJsonArray(run.resultSnippetsJson)
 
                 out.println("${run.id},${run.runSessionId},${run.queryId},\"${run.queryText.replace("\"", "\"\"")}\",${run.timestamp}," +
                         "${run.deviceModel},${run.androidVersion},${run.backend}," +
                         "${run.corpusSizeChunks},${run.corpusSizeApps},${run.corpusSizeContacts}," +
                         "${run.latencyBm25Ms},${run.latencyDenseMs},${run.latencyFusionMs},${run.latencyRerankMs ?: 0},${run.latencyTotalMs}," +
                         "${run.memoryMbPeak},${run.batteryPctBefore ?: ""},${run.batteryPctAfter ?: ""}," +
-                        "\"$resultIds\",\"$resultScores\",\"$resultEntityTypes\"")
+                        "\"$resultIds\",\"$resultScores\",\"$resultEntityTypes\",\"${resultTitles.replace("\"", "\"\"")}\",\"${resultSnippets.replace("\"", "\"\"")}\"")
             }
         }
         return file
@@ -75,6 +77,8 @@ object BenchmarkLogger {
             obj.put("resultIds", JSONArray(run.resultIdsJson))
             obj.put("resultScores", JSONArray(run.resultScoresJson))
             obj.put("resultEntityTypes", JSONArray(run.resultEntityTypesJson))
+            obj.put("resultTitles", JSONArray(run.resultTitlesJson))
+            obj.put("resultSnippets", JSONArray(run.resultSnippetsJson))
             rootArray.put(obj)
         }
 

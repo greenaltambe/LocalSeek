@@ -250,14 +250,16 @@ class LshIndexManager(private val context: Context) {
 
     suspend fun rebuildFromDatabase(chunkDao: ChunkDao): IndexStats = withContext(Dispatchers.IO) {
         val embeddings = mutableListOf<Pair<Long, FloatArray>>()
-        var offset = 0
+        var lastId = -1L
         val pageSize = 1000
 
         while (true) {
-            val page = chunkDao.getEmbeddingsPage(limit = pageSize, offset = offset)
+            val page = chunkDao.getEmbeddingsPage(limit = pageSize, lastId = lastId)
             if (page.isEmpty()) break
-            page.forEach { embeddings.add(it.id to it.embedding) }
-            offset += pageSize
+            page.forEach { 
+                embeddings.add(it.id to it.embedding) 
+                lastId = it.id
+            }
         }
 
         buildIndex(embeddings)
@@ -426,6 +428,11 @@ class LshIndexManager(private val context: Context) {
     }
 
     private fun addVector(chunkId: Long, embedding: FloatArray, updateStore: Boolean) {
+        if (embedding.size != EMBEDDING_DIM) {
+            Log.w(TAG, "Skipping vector addition for chunkId=$chunkId: invalid dimension ${embedding.size}")
+            return
+        }
+
         if (updateStore) {
             embeddingStore[chunkId] = embedding
         }

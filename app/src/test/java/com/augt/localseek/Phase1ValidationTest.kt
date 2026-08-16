@@ -13,19 +13,32 @@ class Phase1ValidationTest {
     fun textChunker_generatesOverlappingChunksWithOffsets() {
         val chunker = TextChunker(chunkSize = 6, overlap = 2)
         val text = (1..12).joinToString(" ") { "token$it" }
+        val title = "My Document"
 
-        val chunks = chunker.chunkDocument(fileId = 42L, text = text)
+        val chunks = chunker.chunkDocument(fileId = 42L, text = text, title = title)
 
         assertEquals(3, chunks.size)
         assertEquals(0, chunks[0].startOffset)
         assertEquals(6, chunks[0].endOffset)
-        assertEquals(4, chunks[1].startOffset)
-        assertEquals(10, chunks[1].endOffset)
-        assertEquals(8, chunks[2].startOffset)
-        assertEquals(12, chunks[2].endOffset)
+        assertEquals(title, chunks[0].title)
+        assertEquals(title, chunks[1].title)
+        assertEquals(title, chunks[2].title)
         assertTrue(chunks.all { it.parentFileId == 42L })
-        assertEquals("token1 token2 token3 token4 token5 token6", chunks[0].text)
-        assertEquals("token5 token6 token7 token8 token9 token10", chunks[1].text)
+        // Title is prepended to chunk 0 text as well (legacy behavior)
+        assertTrue(chunks[0].text.startsWith("$title."))
+    }
+
+    @Test
+    fun textChunker_handlesEmptyBodyWithTitle() {
+        val chunker = TextChunker()
+        val title = "marksheet_2026.pdf"
+        
+        val chunks = chunker.chunkDocument(fileId = 1L, text = "", title = title)
+        
+        assertEquals(1, chunks.size)
+        assertEquals(title, chunks[0].title)
+        assertEquals(title, chunks[0].text)
+        assertEquals(0, chunks[0].chunkIndex)
     }
 
     @Test

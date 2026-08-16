@@ -597,7 +597,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     batteryPctAfter = batAfter,
                     resultIdsJson = org.json.JSONArray(rankedResults.take(20).map { "${it.entityType}:${it.id}" }).toString(),
                     resultScoresJson = org.json.JSONArray(rankedResults.take(20).map { it.finalScore }).toString(),
-                    resultEntityTypesJson = org.json.JSONArray(rankedResults.take(20).map { it.entityType.name }).toString()
+                    resultEntityTypesJson = org.json.JSONArray(rankedResults.take(20).map { it.entityType.name }).toString(),
+                    resultTitlesJson = org.json.JSONArray(rankedResults.take(20).map { it.title }).toString(),
+                    resultSnippetsJson = org.json.JSONArray(rankedResults.take(20).map { it.snippet }).toString()
                 )
                 BenchmarkLogger.logRun(getApplication(), record)
             }

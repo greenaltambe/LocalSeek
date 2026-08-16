@@ -98,8 +98,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun rebuildIndex() {
-        IndexScheduler.scheduleImmediateIndex(getApplication())
+    fun rebuildIndex(forceAll: Boolean = false) {
+        IndexScheduler.scheduleImmediateIndex(getApplication(), forceAll)
         refreshIndexStats()
     }
 

@@ -19,9 +19,10 @@ object IndexScheduler {
      * Changed to REPLACE to ensure that a new scan is triggered immediately
      * when requested (e.g. after granting permissions or on app start).
      */
-    fun scheduleImmediateIndex(context: Context) {
+    fun scheduleImmediateIndex(context: Context, forceAll: Boolean = false) {
         val request = OneTimeWorkRequestBuilder<IndexWorker>()
             .addTag(TAG_ONE_TIME)
+            .setInputData(androidx.work.workDataOf(IndexWorker.IN_FORCE_REINDEX to forceAll))
             .build()
 
         WorkManager.getInstance(context)

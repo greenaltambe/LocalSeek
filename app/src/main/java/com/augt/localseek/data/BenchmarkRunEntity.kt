@@ -27,5 +27,7 @@ data class BenchmarkRunEntity(
     val batteryPctAfter: Int?,
     val resultIdsJson: String,
     val resultScoresJson: String,
-    val resultEntityTypesJson: String
+    val resultEntityTypesJson: String,
+    val resultTitlesJson: String,
+    val resultSnippetsJson: String
 )

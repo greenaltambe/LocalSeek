@@ -19,6 +19,7 @@ data class DocumentChunk(
     val parentFileId: Long,
     val chunkIndex: Int,
     val text: String,
+    val title: String = "", // Denormalized title for FTS
     val startOffset: Int,
     val endOffset: Int,
     @ColumnInfo(typeAffinity = ColumnInfo.BLOB)
@@ -29,6 +30,7 @@ data class DocumentChunk(
 @Fts5(contentEntity = DocumentChunk::class, tokenizer = "unicode61")
 @Entity(tableName = "chunks_fts")
 data class ChunkFts(
-    val text: String
+    val text: String,
+    val title: String
 )
 

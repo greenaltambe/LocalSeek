@@ -20,7 +20,7 @@ import androidx.sqlite.execSQL
         AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class,
         BenchmarkRunEntity::class
     ],
-    version = 14,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
@@ -31,6 +31,80 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
     abstract fun contactDao(): ContactDao
     abstract fun benchmarkRunDao(): BenchmarkRunDao
+
+    private object Migration15To16 : Migration(15, 16) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            // 1. Add title column to document_chunks
+            connection.execSQL("ALTER TABLE document_chunks ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+
+            // 2. Backfill title from documents table
+            connection.execSQL(
+                """
+                UPDATE document_chunks 
+                SET title = COALESCE((SELECT title FROM documents WHERE documents.id = document_chunks.parentFileId), '')
+                """.trimIndent()
+            )
+
+            // 3. Drop and recreate chunks_fts with text and title columns
+            // Room's @Fts5 content-linked tables require specific recreate + rebuild flow
+            connection.execSQL("DROP TABLE IF EXISTS chunks_fts")
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE chunks_fts USING fts5(
+                    text, 
+                    title, 
+                    content='document_chunks', 
+                    content_rowid='id', 
+                    tokenize='unicode61'
+                )
+                """.trimIndent()
+            )
+
+            // 4. Issue standard FTS5 rebuild command
+            connection.execSQL("INSERT INTO chunks_fts(chunks_fts) VALUES('rebuild')")
+            
+            // 5. Re-create the mandatory sync triggers for content-linked FTS
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_insert")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_insert AFTER INSERT ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(rowid, text, title) VALUES (new.id, new.text, new.title);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_delete")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_delete AFTER DELETE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text, title) 
+                    VALUES('delete', old.id, old.text, old.title);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_update")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_update AFTER UPDATE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text, title) 
+                    VALUES('delete', old.id, old.text, old.title);
+                    INSERT INTO chunks_fts(rowid, text, title) VALUES (new.id, new.text, new.title);
+                END
+                """.trimIndent()
+            )
+        }
+    }
+
+    private object Migration14To15 : Migration(14, 15) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN resultTitlesJson TEXT NOT NULL DEFAULT '[]'")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN resultSnippetsJson TEXT NOT NULL DEFAULT '[]'")
+        }
+    }
 
     private object Migration1To2 : Migration(1, 2) {
         override suspend fun migrate(connection: SQLiteConnection) {
@@ -253,7 +327,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16)
                 // Temporary dev safety valve for unsupported legacy version hops.
                 .fallbackToDestructiveMigration()
                 .build()

@@ -3,6 +3,8 @@ package com.augt.localseek.search.vector
 import com.augt.localseek.data.ChunkDao
 import com.augt.localseek.data.ChunkEmbedding
 import com.augt.localseek.ml.VectorUtils
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import java.util.PriorityQueue
 
 class BruteForceVectorIndex(
@@ -13,11 +15,14 @@ class BruteForceVectorIndex(
 
     override suspend fun search(queryVec: FloatArray, k: Int): List<ScoredResult> {
         val topKQueue = PriorityQueue(compareBy<ScoredResult> { it.score })
-        var offset = 0
+        var lastId = -1L
         val pageSize = 500
 
         while (true) {
-            val page = chunkDao.getEmbeddingsPage(pageSize, offset)
+            // Check for cancellation to avoid blocking search for long periods
+            if (!currentCoroutineContext().isActive) break
+
+            val page = chunkDao.getEmbeddingsPage(pageSize, lastId)
             if (page.isEmpty()) break
 
             for (chunk in page) {
@@ -31,8 +36,8 @@ class BruteForceVectorIndex(
                         topKQueue.add(ScoredResult(chunk.id, score))
                     }
                 }
+                lastId = chunk.id
             }
-            offset += pageSize
         }
 
         return topKQueue.toList().sortedByDescending { it.score }

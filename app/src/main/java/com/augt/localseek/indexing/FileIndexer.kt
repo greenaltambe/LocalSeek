@@ -28,7 +28,7 @@ class FileIndexer(private val context: Context) {
         val newFiles: Int = 0, val updatedFiles: Int = 0, val skippedFiles: Int = 0, val errors: Int = 0
     )
 
-    suspend fun runFullIndex(): IndexStats {
+    suspend fun runFullIndex(forceAll: Boolean = false): IndexStats {
         var newCount = 0; var updatedCount = 0; var skippedCount = 0; var errorCount = 0
 
         // 1. Initialize the AI Encoder
@@ -46,15 +46,17 @@ class FileIndexer(private val context: Context) {
         for (file in allFiles) {
             try {
                 val existingModifiedAt = dao.getModifiedAt(file.absolutePath)
-                if (existingModifiedAt != null && existingModifiedAt == file.lastModified()) {
+                if (!forceAll && existingModifiedAt != null && existingModifiedAt == file.lastModified()) {
                     skippedCount++
                     continue
                 }
 
                 val parsed = DocumentParser.parse(file)
-                if (parsed == null) {
-                    errorCount++
-                    continue
+                val (title, body) = if (parsed == null) {
+                    // Even if parsing fails (scanned PDF), we still index the filename
+                    file.name to ""
+                } else {
+                    parsed.title to parsed.body
                 }
 
                 val existingDocumentId = dao.getDocumentIdByPath(file.absolutePath)
@@ -63,27 +65,42 @@ class FileIndexer(private val context: Context) {
                     dao.deleteByPath(file.absolutePath)
                 }
 
-                // 2. Save metadata row to Room Database (full text and vectors live in chunks)
+                // 2. Save metadata row to Room Database
                 val fileId = dao.insert(DocumentEntity(
                     filePath = file.absolutePath,
-                    title = parsed.title,
+                    title = title,
                     body = "",
-                    fileType = parsed.fileType,
+                    fileType = file.extension.lowercase(),
                     modifiedAt = file.lastModified(),
                     sizeBytes = file.length(),
                     embedding = null
                 ))
 
                 // 3. Chunk and batch-embed content
-                val chunks = textChunker.chunkDocument(fileId = fileId, text = parsed.body)
+                val chunks = textChunker.chunkDocument(fileId = fileId, text = body, title = title)
                 val chunksWithEmbeddings = if (chunks.isEmpty()) {
                     emptyList()
                 } else {
-                    val embeddings = denseEncoder?.encodeBatch(chunks.map { it.text }).orEmpty()
-                    if (embeddings.size == chunks.size) {
-                        chunks.mapIndexed { index, chunk -> chunk.copy(embedding = embeddings[index]) }
+                    // Filter out chunks that shouldn't be dense-encoded (e.g. title-only chunks)
+                    val chunksToEncode = chunks.filter { chunk ->
+                        // Detect title-only fallback: index 0 AND start/end offset 0 AND body was empty
+                        !(chunk.chunkIndex == 0 && chunk.startOffset == 0 && chunk.endOffset == 0 && body.isBlank())
+                    }
+                    
+                    val embeddingsMap = if (chunksToEncode.isNotEmpty() && denseEncoder != null) {
+                        val vectors = denseEncoder.encodeBatch(chunksToEncode.map { it.text })
+                        chunksToEncode.zip(vectors).toMap()
                     } else {
-                        chunks
+                        emptyMap()
+                    }
+
+                    chunks.map { chunk ->
+                        val embedding = embeddingsMap[chunk]
+                        if (embedding != null) {
+                            chunk.copy(embedding = embedding)
+                        } else {
+                            chunk // preserves the null embedding
+                        }
                     }
                 }
 

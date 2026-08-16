@@ -68,6 +68,14 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
+    suspend fun hasAppliedTitleFix(): Boolean {
+        return context.settingsDataStore.data.map { it[Keys.TITLE_INDEXING_FIX_APPLIED] ?: false }.first()
+    }
+
+    suspend fun markTitleFixApplied() {
+        context.settingsDataStore.edit { it[Keys.TITLE_INDEXING_FIX_APPLIED] = true }
+    }
+
     suspend fun indexStats(): IndexStats {
         val documents = database.documentDao().getDocumentCount()
         val chunks = database.chunkDao().countAllChunks()
@@ -99,6 +107,7 @@ class SettingsRepository(private val context: Context) {
         val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
         val ENABLE_PER_TYPE_NORM = booleanPreferencesKey("enable_per_type_norm")
         val ENABLE_BENCHMARK = booleanPreferencesKey("enable_benchmark")
+        val TITLE_INDEXING_FIX_APPLIED = booleanPreferencesKey("title_indexing_fix_applied")
     }
 }
 

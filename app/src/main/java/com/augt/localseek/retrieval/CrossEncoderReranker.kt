@@ -6,6 +6,7 @@ import android.util.Log
 import com.augt.localseek.ml.CrossEncoder
 import com.augt.localseek.model.SearchResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -33,6 +34,7 @@ class CrossEncoderReranker(context: Context) {
         val reranked = withTimeoutOrNull(MAX_RERANK_TIME_MS) {
             val out = mutableListOf<SearchResult>()
             for (candidate in topCandidates) {
+                ensureActive()
                 val cacheKey = "${query.lowercase()}::${candidate.id}"
                 val cached = scoreCache.get(cacheKey)
                 val crossScore = if (cached != null) {
