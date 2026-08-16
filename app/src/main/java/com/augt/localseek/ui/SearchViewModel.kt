@@ -608,12 +608,14 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         if (_uiState.value.benchmarkMode) {
             // BM25-only
             val bm25Only = candidates.filter { it.bm25Score != null }
-                .sortedByDescending { it.bm25Score ?: 0.0 }
+                .map { it.copy(finalScore = it.bm25Score ?: 0.0) }
+                .sortedByDescending { it.finalScore }
             logMode("bm25", bm25Only)
 
             // Dense-only (LSH)
             val denseOnlyLsh = candidates.filter { it.denseScore != null }
-                .sortedByDescending { it.denseScore ?: 0.0 }
+                .map { it.copy(finalScore = it.denseScore ?: 0.0) }
+                .sortedByDescending { it.finalScore }
             logMode("dense_lsh", denseOnlyLsh)
 
             // Dense-only (Brute Force)

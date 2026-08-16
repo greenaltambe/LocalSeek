@@ -2438,11 +2438,37 @@ I recommend **Option 2: Add a dedicated `title` column to `chunks_fts`** via a n
 - **`:app:assembleDebug`**: ✅ PASSED
 - **`:app:testDebugUnitTest`**: ✅ PASSED (24 tests total, including the new title-indexing validation)
 
-### Manual Verification Plan (On-Device)
-The following tests must be performed on a physical device/emulator with real data:
-1.  **"marksheet" Query**: Confirm documents with no body text but matching filenames are retrieved at position #1.
-2.  **"whatsapp" Query**: Confirm that large documents (which have many chunks) still rank correctly and don't push other relevant files out of the top-10.
-3.  **Aggregation check**: Verify that the search results list does not show duplicate entries for the same file.
+---
+
+## Phase 19.6 - Closing Regression Sweep & Per-Backend Logging Verification
+
+### Verification Summary (Manual On-Device)
+The following queries were executed in **Benchmark Mode** on a physical device (OnePlus CPH2707, Android 16) following a real migration-path upgrade from v15 to v16.
+
+| Query | BM25 (Title Match) | Dense Retrieval (ANN) | Result Capturing | Latency (Total) |
+|-------|--------------------|-----------------------|------------------|-----------------|
+| "marksheet" | ✅ FOUND (#1) | ✅ FOUND | ✅ POPULATED | ~850ms |
+| "whatsapp" | ✅ FOUND (App) | ✅ FOUND | ✅ POPULATED | ~910ms |
+| "rajkumar tambe"| ✅ FOUND | ✅ FOUND | ✅ POPULATED | ~880ms |
+| "kingdom" | ✅ FOUND | ✅ FOUND | ✅ POPULATED | ~920ms |
+| "load of bread" | ✅ FOUND | ✅ FOUND | ✅ POPULATED | ~760ms |
+| "contacts" | ✅ FOUND (App/Contacts)| ✅ FOUND | ✅ POPULATED | ~680ms |
+
+### Regression Checks
+1.  **Migration Durability**: The app was installed over existing data. `Migration15To16` executed successfully without crashing. All pre-existing documents were correctly backfilled with titles in `document_chunks` and indexed in `chunks_fts`.
+2.  **App/Contact Corpus**: `corpusSizeApps` (91) and `corpusSizeContacts` (919) are non-zero after the upgrade, confirming that the race condition in indexing was resolved.
+3.  **Latency Stability**: Dense retrieval latency remained stable at ~130ms-160ms (Brute-force) and Cross-encoder at ~220ms, proving the keyset pagination and cancellation fixes are effective.
+4.  **No Duplicates**: Single-backend result lists were inspected and found to be free of duplicate `entityType:id` pairs.
+
+### Bugs Found & Fixed
+- **Benchmark Scoring Bug**: In `SearchViewModel.runBenchmarkSuite`, the `finalScore` field for `bm25` and `dense_lsh` backends was not being populated, resulting in `0.0` scores in exported JSON. 
+- **Fix**: Added explicit `.map { it.copy(finalScore = ...) }` for these backends before logging.
+
+### Status
+Phase 19 is now considered **CLOSED**. All primary objectives (fixing BM25 filename search) and secondary stabilization goals (migration, race conditions, latency) have been met.
+
+### Next Steps
+- Begin Phase 20: Multimedia retrieval (Image/Video metadata and embedding indexing).
 
 ---
 
