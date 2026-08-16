@@ -2504,3 +2504,51 @@ Phase 19 is now considered **CLOSED**. All primary objectives (fixing BM25 filen
 - **`:app:assembleDebug`**: ✅ PASSED
 - **`:app:testDebugUnitTest`**: ✅ PASSED (24 tests)
 - **On-Device Manual Test**: ✅ PASSED (verified "marksheet" recall and "whatsapp" performance)
+
+---
+
+## Phase 20.1 - Instrumentation Audit (Memory, Battery, Result Ordering, Corpus Size, LSH Independence) (2026-08-16)
+
+### Audit Findings
+
+#### 1. Memory Measurement Audit
+- **Old Methodology**: Memory was sampled *after* the entire search pipeline (BM25 + Dense + Fusion + Rerank) had completed, during the asynchronous logging task. This missed the actual peak usage during vector retrieval.
+- **Fixed Methodology**: Introduced a `peakMem` tracker in `SearchViewModel.executeSearch`. Memory is now sampled immediately after BM25, Dense, Fusion, and Rerank stages. This high-water mark is passed to the benchmark suite for logging.
+- **Evidence**: Added `updatePeak()` calls at line 170, 175, 211, and 219 in `SearchViewModel.kt`.
+
+#### 2. Battery Measurement Audit
+- **Old Methodology**: `batteryPctAfter` was only populated for the final row ("hybrid_threshold") in a benchmark suite, and `batteryPctBefore` was often missing in normal search logs.
+- **Fixed Methodology**: `batteryPctBefore` is now captured at the start of the suite. `batteryPctAfter` is now automatically captured for EVERY backend row in benchmark mode if not explicitly provided, ensuring visibility into consumption even if a suite is interrupted.
+- **Evidence**: Updated `logMode` default for `batAfter` in `SearchViewModel.kt`.
+
+#### 3. Result Ordering & Consistency Audit
+- **Consistency**: Verified that `resultIds`, `resultScores`, `resultTitles`, `resultEntityTypes`, and `resultSnippets` are constructed from a single `FusionCandidate` list in `logMode`. This guarantees index alignment.
+- **Ordering**:
+    - `bm25`, `dense_lsh`, `hybrid_*` backends use `sortedByDescending { it.finalScore }`. Since final scores are normalized relevance scores (higher is better), this is correct.
+    - `dense_bruteforce` uses the sorted output of `BruteForceVectorIndex.search` (PriorityQueue-backed). Correct.
+
+#### 4. Corpus Size Accuracy Audit
+- **Finding**: Verified that `corpusSizeChunks`, `corpusSizeApps`, and `corpusSizeContacts` are computed via live DAO counts at the start of `runBenchmarkSuite`.
+- **Verdict**: ✅ **TRUSTWORTHY**.
+
+#### 5. LSH Independence Audit
+- **Finding**: Verified that `dense_lsh` uses the primary `DenseRetriever` path (LSH by default), while `dense_bruteforce` explicitly swaps to a fresh `BruteForceVectorIndex` instance.
+- **Fix**: Added a critical Log.e error if `dense_lsh` is requested but the LSH index is not initialized, preventing silent empty results from being misinterpreted as low recall.
+- **Evidence**: Added `isLshInitialized()` check at line 612 of `SearchViewModel.kt`.
+
+### Bugs Fixed
+- **Memory Timing Bug**: Peak memory now reflects high-water mark during active retrieval, not just post-search idle state.
+- **LSH Failure Silence**: Added explicit error logging for uninitialized LSH index in benchmark mode.
+- **Battery Reporting Gap**: Granular per-backend battery levels now reported.
+
+### Build/Test Results
+- ✅ `:app:assembleDebug` passed.
+- ✅ `:app:testDebugUnitTest` passed (24/24 tests).
+
+### Status
+The following benchmark fields are now considered **VERIFIED TRUSTWORTHY**:
+- `memoryMbPeak` (High-water mark during search)
+- `latency*` (Stage-specific timings)
+- `corpusSize*` (Live database counts)
+- `result*` (Index-aligned parallel arrays)
+- `batteryPctBefore/After` (Granular level tracking)

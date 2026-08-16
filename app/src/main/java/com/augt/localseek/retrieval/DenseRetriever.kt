@@ -37,6 +37,8 @@ class DenseRetriever(context: Context) {
         this.vectorIndex = index
     }
 
+    fun isLshInitialized(): Boolean = indexManager.isInitialized
+
     fun getVectorIndex(): VectorIndex = vectorIndex
 
     fun shouldSkipDense(bm25Results: List<SearchResult>, threshold: Float = 0.85f): Boolean {

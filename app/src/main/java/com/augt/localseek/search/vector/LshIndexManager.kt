@@ -140,7 +140,8 @@ class LshIndexManager(private val context: Context) {
     private var projectionMatrices: Array<Array<FloatArray>> = emptyArray()
 
     @Volatile
-    private var isInitialized = false
+    var isInitialized = false
+        private set
     private var indexedVectorCount = 0
 
     init {

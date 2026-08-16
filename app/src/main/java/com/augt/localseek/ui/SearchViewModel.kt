@@ -162,18 +162,26 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
         val memBeforeMb = performanceLogger.memoryUsageMb()
         val totalStartMs = System.currentTimeMillis()
+        var peakMem = getMem()
+
+        fun updatePeak() {
+            val current = getMem()
+            if (current > peakMem) peakMem = current
+        }
 
         var bm25LatencyMs = 0L
         var denseLatencyMs = 0L
         val (bm25Results, denseResults) = coroutineScope {
             val bm25Deferred = async {
                 val (result, duration) = measureSuspendTime("BM25") { bm25Retriever.search(processed.bm25Query, 100) }
+                updatePeak()
                 result to duration
             }
             val denseDeferred = async {
                 val (result, duration) = measureSuspendTime("Dense") {
                     denseRetriever?.search(processed.denseQuery, 50).orEmpty()
                 }
+                updatePeak()
                 result to duration
             }
 
@@ -202,12 +210,14 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         val (finalResults, fusionLatencyMs) = measureSuspendTime("Fusion") {
             rankAndDiversify(query, bm25Results, denseResults)
         }
+        updatePeak()
 
         _uiState.update { it.copy(loadingStage = "Reranking", loadingProgress = 0.8f) }
 
         val (rerankedResults, rerankLatencyMs) = measureSuspendTime("Rerank") {
             crossEncoderReranker.rerank(query, finalResults)
         }
+        updatePeak()
 
         latestAggregatedResults = ResultAggregator.aggregateToFiles(rerankedResults, query)
         queryCache.put(query, latestAggregatedResults)
@@ -240,7 +250,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 denseLatencyMs = denseLatencyMs,
                 fusionLatencyMs = fusionLatencyMs,
                 rerankLatencyMs = rerankLatencyMs,
-                totalLatencyMs = totalLatencyMs
+                totalLatencyMs = totalLatencyMs,
+                peakMem = peakMem
             )
         }
 
@@ -511,7 +522,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         denseLatencyMs: Long,
         fusionLatencyMs: Long,
         rerankLatencyMs: Long,
-        totalLatencyMs: Long
+        totalLatencyMs: Long,
+        peakMem: Float
     ) {
         val db = AppDatabase.getInstance(getApplication())
         val corpusSizeChunks = db.chunkDao().countAllChunks()
@@ -548,22 +560,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         val deviceModel = android.os.Build.MODEL
         val androidVersion = android.os.Build.VERSION.RELEASE
 
-        fun getMem(): Float {
-            val mi = android.os.Debug.MemoryInfo()
-            android.os.Debug.getMemoryInfo(mi)
-            return mi.totalPss / 1024f
-        }
-
-        fun getBat(): Int {
-            val bm = getApplication<Application>().getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager
-            return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        }
-
-        val memBefore = getMem()
         val batBefore = if (_uiState.value.benchmarkMode) getBat() else null
 
         // We'll capture peak as we go
-        var peakMem = memBefore
+        var localPeakMem = peakMem
 
         fun logMode(
             modeName: String,
@@ -573,7 +573,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             customTotalLatency: Long? = null
         ) {
             val currentMem = getMem()
-            if (currentMem > peakMem) peakMem = currentMem
+            if (currentMem > localPeakMem) localPeakMem = currentMem
 
             viewModelScope.launch {
                 val record = BenchmarkRunEntity(
@@ -592,9 +592,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     latencyFusionMs = fusionLatencyMs,
                     latencyRerankMs = if (modeName.startsWith("hybrid")) rerankLatencyMs else 0L,
                     latencyTotalMs = customTotalLatency ?: totalLatencyMs,
-                    memoryMbPeak = peakMem,
+                    memoryMbPeak = localPeakMem,
                     batteryPctBefore = batBefore,
-                    batteryPctAfter = batAfter,
+                    batteryPctAfter = batAfter ?: if (_uiState.value.benchmarkMode) getBat() else null,
                     resultIdsJson = org.json.JSONArray(rankedResults.take(20).map { "${it.entityType}:${it.id}" }).toString(),
                     resultScoresJson = org.json.JSONArray(rankedResults.take(20).map { it.finalScore }).toString(),
                     resultEntityTypesJson = org.json.JSONArray(rankedResults.take(20).map { it.entityType.name }).toString(),
@@ -613,6 +613,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             logMode("bm25", bm25Only)
 
             // Dense-only (LSH)
+            if (denseRetriever?.isLshInitialized() == false) {
+                Log.e("BENCHMARK_AUDIT", "CRITICAL: dense_lsh requested but LSH index is NOT initialized.")
+            }
             val denseOnlyLsh = candidates.filter { it.denseScore != null }
                 .map { it.copy(finalScore = it.denseScore ?: 0.0) }
                 .sortedByDescending { it.finalScore }
@@ -741,6 +744,17 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 "[VALIDATION] Query: \"$query\" | #${index + 1}: ${result.title} | score=${"%.4f".format(result.bestScore)}"
             )
         }
+    }
+
+    private fun getMem(): Float {
+        val mi = android.os.Debug.MemoryInfo()
+        android.os.Debug.getMemoryInfo(mi)
+        return mi.totalPss / 1024f
+    }
+
+    private fun getBat(): Int {
+        val bm = getApplication<Application>().getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager
+        return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
     }
 
     override fun onCleared() {
