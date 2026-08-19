@@ -73,6 +73,7 @@ import com.augt.localseek.ml.llm.LLMDiagnostics
 import android.content.Intent
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
@@ -89,7 +90,8 @@ import java.util.Locale
 fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToPerformance: () -> Unit
+    onNavigateToPerformance: () -> Unit,
+    onNavigateToQrels: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsState()
     val indexStats by viewModel.indexStats.collectAsState()
@@ -334,7 +336,8 @@ fun SettingsScreen(
                             shareFile(file)
                         }
                     },
-                    onClear = { viewModel.clearBenchmarkData() }
+                    onClear = { viewModel.clearBenchmarkData() },
+                    onNavigateToQrels = onNavigateToQrels
                 )
             }
 
@@ -359,7 +362,8 @@ fun BenchmarkExportCard(
     recordCount: Int,
     onExportCsv: () -> Unit,
     onExportJson: () -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+    onNavigateToQrels: () -> Unit
 ) {
     var showClearConfirm by remember { mutableStateOf(false) }
 
@@ -422,6 +426,15 @@ fun BenchmarkExportCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("JSON", maxLines = 1)
                 }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onNavigateToQrels,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Label, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Label Relevance")
             }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(

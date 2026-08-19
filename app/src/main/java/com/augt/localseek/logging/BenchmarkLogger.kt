@@ -86,6 +86,42 @@ object BenchmarkLogger {
         return file
     }
 
+    /**
+     * Exports all labeled judgments from qrels_judgments in standard TREC format:
+     * <queryId> 0 <documentId> <relevance>
+     *
+     * Deduplicates by queryId + documentId, keeping the newest judgment.
+     */
+    suspend fun exportQrelsToTrec(context: Context): File? {
+        val allJudgments = AppDatabase.getInstance(context).qrelsDao().getAll()
+        
+        // Filter out unlabeled (null) relevance
+        val labeledJudgments = allJudgments.filter { it.relevant != null }
+        
+        if (labeledJudgments.isEmpty()) return null
+
+        // Deduplicate: group by (queryId, resultId), take the newest by timestamp, then by ID
+        val deduplicated = labeledJudgments
+            .groupBy { it.queryId to it.resultId }
+            .map { (_, group) ->
+                group.sortedWith(compareByDescending<com.augt.localseek.data.QrelsJudgment> { it.timestamp }.thenByDescending { it.id }).first()
+            }
+            // Sort deterministically for the export file
+            .sortedWith(compareBy<com.augt.localseek.data.QrelsJudgment> { it.queryId }.thenBy { it.resultId })
+
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val file = File(context.getExternalFilesDir(null), "qrels_export_$timestamp.qrels")
+
+        file.printWriter(Charsets.UTF_8).use { out ->
+            deduplicated.forEach { j ->
+                // TREC format: <queryId> 0 <documentId> <relevance>
+                out.println("${j.queryId} 0 ${j.resultId} ${j.relevant}")
+            }
+        }
+
+        return file
+    }
+
     private fun flattenJsonArray(json: String): String {
         return try {
             val arr = JSONArray(json)

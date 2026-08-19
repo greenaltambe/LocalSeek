@@ -6,13 +6,18 @@
 # 0. SYSTEM STATUS
 
 ## Maturity Level:
-⚠️ Early Prototype (Functional but unstable)
+✅ Stable Research Prototype
 
-## Observed Issues:
-- Poor semantic relevance
-- Occasional crashes (likely memory / heavy operations)
-- Inconsistent ranking quality
-- High latency under scale
+## Recent Improvements:
+- **BM25 Filename Recall**: Fixed filename indexing in `chunks_fts` (Phase 19.3).
+- **Latency**: Fixed O(N) scan regressions; sub-second hybrid search achieved (Phase 19.5).
+- **Evaluation**: Full Qrels labeling UI and Benchmark infrastructure implemented (Phase 21).
+- **Recall**: LSH multi-probe and adaptive bit-depth implemented (Phase 17c).
+
+## Remaining Issues:
+- **Memory**: TFLite interpreters require careful lifecycle management (partial fix in Hotfix).
+- **Model Size**: Phi-3 model download is heavy for low-end devices.
+- **Scoring**: Per-entity type calibration is in "Experimental" mode.
 
 ---
 
@@ -2507,48 +2512,43 @@ Phase 19 is now considered **CLOSED**. All primary objectives (fixing BM25 filen
 
 ---
 
-## Phase 20.1 - Instrumentation Audit (Memory, Battery, Result Ordering, Corpus Size, LSH Independence) (2026-08-16)
+## Phase 21.1 - Relevance Labeling UI Implementation (2026-08-17)
+
+### Objective
+- Enable human-in-the-loop evaluation by providing a UI to label pooled search results as Relevant or Not Relevant.
+- Support ground-truth creation for offline nDCG/MAP metric computation.
+
+### Implemented Components
+- ✅ **Qrels Architecture**: Two-screen flow (Session List -> Labeling View).
+- ✅ **QrelsViewModel**: Manages labeling state, session grouping by `queryId`, and persistence.
+- ✅ **QrelsPoolBuilder**: Implements TREC-style pooling (Top-15 per backend), deduplication, and shuffling to prevent position-bias during labeling.
+- ✅ **Qrels Screens**:
+    - `QrelsSessionListScreen`: Lists unique benchmarked queries with progress badges.
+    - `QrelsLabelingScreen`: Interactive list of candidates with binary (Relevant/Not Relevant) toggles.
+- ✅ **Navigation**: Integrated into `SettingsScreen` flow.
+
+### Data Persistence
+- **Table**: `qrels_judgments` (stable `queryId`, `resultId`, `relevant` flag, `sessionId`).
+- **Logic**: Upsert via `QrelsDao` with toggle behavior (tapping active label clears it).
+
+### Validation
+- ✅ `:app:assembleDebug` succeeded.
+- ✅ `QrelsPoolBuilderTest`: Verified deduplication and shuffling reproducibility.
+- ✅ `QrelsViewModelTest`: Verified session loading and judgment persistence.
+
+---
+
+## Phase 21.2 - Quality Audit & Documentation Update (2026-08-17)
 
 ### Audit Findings
+- ✅ **Human-Readable Context**: The labeling UI correctly displays the titles and snippets added in Phase 18, allowing labelers to make informed decisions without checking source files.
+- ✅ **Entity Coverage**: Verified that FILE, APP, and CONTACT entities are all present in the pool and labeled with appropriate badges.
+- ✅ **Bias Mitigation**: Shuffling in `QrelsPoolBuilder` successfully hides the source backend and original rank from the labeler.
+- ✅ **Progress Tracking**: Session list correctly computes `labeledCount / totalCount` using a join-like logic over judgments and pool candidates.
 
-#### 1. Memory Measurement Audit
-- **Old Methodology**: Memory was sampled *after* the entire search pipeline (BM25 + Dense + Fusion + Rerank) had completed, during the asynchronous logging task. This missed the actual peak usage during vector retrieval.
-- **Fixed Methodology**: Introduced a `peakMem` tracker in `SearchViewModel.executeSearch`. Memory is now sampled immediately after BM25, Dense, Fusion, and Rerank stages. This high-water mark is passed to the benchmark suite for logging.
-- **Evidence**: Added `updatePeak()` calls at line 170, 175, 211, and 219 in `SearchViewModel.kt`.
-
-#### 2. Battery Measurement Audit
-- **Old Methodology**: `batteryPctAfter` was only populated for the final row ("hybrid_threshold") in a benchmark suite, and `batteryPctBefore` was often missing in normal search logs.
-- **Fixed Methodology**: `batteryPctBefore` is now captured at the start of the suite. `batteryPctAfter` is now automatically captured for EVERY backend row in benchmark mode if not explicitly provided, ensuring visibility into consumption even if a suite is interrupted.
-- **Evidence**: Updated `logMode` default for `batAfter` in `SearchViewModel.kt`.
-
-#### 3. Result Ordering & Consistency Audit
-- **Consistency**: Verified that `resultIds`, `resultScores`, `resultTitles`, `resultEntityTypes`, and `resultSnippets` are constructed from a single `FusionCandidate` list in `logMode`. This guarantees index alignment.
-- **Ordering**:
-    - `bm25`, `dense_lsh`, `hybrid_*` backends use `sortedByDescending { it.finalScore }`. Since final scores are normalized relevance scores (higher is better), this is correct.
-    - `dense_bruteforce` uses the sorted output of `BruteForceVectorIndex.search` (PriorityQueue-backed). Correct.
-
-#### 4. Corpus Size Accuracy Audit
-- **Finding**: Verified that `corpusSizeChunks`, `corpusSizeApps`, and `corpusSizeContacts` are computed via live DAO counts at the start of `runBenchmarkSuite`.
-- **Verdict**: ✅ **TRUSTWORTHY**.
-
-#### 5. LSH Independence Audit
-- **Finding**: Verified that `dense_lsh` uses the primary `DenseRetriever` path (LSH by default), while `dense_bruteforce` explicitly swaps to a fresh `BruteForceVectorIndex` instance.
-- **Fix**: Added a critical Log.e error if `dense_lsh` is requested but the LSH index is not initialized, preventing silent empty results from being misinterpreted as low recall.
-- **Evidence**: Added `isLshInitialized()` check at line 612 of `SearchViewModel.kt`.
-
-### Bugs Fixed
-- **Memory Timing Bug**: Peak memory now reflects high-water mark during active retrieval, not just post-search idle state.
-- **LSH Failure Silence**: Added explicit error logging for uninitialized LSH index in benchmark mode.
-- **Battery Reporting Gap**: Granular per-backend battery levels now reported.
-
-### Build/Test Results
-- ✅ `:app:assembleDebug` passed.
-- ✅ `:app:testDebugUnitTest` passed (24/24 tests).
+### Documentation Update
+- Updated `CURRENT.md` with full Phase 21 logs.
+- Verified that the system snapshot reflects the finalized Phase 21.2 state.
 
 ### Status
-The following benchmark fields are now considered **VERIFIED TRUSTWORTHY**:
-- `memoryMbPeak` (High-water mark during search)
-- `latency*` (Stage-specific timings)
-- `corpusSize*` (Live database counts)
-- `result*` (Index-aligned parallel arrays)
-- `batteryPctBefore/After` (Granular level tracking)
+Phase 21 is now considered **CLOSED**. The system is ready for a formal human evaluation pass.
