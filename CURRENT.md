@@ -2576,3 +2576,43 @@ Phase 19 is now considered **CLOSED**. All primary objectives (fixing BM25 filen
 
 ### Status
 Phase 21 is now considered **CLOSED**. The system is ready for a formal human evaluation pass.
+
+---
+
+## Phase 21.3 - TREC Qrels Export (Retroactive Documentation) (2026-08-23)
+
+### Problem/Objective
+- Phase 21 CURRENT.md logs did not document that a working TREC qrels export feature already existed in the codebase. This entry retroactively documents it and confirms it against the Phase 21.3 specification.
+
+### Implementation Summary
+- **Logic**: Implemented in `exportQrelsToTrec()` within `BenchmarkLogger.kt`. 
+    - Formats judgments as `queryId 0 resultId relevant`.
+    - Filters out unlabeled rows (`relevant != null` only).
+    - Deduplicates by `(queryId, resultId)`, keeping the newest judgment by timestamp.
+    - Sorts deterministically by `queryId` then `resultId` for stable exports.
+- **UI/Orchestration**:
+    - Triggered via `QrelsViewModel.exportQrels()` when the user taps the **Share** icon in the `QrelsSessionListScreen` TopAppBar.
+    - Emits a `File` via `SharedFlow` to the UI, which calls `shareFile()` to trigger a standard Android Share Intent.
+
+### File Format Confirmed
+- **Columns**: Space-separated `queryId 0 resultId relevant` per line.
+- **Location**: `context.getExternalFilesDir(null)`.
+- **Filename**: `qrels_export_<timestamp>.qrels`.
+
+### Files Involved (No changes made)
+- `BenchmarkLogger.kt`
+- `QrelsViewModel.kt`
+- `QrelsScreens.kt`
+- `BenchmarkLoggerTest.kt`
+
+### Validation
+- ✅ Confirmed via existing passing tests in `BenchmarkLoggerTest.kt`:
+    - `exportQrelsToTrec should export labeled judgments in TREC format`
+    - `exportQrelsToTrec should exclude unlabeled judgments`
+    - `exportQrelsToTrec should deduplicate judgments keeping newest`
+
+### Status
+- Phase 21.3 is **CLOSED**. No implementation work was required—only documentation. The full Phase 21 relevance-labeling pipeline (data model, pooling, labeling UI, TREC export) is now confirmed complete end-to-end.
+
+### Next Steps
+- Proceed to **Phase 22 - Manual qrels collection** (~25-30 queries across file/app/contact/mixed categories using Benchmark Mode + the Relevance Labeling screens + this export feature).
