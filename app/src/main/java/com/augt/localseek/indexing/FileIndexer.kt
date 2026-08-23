@@ -7,6 +7,9 @@ import com.augt.localseek.data.AppDatabase
 import com.augt.localseek.data.DocumentEntity
 import com.augt.localseek.ml.DenseEncoder
 import com.augt.localseek.retrieval.DenseRetriever
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.yield
 import java.io.File
 
 class FileIndexer(private val context: Context) {
@@ -44,6 +47,8 @@ class FileIndexer(private val context: Context) {
         }
 
         for (file in allFiles) {
+            currentCoroutineContext().ensureActive()
+            yield()
             try {
                 val existingModifiedAt = dao.getModifiedAt(file.absolutePath)
                 if (!forceAll && existingModifiedAt != null && existingModifiedAt == file.lastModified()) {
