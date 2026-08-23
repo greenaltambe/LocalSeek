@@ -18,9 +18,9 @@ import androidx.sqlite.execSQL
     entities = [
         DocumentEntity::class, DocumentFts::class, DocumentChunk::class, ChunkFts::class,
         AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class,
-        BenchmarkRunEntity::class
+        BenchmarkRunEntity::class, QrelsJudgment::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(VectorConverter::class)
@@ -31,6 +31,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
     abstract fun contactDao(): ContactDao
     abstract fun benchmarkRunDao(): BenchmarkRunDao
+    abstract fun qrelsDao(): QrelsDao
+
+    private object Migration16To17 : Migration(16, 17) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS qrels_judgments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    queryId TEXT NOT NULL,
+                    queryText TEXT NOT NULL,
+                    resultId TEXT NOT NULL,
+                    entityType TEXT NOT NULL,
+                    relevant INTEGER,
+                    sessionId TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
 
     private object Migration15To16 : Migration(15, 16) {
         override suspend fun migrate(connection: SQLiteConnection) {
@@ -327,7 +347,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16, Migration16To17)
                 // Temporary dev safety valve for unsupported legacy version hops.
                 .fallbackToDestructiveMigration()
                 .build()
