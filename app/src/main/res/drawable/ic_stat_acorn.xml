@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome acorn silhouette: notification small icon and the tiny acorn in the indexing banner. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10.8,1.5h2.4v3h-2.4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3.5,11C3.5,6.4 7.4,4 12,4C16.6,4 20.5,6.4 20.5,11Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5.5,12.4C5.5,18.2 9,21.5 12,21.5C15,21.5 18.5,18.2 18.5,12.4Z" />
+</vector>

@@ -1,0 +1,51 @@
+{
+ "gitSha": "b8cf97ab0e57134a9a94917356cdd0a9862561f2",
+ "device": "CPH2707",
+ "sdk": 36,
+ "maxHeapBytes": 402653184,
+ "cores": 8,
+ "benchEnv": {
+  "indexIdle": true,
+  "workCancelledBeforeRun": true,
+  "processImportance": 125,
+  "airplane_mode_on": 0,
+  "zen_mode": 1,
+  "stay_on": 15,
+  "freezerNote": "OEM app freezer (OnePlus Hans) froze the benchmark process in attempts 1-5; airplane mode on was the known trigger"
+ },
+ "warmupQueries": 50,
+ "passes": 3,
+ "k": 10,
+ "header": {
+  "count": 200000,
+  "dim": 384,
+  "queries": 1000,
+  "ground_truth_top": 100,
+  "sizes": [
+   10000,
+   25000,
+   50000,
+   100000,
+   200000
+  ],
+  "pool_total_chunks": 467738,
+  "shuffle_seed": 42,
+  "query_sample_seed": 42,
+  "datasets": [
+   "trec-covid",
+   "fiqa",
+   "scidocs",
+   "nfcorpus",
+   "scifact"
+  ],
+  "sha256": {
+   "scaling_vectors.f32": "61742feabb1f4fa0d5f940e363114b20e91553c2f6c2e16fa2f8adc22da73f32",
+   "scaling_queries.f32": "c8b4038a0e73c31984d6b3736b63ca1be13945690bd9380b5798332cd5893cf9",
+   "scaling_gt_10000.i32": "427d43892e1182a6b3997f15137cbbbf4e81b683385fd1db5bef73919721354c",
+   "scaling_gt_25000.i32": "a1d8cc38eb13023742696b9e33dad47a1a2a6d0f172de09c9e960fd3941ac85e",
+   "scaling_gt_50000.i32": "fb6ad620202f476e60326d5a13dd18f6f866ab72381eda2986a3c1a05c572d2c",
+   "scaling_gt_100000.i32": "3a6e4c3692899ecb96221b96b3f9585692fda45582d6d27db5f693b03c9198b2",
+   "scaling_gt_200000.i32": "1425521d8c4e92722a43e826ff4a74d318c5a1147d0a05d6179338786998d689"
+  }
+ }
+}

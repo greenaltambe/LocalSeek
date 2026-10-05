@@ -1,0 +1,2372 @@
+[
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 26,
+  "analyticBytes": 15360000,
+  "heapDeltaBytes": 15593472,
+  "recall10": 1,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "float32 heap array",
+  "passes": [
+   {
+    "p50Us": 4708,
+    "p95Us": 5544,
+    "p99Us": 6026,
+    "meanUs": 4724
+   },
+   {
+    "p50Us": 4741,
+    "p95Us": 5637,
+    "p99Us": 5768,
+    "meanUs": 4868
+   },
+   {
+    "p50Us": 4714,
+    "p95Us": 4817,
+    "p99Us": 4943,
+    "meanUs": 4731
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 4714,
+  "p95Us": 4817,
+  "p99Us": 4943,
+  "meanUs": 4731
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 395,
+  "analyticBytes": 3960000,
+  "heapDeltaBytes": 4210688,
+  "recall10": 0.9948999999999993,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 8077,
+    "p95Us": 8590,
+    "p99Us": 9796,
+    "meanUs": 8157
+   },
+   {
+    "p50Us": 8015,
+    "p95Us": 8150,
+    "p99Us": 8273,
+    "meanUs": 8033
+   },
+   {
+    "p50Us": 7980,
+    "p95Us": 8131,
+    "p99Us": 8527,
+    "meanUs": 8012
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 8015,
+  "p95Us": 8150,
+  "p99Us": 8273,
+  "meanUs": 8033
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 54,
+  "analyticBytes": 560000,
+  "heapDeltaBytes": 778240,
+  "recall10": 0.9531999999999967,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 1043,
+    "p95Us": 1191,
+    "p99Us": 1681,
+    "meanUs": 1066
+   },
+   {
+    "p50Us": 984,
+    "p95Us": 1129,
+    "p99Us": 1234,
+    "meanUs": 1018
+   },
+   {
+    "p50Us": 976,
+    "p95Us": 1120,
+    "p99Us": 1517,
+    "meanUs": 1015
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 984,
+  "p95Us": 1129,
+  "p99Us": 1234,
+  "meanUs": 1018
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 54,
+  "analyticBytes": 560000,
+  "heapDeltaBytes": 778240,
+  "recall10": 0.9820999999999981,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 1315,
+    "p95Us": 1468,
+    "p99Us": 1582,
+    "meanUs": 1347
+   },
+   {
+    "p50Us": 1315,
+    "p95Us": 1456,
+    "p99Us": 1766,
+    "meanUs": 1357
+   },
+   {
+    "p50Us": 1323,
+    "p95Us": 1444,
+    "p99Us": 1748,
+    "meanUs": 1355
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1315,
+  "p95Us": 1456,
+  "p99Us": 1766,
+  "meanUs": 1357
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "ok",
+  "buildMs": 1350,
+  "analyticBytes": 16560000,
+  "heapDeltaBytes": 24367104,
+  "recall10": 0.055300000000000314,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=9 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 3085,
+    "p95Us": 6849,
+    "p99Us": 10602,
+    "meanUs": 3738
+   },
+   {
+    "p50Us": 3079,
+    "p95Us": 5361,
+    "p99Us": 6950,
+    "meanUs": 3300
+   },
+   {
+    "p50Us": 1910,
+    "p95Us": 4248,
+    "p99Us": 6158,
+    "meanUs": 2307
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 3079,
+  "p95Us": 5361,
+  "p99Us": 6950,
+  "meanUs": 3300
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "ok",
+  "buildMs": 1350,
+  "analyticBytes": 16560000,
+  "heapDeltaBytes": 24367104,
+  "recall10": 0.6531000000000006,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=9 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 7019,
+    "p95Us": 14722,
+    "p99Us": 19027,
+    "meanUs": 7731
+   },
+   {
+    "p50Us": 7019,
+    "p95Us": 16676,
+    "p99Us": 19696,
+    "meanUs": 7853
+   },
+   {
+    "p50Us": 7018,
+    "p95Us": 14325,
+    "p99Us": 18738,
+    "meanUs": 7696
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 7019,
+  "p95Us": 14722,
+  "p99Us": 19027,
+  "meanUs": 7731
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "ok",
+  "buildMs": 8380,
+  "analyticBytes": 18300000,
+  "heapDeltaBytes": 22011904,
+  "recall10": 0.9148999999999957,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 695,
+    "p95Us": 939,
+    "p99Us": 1104,
+    "meanUs": 725
+   },
+   {
+    "p50Us": 667,
+    "p95Us": 885,
+    "p99Us": 1038,
+    "meanUs": 684
+   },
+   {
+    "p50Us": 663,
+    "p95Us": 887,
+    "p99Us": 1051,
+    "meanUs": 693
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 667,
+  "p95Us": 885,
+  "p99Us": 1038,
+  "meanUs": 684
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "ok",
+  "buildMs": 8380,
+  "analyticBytes": 18300000,
+  "heapDeltaBytes": 22011904,
+  "recall10": 0.9688999999999972,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1037,
+    "p95Us": 1293,
+    "p99Us": 1523,
+    "meanUs": 1060
+   },
+   {
+    "p50Us": 1039,
+    "p95Us": 1297,
+    "p99Us": 1530,
+    "meanUs": 1062
+   },
+   {
+    "p50Us": 1066,
+    "p95Us": 1378,
+    "p99Us": 1586,
+    "meanUs": 1089
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1039,
+  "p95Us": 1297,
+  "p99Us": 1530,
+  "meanUs": 1062
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "ok",
+  "buildMs": 8380,
+  "analyticBytes": 18300000,
+  "heapDeltaBytes": 22011904,
+  "recall10": 0.9891999999999986,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1762,
+    "p95Us": 2155,
+    "p99Us": 2400,
+    "meanUs": 1786
+   },
+   {
+    "p50Us": 1735,
+    "p95Us": 2139,
+    "p99Us": 2359,
+    "meanUs": 1759
+   },
+   {
+    "p50Us": 1732,
+    "p95Us": 2118,
+    "p99Us": 2416,
+    "meanUs": 1752
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1735,
+  "p95Us": 2139,
+  "p99Us": 2359,
+  "meanUs": 1759
+ },
+ {
+  "dataset": "beir_public",
+  "n": 10000,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "ok",
+  "buildMs": 8380,
+  "analyticBytes": 18300000,
+  "heapDeltaBytes": 22011904,
+  "recall10": 0.9965999999999995,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 2943,
+    "p95Us": 3688,
+    "p99Us": 4100,
+    "meanUs": 2987
+   },
+   {
+    "p50Us": 2953,
+    "p95Us": 3647,
+    "p99Us": 3988,
+    "meanUs": 2983
+   },
+   {
+    "p50Us": 2895,
+    "p95Us": 3619,
+    "p99Us": 3832,
+    "meanUs": 2932
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 2943,
+  "p95Us": 3688,
+  "p99Us": 4100,
+  "meanUs": 2987
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 41,
+  "analyticBytes": 38400000,
+  "heapDeltaBytes": 38404096,
+  "recall10": 1,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "float32 heap array",
+  "passes": [
+   {
+    "p50Us": 11746,
+    "p95Us": 11908,
+    "p99Us": 12045,
+    "meanUs": 11769
+   },
+   {
+    "p50Us": 11716,
+    "p95Us": 11823,
+    "p99Us": 11909,
+    "meanUs": 11727
+   },
+   {
+    "p50Us": 11730,
+    "p95Us": 11852,
+    "p99Us": 11954,
+    "meanUs": 11740
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 11730,
+  "p95Us": 11852,
+  "p99Us": 11954,
+  "meanUs": 11740
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 883,
+  "analyticBytes": 9900000,
+  "heapDeltaBytes": 10465280,
+  "recall10": 0.9942999999999991,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 19694,
+    "p95Us": 19979,
+    "p99Us": 20246,
+    "meanUs": 19728
+   },
+   {
+    "p50Us": 19665,
+    "p95Us": 19910,
+    "p99Us": 20163,
+    "meanUs": 19714
+   },
+   {
+    "p50Us": 19657,
+    "p95Us": 19876,
+    "p99Us": 19967,
+    "meanUs": 19677
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 19665,
+  "p95Us": 19910,
+  "p99Us": 20163,
+  "meanUs": 19714
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 96,
+  "analyticBytes": 1400000,
+  "heapDeltaBytes": 1994752,
+  "recall10": 0.9524999999999963,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 1926,
+    "p95Us": 2042,
+    "p99Us": 2104,
+    "meanUs": 1937
+   },
+   {
+    "p50Us": 1922,
+    "p95Us": 2037,
+    "p99Us": 2116,
+    "meanUs": 1939
+   },
+   {
+    "p50Us": 1915,
+    "p95Us": 2045,
+    "p99Us": 2665,
+    "meanUs": 1950
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1922,
+  "p95Us": 2037,
+  "p99Us": 2116,
+  "meanUs": 1939
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 96,
+  "analyticBytes": 1400000,
+  "heapDeltaBytes": 1994752,
+  "recall10": 0.9812999999999981,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 2349,
+    "p95Us": 2467,
+    "p99Us": 2759,
+    "meanUs": 2372
+   },
+   {
+    "p50Us": 2193,
+    "p95Us": 2433,
+    "p99Us": 2588,
+    "meanUs": 2197
+   },
+   {
+    "p50Us": 2352,
+    "p95Us": 2471,
+    "p99Us": 2782,
+    "meanUs": 2377
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 2349,
+  "p95Us": 2467,
+  "p99Us": 2759,
+  "meanUs": 2372
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "ok",
+  "buildMs": 2952,
+  "analyticBytes": 41400000,
+  "heapDeltaBytes": 58109952,
+  "recall10": 0.03760000000000014,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=10 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 2493,
+    "p95Us": 4407,
+    "p99Us": 8628,
+    "meanUs": 2793
+   },
+   {
+    "p50Us": 2299,
+    "p95Us": 3974,
+    "p99Us": 8904,
+    "meanUs": 2562
+   },
+   {
+    "p50Us": 2353,
+    "p95Us": 4425,
+    "p99Us": 9047,
+    "meanUs": 2699
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 2353,
+  "p95Us": 4425,
+  "p99Us": 9047,
+  "meanUs": 2699
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "ok",
+  "buildMs": 2952,
+  "analyticBytes": 41400000,
+  "heapDeltaBytes": 58109952,
+  "recall10": 0.5938,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=10 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 10590,
+    "p95Us": 25811,
+    "p99Us": 30716,
+    "meanUs": 12255
+   },
+   {
+    "p50Us": 10376,
+    "p95Us": 27019,
+    "p99Us": 31678,
+    "meanUs": 12170
+   },
+   {
+    "p50Us": 10384,
+    "p95Us": 26812,
+    "p99Us": 31223,
+    "meanUs": 12163
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 10384,
+  "p95Us": 26812,
+  "p99Us": 31223,
+  "meanUs": 12163
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "ok",
+  "buildMs": 24341,
+  "analyticBytes": 45750000,
+  "heapDeltaBytes": 48173056,
+  "recall10": 0.9006999999999962,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 717,
+    "p95Us": 972,
+    "p99Us": 1160,
+    "meanUs": 734
+   },
+   {
+    "p50Us": 710,
+    "p95Us": 997,
+    "p99Us": 1275,
+    "meanUs": 747
+   },
+   {
+    "p50Us": 714,
+    "p95Us": 1007,
+    "p99Us": 1257,
+    "meanUs": 748
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 714,
+  "p95Us": 1007,
+  "p99Us": 1257,
+  "meanUs": 748
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "ok",
+  "buildMs": 24341,
+  "analyticBytes": 45750000,
+  "heapDeltaBytes": 48173056,
+  "recall10": 0.9570999999999971,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1159,
+    "p95Us": 1491,
+    "p99Us": 1794,
+    "meanUs": 1187
+   },
+   {
+    "p50Us": 1142,
+    "p95Us": 1472,
+    "p99Us": 1741,
+    "meanUs": 1175
+   },
+   {
+    "p50Us": 1170,
+    "p95Us": 1534,
+    "p99Us": 1981,
+    "meanUs": 1203
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 1159,
+  "p95Us": 1491,
+  "p99Us": 1794,
+  "meanUs": 1187
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "ok",
+  "buildMs": 24341,
+  "analyticBytes": 45750000,
+  "heapDeltaBytes": 48173056,
+  "recall10": 0.9842999999999984,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1935,
+    "p95Us": 2419,
+    "p99Us": 2674,
+    "meanUs": 1967
+   },
+   {
+    "p50Us": 1941,
+    "p95Us": 2431,
+    "p99Us": 2771,
+    "meanUs": 1991
+   },
+   {
+    "p50Us": 1911,
+    "p95Us": 2376,
+    "p99Us": 2640,
+    "meanUs": 1941
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 1935,
+  "p95Us": 2419,
+  "p99Us": 2674,
+  "meanUs": 1967
+ },
+ {
+  "dataset": "beir_public",
+  "n": 25000,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "ok",
+  "buildMs": 24341,
+  "analyticBytes": 45750000,
+  "heapDeltaBytes": 48173056,
+  "recall10": 0.9932999999999992,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 3329,
+    "p95Us": 4153,
+    "p99Us": 4493,
+    "meanUs": 3368
+   },
+   {
+    "p50Us": 3301,
+    "p95Us": 4133,
+    "p99Us": 4511,
+    "meanUs": 3369
+   },
+   {
+    "p50Us": 3306,
+    "p95Us": 4100,
+    "p99Us": 4425,
+    "meanUs": 3350
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 3306,
+  "p95Us": 4100,
+  "p99Us": 4425,
+  "meanUs": 3350
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 70,
+  "analyticBytes": 76800000,
+  "heapDeltaBytes": 76869632,
+  "recall10": 0.9997999999999999,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "float32 heap array",
+  "passes": [
+   {
+    "p50Us": 23519,
+    "p95Us": 24154,
+    "p99Us": 27882,
+    "meanUs": 23663
+   },
+   {
+    "p50Us": 23431,
+    "p95Us": 23890,
+    "p99Us": 24308,
+    "meanUs": 23502
+   },
+   {
+    "p50Us": 23436,
+    "p95Us": 23847,
+    "p99Us": 24047,
+    "meanUs": 23489
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 23436,
+  "p95Us": 23847,
+  "p99Us": 24047,
+  "meanUs": 23489
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 1754,
+  "analyticBytes": 19800000,
+  "heapDeltaBytes": 21090304,
+  "recall10": 0.9931999999999986,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 39158,
+    "p95Us": 54263,
+    "p99Us": 54606,
+    "meanUs": 41673
+   },
+   {
+    "p50Us": 39111,
+    "p95Us": 39557,
+    "p99Us": 39920,
+    "meanUs": 39174
+   },
+   {
+    "p50Us": 39108,
+    "p95Us": 39550,
+    "p99Us": 39872,
+    "meanUs": 39171
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 39111,
+  "p95Us": 39557,
+  "p99Us": 39920,
+  "meanUs": 39174
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 185,
+  "analyticBytes": 2800000,
+  "heapDeltaBytes": 3989504,
+  "recall10": 0.9456999999999968,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 3422,
+    "p95Us": 3522,
+    "p99Us": 3610,
+    "meanUs": 3426
+   },
+   {
+    "p50Us": 3418,
+    "p95Us": 3546,
+    "p99Us": 3703,
+    "meanUs": 3444
+   },
+   {
+    "p50Us": 3409,
+    "p95Us": 3525,
+    "p99Us": 3795,
+    "meanUs": 3417
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 3418,
+  "p95Us": 3546,
+  "p99Us": 3703,
+  "meanUs": 3444
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 185,
+  "analyticBytes": 2800000,
+  "heapDeltaBytes": 3989504,
+  "recall10": 0.9768999999999981,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 3861,
+    "p95Us": 3940,
+    "p99Us": 4190,
+    "meanUs": 3874
+   },
+   {
+    "p50Us": 3854,
+    "p95Us": 3940,
+    "p99Us": 4152,
+    "meanUs": 3869
+   },
+   {
+    "p50Us": 3870,
+    "p95Us": 3982,
+    "p99Us": 4191,
+    "meanUs": 3886
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 3861,
+  "p95Us": 3940,
+  "p99Us": 4190,
+  "meanUs": 3874
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "ok",
+  "buildMs": 7669,
+  "analyticBytes": 82800000,
+  "heapDeltaBytes": 113557504,
+  "recall10": 0.03400000000000012,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=15 bits=11 proj=80 cap=120 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 3115,
+    "p95Us": 5715,
+    "p99Us": 16409,
+    "meanUs": 3621
+   },
+   {
+    "p50Us": 3222,
+    "p95Us": 5756,
+    "p99Us": 16900,
+    "meanUs": 3697
+   },
+   {
+    "p50Us": 3185,
+    "p95Us": 5699,
+    "p99Us": 18087,
+    "meanUs": 3642
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 3185,
+  "p95Us": 5699,
+  "p99Us": 18087,
+  "meanUs": 3642
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "ok",
+  "buildMs": 7669,
+  "analyticBytes": 82800000,
+  "heapDeltaBytes": 113557504,
+  "recall10": 0.6692999999999983,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=15 bits=11 proj=80 cap=120 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 18768,
+    "p95Us": 50714,
+    "p99Us": 58474,
+    "meanUs": 23296
+   },
+   {
+    "p50Us": 18384,
+    "p95Us": 50142,
+    "p99Us": 56792,
+    "meanUs": 23445
+   },
+   {
+    "p50Us": 18529,
+    "p95Us": 50727,
+    "p99Us": 56858,
+    "meanUs": 23561
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 18529,
+  "p95Us": 50727,
+  "p99Us": 56858,
+  "meanUs": 23561
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "ok",
+  "buildMs": 58239,
+  "analyticBytes": 91500000,
+  "heapDeltaBytes": 107261952,
+  "recall10": 0.8864999999999972,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 814,
+    "p95Us": 1110,
+    "p99Us": 1447,
+    "meanUs": 839
+   },
+   {
+    "p50Us": 799,
+    "p95Us": 1154,
+    "p99Us": 1791,
+    "meanUs": 857
+   },
+   {
+    "p50Us": 792,
+    "p95Us": 1107,
+    "p99Us": 1703,
+    "meanUs": 844
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 799,
+  "p95Us": 1154,
+  "p99Us": 1791,
+  "meanUs": 857
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "ok",
+  "buildMs": 58239,
+  "analyticBytes": 91500000,
+  "heapDeltaBytes": 107261952,
+  "recall10": 0.9462999999999976,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1263,
+    "p95Us": 1632,
+    "p99Us": 2128,
+    "meanUs": 1307
+   },
+   {
+    "p50Us": 1259,
+    "p95Us": 1626,
+    "p99Us": 2140,
+    "meanUs": 1303
+   },
+   {
+    "p50Us": 1278,
+    "p95Us": 1685,
+    "p99Us": 2255,
+    "meanUs": 1322
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 1263,
+  "p95Us": 1632,
+  "p99Us": 2128,
+  "meanUs": 1307
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "ok",
+  "buildMs": 58239,
+  "analyticBytes": 91500000,
+  "heapDeltaBytes": 107261952,
+  "recall10": 0.9745999999999985,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 2096,
+    "p95Us": 2671,
+    "p99Us": 3685,
+    "meanUs": 2172
+   },
+   {
+    "p50Us": 2104,
+    "p95Us": 2644,
+    "p99Us": 3246,
+    "meanUs": 2153
+   },
+   {
+    "p50Us": 2088,
+    "p95Us": 2628,
+    "p99Us": 3342,
+    "meanUs": 2154
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 2096,
+  "p95Us": 2671,
+  "p99Us": 3685,
+  "meanUs": 2172
+ },
+ {
+  "dataset": "beir_public",
+  "n": 50000,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "ok",
+  "buildMs": 58239,
+  "analyticBytes": 91500000,
+  "heapDeltaBytes": 107261952,
+  "recall10": 0.9907999999999993,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 3538,
+    "p95Us": 4490,
+    "p99Us": 5098,
+    "meanUs": 3664
+   },
+   {
+    "p50Us": 3540,
+    "p95Us": 4510,
+    "p99Us": 5281,
+    "meanUs": 3649
+   },
+   {
+    "p50Us": 3582,
+    "p95Us": 4521,
+    "p99Us": 5474,
+    "meanUs": 3685
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 3540,
+  "p95Us": 4510,
+  "p99Us": 5281,
+  "meanUs": 3649
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 0,
+  "analyticBytes": 153600000,
+  "heapDeltaBytes": 0,
+  "recall10": 0.9999,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "float32 mapped file (off-heap)",
+  "passes": [
+   {
+    "p50Us": 65678,
+    "p95Us": 66160,
+    "p99Us": 67339,
+    "meanUs": 65626
+   },
+   {
+    "p50Us": 65435,
+    "p95Us": 66193,
+    "p99Us": 67034,
+    "meanUs": 65523
+   },
+   {
+    "p50Us": 65361,
+    "p95Us": 65948,
+    "p99Us": 66254,
+    "meanUs": 65447
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 65435,
+  "p95Us": 66193,
+  "p99Us": 67034,
+  "meanUs": 65523
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 3442,
+  "analyticBytes": 39600000,
+  "heapDeltaBytes": 42020864,
+  "recall10": 0.9948999999999992,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 78090,
+    "p95Us": 115281,
+    "p99Us": 116305,
+    "meanUs": 84697
+   },
+   {
+    "p50Us": 115293,
+    "p95Us": 116457,
+    "p99Us": 117617,
+    "meanUs": 112972
+   },
+   {
+    "p50Us": 115168,
+    "p95Us": 116732,
+    "p99Us": 140031,
+    "meanUs": 110880
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 115168,
+  "p95Us": 116732,
+  "p99Us": 140031,
+  "meanUs": 110880
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 426,
+  "analyticBytes": 5600000,
+  "heapDeltaBytes": 8044544,
+  "recall10": 0.9443999999999964,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 9265,
+    "p95Us": 9613,
+    "p99Us": 10329,
+    "meanUs": 8613
+   },
+   {
+    "p50Us": 6480,
+    "p95Us": 10277,
+    "p99Us": 20710,
+    "meanUs": 7342
+   },
+   {
+    "p50Us": 9157,
+    "p95Us": 9724,
+    "p99Us": 10136,
+    "meanUs": 8380
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 9157,
+  "p95Us": 9724,
+  "p99Us": 10136,
+  "meanUs": 8380
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 426,
+  "analyticBytes": 5600000,
+  "heapDeltaBytes": 8044544,
+  "recall10": 0.9745999999999978,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 9921,
+    "p95Us": 11402,
+    "p99Us": 15249,
+    "meanUs": 9342
+   },
+   {
+    "p50Us": 9911,
+    "p95Us": 10636,
+    "p99Us": 11104,
+    "meanUs": 9106
+   },
+   {
+    "p50Us": 9930,
+    "p95Us": 10583,
+    "p99Us": 10946,
+    "meanUs": 9202
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 9921,
+  "p95Us": 11402,
+  "p99Us": 15249,
+  "meanUs": 9342
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "ok",
+  "buildMs": 16272,
+  "analyticBytes": 165600000,
+  "heapDeltaBytes": 203153408,
+  "recall10": 0.029400000000000065,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=15 bits=12 proj=80 cap=120 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 3334,
+    "p95Us": 7095,
+    "p99Us": 22239,
+    "meanUs": 4040
+   },
+   {
+    "p50Us": 3389,
+    "p95Us": 6317,
+    "p99Us": 24000,
+    "meanUs": 4033
+   },
+   {
+    "p50Us": 3700,
+    "p95Us": 7410,
+    "p99Us": 23734,
+    "meanUs": 4367
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 3389,
+  "p95Us": 6317,
+  "p99Us": 24000,
+  "meanUs": 4033
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "ok",
+  "buildMs": 16272,
+  "analyticBytes": 165600000,
+  "heapDeltaBytes": 203153408,
+  "recall10": 0.6133999999999995,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 94,
+  "charging": true,
+  "note": "LshIndexManager tables=15 bits=12 proj=80 cap=120 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 23748,
+    "p95Us": 74839,
+    "p99Us": 94021,
+    "meanUs": 31771
+   },
+   {
+    "p50Us": 22706,
+    "p95Us": 74440,
+    "p99Us": 89663,
+    "meanUs": 31306
+   },
+   {
+    "p50Us": 23076,
+    "p95Us": 74128,
+    "p99Us": 90139,
+    "meanUs": 31506
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 23076,
+  "p95Us": 74128,
+  "p99Us": 90139,
+  "meanUs": 31506
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "ok",
+  "buildMs": 163939,
+  "analyticBytes": 183000000,
+  "heapDeltaBytes": 200134656,
+  "recall10": 0.8770999999999964,
+  "thermalStart": 2,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1219,
+    "p95Us": 1881,
+    "p99Us": 3143,
+    "meanUs": 1308
+   },
+   {
+    "p50Us": 1268,
+    "p95Us": 1821,
+    "p99Us": 2323,
+    "meanUs": 1316
+   },
+   {
+    "p50Us": 1059,
+    "p95Us": 1724,
+    "p99Us": 2959,
+    "meanUs": 1153
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 1219,
+  "p95Us": 1881,
+  "p99Us": 3143,
+  "meanUs": 1308
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "ok",
+  "buildMs": 163939,
+  "analyticBytes": 183000000,
+  "heapDeltaBytes": 200134656,
+  "recall10": 0.9416999999999973,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1903,
+    "p95Us": 2682,
+    "p99Us": 3397,
+    "meanUs": 1963
+   },
+   {
+    "p50Us": 2003,
+    "p95Us": 2722,
+    "p99Us": 3645,
+    "meanUs": 2082
+   },
+   {
+    "p50Us": 1974,
+    "p95Us": 2745,
+    "p99Us": 3885,
+    "meanUs": 2058
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 1974,
+  "p95Us": 2745,
+  "p99Us": 3885,
+  "meanUs": 2058
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "ok",
+  "buildMs": 163939,
+  "analyticBytes": 183000000,
+  "heapDeltaBytes": 200134656,
+  "recall10": 0.9733999999999988,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 3254,
+    "p95Us": 4324,
+    "p99Us": 5165,
+    "meanUs": 3314
+   },
+   {
+    "p50Us": 3266,
+    "p95Us": 4353,
+    "p99Us": 6322,
+    "meanUs": 3373
+   },
+   {
+    "p50Us": 3278,
+    "p95Us": 4240,
+    "p99Us": 5197,
+    "meanUs": 3349
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 3266,
+  "p95Us": 4353,
+  "p99Us": 6322,
+  "meanUs": 3373
+ },
+ {
+  "dataset": "beir_public",
+  "n": 100000,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "ok",
+  "buildMs": 163939,
+  "analyticBytes": 183000000,
+  "heapDeltaBytes": 200134656,
+  "recall10": 0.9879999999999995,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 5657,
+    "p95Us": 7298,
+    "p99Us": 8382,
+    "meanUs": 5742
+   },
+   {
+    "p50Us": 5681,
+    "p95Us": 7293,
+    "p99Us": 8986,
+    "meanUs": 5861
+   },
+   {
+    "p50Us": 5670,
+    "p95Us": 7336,
+    "p99Us": 10092,
+    "meanUs": 5803
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 5670,
+  "p95Us": 7336,
+  "p99Us": 10092,
+  "meanUs": 5803
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 0,
+  "analyticBytes": 307200000,
+  "heapDeltaBytes": 0,
+  "recall10": 1,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "float32 mapped file (off-heap)",
+  "passes": [
+   {
+    "p50Us": 193514,
+    "p95Us": 196411,
+    "p99Us": 197120,
+    "meanUs": 190076
+   },
+   {
+    "p50Us": 193457,
+    "p95Us": 196167,
+    "p99Us": 196734,
+    "meanUs": 187602
+   },
+   {
+    "p50Us": 174087,
+    "p95Us": 195438,
+    "p99Us": 196868,
+    "meanUs": 171028
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 193457,
+  "p95Us": 196167,
+  "p99Us": 196734,
+  "meanUs": 187602
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 9907,
+  "analyticBytes": 79200000,
+  "heapDeltaBytes": 84021248,
+  "recall10": 0.993799999999999,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 230073,
+    "p95Us": 234643,
+    "p99Us": 244180,
+    "meanUs": 219898
+   },
+   {
+    "p50Us": 230171,
+    "p95Us": 243935,
+    "p99Us": 253560,
+    "meanUs": 225689
+   },
+   {
+    "p50Us": 229929,
+    "p95Us": 232352,
+    "p99Us": 236345,
+    "meanUs": 222788
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 230073,
+  "p95Us": 234643,
+  "p99Us": 244180,
+  "meanUs": 219898
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 876,
+  "analyticBytes": 11200000,
+  "heapDeltaBytes": 16015360,
+  "recall10": 0.9452999999999964,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 17757,
+    "p95Us": 18054,
+    "p99Us": 18252,
+    "meanUs": 17341
+   },
+   {
+    "p50Us": 17762,
+    "p95Us": 18019,
+    "p99Us": 18404,
+    "meanUs": 17342
+   },
+   {
+    "p50Us": 17728,
+    "p95Us": 18064,
+    "p99Us": 18401,
+    "meanUs": 14910
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 17757,
+  "p95Us": 18054,
+  "p99Us": 18252,
+  "meanUs": 17341
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 876,
+  "analyticBytes": 11200000,
+  "heapDeltaBytes": 16015360,
+  "recall10": 0.9761999999999981,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 18529,
+    "p95Us": 18752,
+    "p99Us": 19813,
+    "meanUs": 18126
+   },
+   {
+    "p50Us": 18533,
+    "p95Us": 18816,
+    "p99Us": 19592,
+    "meanUs": 17875
+   },
+   {
+    "p50Us": 18558,
+    "p95Us": 19013,
+    "p99Us": 19705,
+    "meanUs": 17133
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 18533,
+  "p95Us": 18816,
+  "p99Us": 19592,
+  "meanUs": 17875
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 331200000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 331200000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 331200000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 331200000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 366000000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 366000000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 366000000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 366000000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 366000000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 366000000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "beir_public",
+  "n": 200000,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "skipped",
+  "buildMs": 0,
+  "analyticBytes": 366000000,
+  "heapDeltaBytes": 0,
+  "recall10": 0,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "skipped: used heap 117158784 + analytic 366000000 bytes would exceed 70% of maxMemory 402653184"
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "exact_f32",
+  "method": "exact_f32",
+  "params": "dot over L2-normalised vectors",
+  "status": "ok",
+  "buildMs": 0,
+  "analyticBytes": 20433408,
+  "heapDeltaBytes": 0,
+  "recall10": 1,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "float32 heap array",
+  "passes": [
+   {
+    "p50Us": 9290,
+    "p95Us": 9423,
+    "p99Us": 9527,
+    "meanUs": 9285
+   },
+   {
+    "p50Us": 9252,
+    "p95Us": 9387,
+    "p99Us": 9495,
+    "meanUs": 9209
+   },
+   {
+    "p50Us": 9264,
+    "p95Us": 9377,
+    "p99Us": 9488,
+    "meanUs": 9128
+   }
+  ],
+  "medianPass": 2,
+  "p50Us": 9264,
+  "p95Us": 9377,
+  "p99Us": 9488,
+  "meanUs": 9128
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "exact_int8",
+  "method": "exact_int8",
+  "params": "symmetric per-vector int8",
+  "status": "ok",
+  "buildMs": 673,
+  "analyticBytes": 5267988,
+  "heapDeltaBytes": 5574656,
+  "recall10": 0.9950000000000001,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "int8 codes + scales + ids on the heap",
+  "passes": [
+   {
+    "p50Us": 15577,
+    "p95Us": 15824,
+    "p99Us": 15946,
+    "meanUs": 15446
+   },
+   {
+    "p50Us": 15546,
+    "p95Us": 15793,
+    "p99Us": 16087,
+    "meanUs": 15235
+   },
+   {
+    "p50Us": 15589,
+    "p95Us": 15751,
+    "p99Us": 15884,
+    "meanUs": 15418
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 15577,
+  "p95Us": 15824,
+  "p99Us": 15946,
+  "meanUs": 15446
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k100",
+  "params": "Hamming shortlist k'=100 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 55,
+  "analyticBytes": 744968,
+  "heapDeltaBytes": 1048576,
+  "recall10": 0.9780000000000005,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 1708,
+    "p95Us": 1995,
+    "p99Us": 2212,
+    "meanUs": 1612
+   },
+   {
+    "p50Us": 1758,
+    "p95Us": 2002,
+    "p99Us": 2111,
+    "meanUs": 1744
+   },
+   {
+    "p50Us": 1770,
+    "p95Us": 1930,
+    "p99Us": 2077,
+    "meanUs": 1749
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1758,
+  "p95Us": 2002,
+  "p99Us": 2111,
+  "meanUs": 1744
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "binary_rescore",
+  "method": "binary_rescore_k200",
+  "params": "Hamming shortlist k'=200 then float32 rescoring",
+  "status": "ok",
+  "buildMs": 55,
+  "analyticBytes": 744968,
+  "heapDeltaBytes": 1048576,
+  "recall10": 0.9925,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "sign bits + ids on the heap; float vectors read from the mapped file for rescoring",
+  "passes": [
+   {
+    "p50Us": 2327,
+    "p95Us": 2675,
+    "p99Us": 2856,
+    "meanUs": 2285
+   },
+   {
+    "p50Us": 2318,
+    "p95Us": 2626,
+    "p99Us": 2719,
+    "meanUs": 2318
+   },
+   {
+    "p50Us": 2310,
+    "p95Us": 2699,
+    "p99Us": 2782,
+    "meanUs": 2314
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 2318,
+  "p95Us": 2626,
+  "p99Us": 2719,
+  "meanUs": 2318
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "lsh",
+  "method": "lsh_app",
+  "params": "app LSH configuration, candidate cap = searchCandidates",
+  "status": "ok",
+  "buildMs": 1068,
+  "analyticBytes": 22029768,
+  "heapDeltaBytes": 31948800,
+  "recall10": 0.1260000000000001,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=10 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 1773,
+    "p95Us": 3412,
+    "p99Us": 9407,
+    "meanUs": 2079
+   },
+   {
+    "p50Us": 1732,
+    "p95Us": 3580,
+    "p99Us": 8336,
+    "meanUs": 2004
+   },
+   {
+    "p50Us": 1657,
+    "p95Us": 2972,
+    "p99Us": 6100,
+    "meanUs": 1903
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1732,
+  "p95Us": 3580,
+  "p99Us": 8336,
+  "meanUs": 2004
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "lsh",
+  "method": "lsh_uncapped",
+  "params": "app LSH tables and bits, no candidate cap",
+  "status": "ok",
+  "buildMs": 1068,
+  "analyticBytes": 22029768,
+  "heapDeltaBytes": 31948800,
+  "recall10": 0.8110000000000005,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "LshIndexManager tables=10 bits=10 proj=64 cap=100 probe=1 (index file written to a temp folder, not the app's)",
+  "passes": [
+   {
+    "p50Us": 7870,
+    "p95Us": 18824,
+    "p99Us": 21449,
+    "meanUs": 8760
+   },
+   {
+    "p50Us": 7869,
+    "p95Us": 19622,
+    "p99Us": 22381,
+    "meanUs": 8751
+   },
+   {
+    "p50Us": 6319,
+    "p95Us": 15846,
+    "p99Us": 20128,
+    "meanUs": 7523
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 7869,
+  "p95Us": 19622,
+  "p99Us": 22381,
+  "meanUs": 8751
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "hnsw",
+  "method": "hnsw_ef16",
+  "params": "M=16 efConstruction=200 efSearch=16",
+  "status": "ok",
+  "buildMs": 14955,
+  "analyticBytes": 24344490,
+  "heapDeltaBytes": 33550336,
+  "recall10": 0.9475000000000006,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 714,
+    "p95Us": 1000,
+    "p99Us": 1133,
+    "meanUs": 723
+   },
+   {
+    "p50Us": 736,
+    "p95Us": 1086,
+    "p99Us": 2571,
+    "meanUs": 790
+   },
+   {
+    "p50Us": 828,
+    "p95Us": 1130,
+    "p99Us": 1248,
+    "meanUs": 838
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 736,
+  "p95Us": 1086,
+  "p99Us": 2571,
+  "meanUs": 790
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "hnsw",
+  "method": "hnsw_ef32",
+  "params": "M=16 efConstruction=200 efSearch=32",
+  "status": "ok",
+  "buildMs": 14955,
+  "analyticBytes": 24344490,
+  "heapDeltaBytes": 33550336,
+  "recall10": 0.9785000000000007,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 1351,
+    "p95Us": 1802,
+    "p99Us": 2013,
+    "meanUs": 1361
+   },
+   {
+    "p50Us": 1266,
+    "p95Us": 1689,
+    "p99Us": 1892,
+    "meanUs": 1255
+   },
+   {
+    "p50Us": 977,
+    "p95Us": 1471,
+    "p99Us": 1779,
+    "meanUs": 1008
+   }
+  ],
+  "medianPass": 1,
+  "p50Us": 1266,
+  "p95Us": 1689,
+  "p99Us": 1892,
+  "meanUs": 1255
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "hnsw",
+  "method": "hnsw_ef64",
+  "params": "M=16 efConstruction=200 efSearch=64",
+  "status": "ok",
+  "buildMs": 14955,
+  "analyticBytes": 24344490,
+  "heapDeltaBytes": 33550336,
+  "recall10": 0.9900000000000005,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 2241,
+    "p95Us": 3044,
+    "p99Us": 3296,
+    "meanUs": 2257
+   },
+   {
+    "p50Us": 2201,
+    "p95Us": 2985,
+    "p99Us": 3107,
+    "meanUs": 2183
+   },
+   {
+    "p50Us": 2249,
+    "p95Us": 3087,
+    "p99Us": 3328,
+    "meanUs": 2306
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 2241,
+  "p95Us": 3044,
+  "p99Us": 3296,
+  "meanUs": 2257
+ },
+ {
+  "dataset": "app_chunks_real",
+  "n": 13303,
+  "family": "hnsw",
+  "method": "hnsw_ef128",
+  "params": "M=16 efConstruction=200 efSearch=128",
+  "status": "ok",
+  "buildMs": 14955,
+  "analyticBytes": 24344490,
+  "heapDeltaBytes": 33550336,
+  "recall10": 0.9950000000000001,
+  "thermalStart": 1,
+  "thermalEnd": 1,
+  "batteryPct": 93,
+  "charging": true,
+  "note": "hnswlib-core 1.2.1, M=16 efConstruction=200, built with 8 threads",
+  "passes": [
+   {
+    "p50Us": 4001,
+    "p95Us": 5225,
+    "p99Us": 5522,
+    "meanUs": 3911
+   },
+   {
+    "p50Us": 3930,
+    "p95Us": 5483,
+    "p99Us": 5983,
+    "meanUs": 3922
+   },
+   {
+    "p50Us": 4040,
+    "p95Us": 5306,
+    "p99Us": 6053,
+    "meanUs": 3948
+   }
+  ],
+  "medianPass": 0,
+  "p50Us": 4001,
+  "p95Us": 5225,
+  "p99Us": 5522,
+  "meanUs": 3911
+ }
+]

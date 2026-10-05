@@ -1,0 +1,122 @@
+package com.augt.localseek.data
+
+import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
+import androidx.room3.Query
+
+@Dao
+interface ChunkDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(chunks: List<DocumentChunk>)
+
+    @Query("DELETE FROM document_chunks WHERE parentFileId = :parentFileId")
+    suspend fun deleteByParentFileId(parentFileId: Long)
+
+    @Query("DELETE FROM document_chunks WHERE parentFileId IN (:parentFileIds)")
+    suspend fun deleteByParentFileIds(parentFileIds: List<Long>)
+
+    @Query("SELECT COUNT(*) FROM document_chunks WHERE parentFileId = :parentFileId")
+    suspend fun countChunksForFile(parentFileId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM document_chunks")
+    suspend fun countAllChunks(): Int
+
+    @Query(
+        """
+        SELECT id, embedding
+        FROM document_chunks
+        WHERE id > :lastId AND embedding IS NOT NULL
+        ORDER BY id ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getEmbeddingsPage(limit: Int, lastId: Long): List<ChunkEmbedding>
+
+    @Query("SELECT * FROM document_chunks WHERE text MATCH :query LIMIT 1")
+    suspend fun debugCheckFts(query: String): DocumentChunk?
+
+    @Query("SELECT * FROM document_chunks WHERE id = :chunkId LIMIT 1")
+    suspend fun getChunkById(chunkId: Long): DocumentChunk?
+
+    @Query(
+        """
+        SELECT
+            c.id AS chunkId,
+            c.parentFileId,
+            c.text,
+            c.embedding,
+            d.filePath,
+            d.title,
+            d.fileType,
+            d.sizeBytes,
+            d.modifiedAt,
+            d.stableKey
+        FROM document_chunks c
+        JOIN documents d ON c.parentFileId = d.id
+        WHERE c.id IN (:chunkIds)
+        """
+    )
+    suspend fun getChunkMetadataByIds(chunkIds: List<Long>): List<ChunkMetadata>
+
+    @Query(
+        """
+        SELECT
+            c.id AS chunkId,
+            c.parentFileId,
+            c.chunkIndex,
+            c.text,
+            c.startOffset,
+            c.endOffset,
+            d.filePath,
+            d.title,
+            d.fileType,
+            d.sizeBytes,
+            d.modifiedAt,
+            d.stableKey,
+            bm25(chunks_fts) AS score
+        FROM chunks_fts
+        JOIN document_chunks c ON chunks_fts.rowid = c.id
+        JOIN documents d ON c.parentFileId = d.id
+        WHERE chunks_fts MATCH :query
+        ORDER BY score ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun searchChunks(query: String, limit: Int): List<ChunkWithMetadata>
+}
+
+data class ChunkEmbedding(
+    val id: Long,
+    val embedding: FloatArray
+)
+
+data class ChunkMetadata(
+    val chunkId: Long,
+    val parentFileId: Long,
+    val text: String,
+    val embedding: FloatArray?,
+    val filePath: String,
+    val title: String,
+    val fileType: String,
+    val sizeBytes: Long,
+    val modifiedAt: Long,
+    val stableKey: String = ""
+)
+
+data class ChunkWithMetadata(
+    val chunkId: Long,
+    val parentFileId: Long,
+    val chunkIndex: Int,
+    val text: String,
+    val startOffset: Int,
+    val endOffset: Int,
+    val filePath: String,
+    val title: String,
+    val fileType: String,
+    val sizeBytes: Long,
+    val modifiedAt: Long,
+    val score: Float,
+    val stableKey: String = ""
+)

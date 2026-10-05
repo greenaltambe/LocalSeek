@@ -1,0 +1,462 @@
+{
+ "label": "exploratory, not registered, computed after the registered results were known",
+ "scored_queries": 77,
+ "n_clusters": 64,
+ "holm_family_size": 4,
+ "contrasts_by_cluster": [
+  {
+   "name": "X1 hybrid vs BM25",
+   "treatment": "E9_hybrid_rrf_exact",
+   "control": "E1_bm25",
+   "n_units": 64,
+   "mean_diff": 0.25429054152749575,
+   "ci95": [
+    0.17096608721399323,
+    0.3389108418357119
+   ],
+   "p_raw": 4.9999750001249995e-06,
+   "test": "monte-carlo",
+   "p_holm": 1.9999900000499998e-05
+  },
+  {
+   "name": "X2 hybrid vs dense exact",
+   "treatment": "E9_hybrid_rrf_exact",
+   "control": "E2_dense_exact",
+   "n_units": 64,
+   "mean_diff": 0.0514023416923848,
+   "ci95": [
+    -0.008290420364312868,
+    0.11343607943696637
+   ],
+   "p_raw": 0.10321948390258048,
+   "test": "monte-carlo",
+   "p_holm": 0.10321948390258048
+  },
+  {
+   "name": "X3 dense exact vs BM25",
+   "treatment": "E2_dense_exact",
+   "control": "E1_bm25",
+   "n_units": 64,
+   "mean_diff": 0.20288819983511097,
+   "ci95": [
+    0.08844832526373342,
+    0.3138562331205196
+   ],
+   "p_raw": 0.0008049959750201249,
+   "test": "monte-carlo",
+   "p_holm": 0.002414987925060375
+  },
+  {
+   "name": "X4 reranked hybrid vs dense exact",
+   "treatment": "E10_hybrid_rrf_exact_rerank20",
+   "control": "E2_dense_exact",
+   "n_units": 64,
+   "mean_diff": 0.06457908725003633,
+   "ci95": [
+    0.002944580649399649,
+    0.1273576545862325
+   ],
+   "p_raw": 0.048699756501217495,
+   "test": "monte-carlo",
+   "p_holm": 0.09739951300243499
+  }
+ ],
+ "contrasts_by_query_sensitivity": [
+  {
+   "name": "X1 hybrid vs BM25",
+   "treatment": "E9_hybrid_rrf_exact",
+   "control": "E1_bm25",
+   "n_units": 77,
+   "mean_diff": 0.22418963836921607,
+   "ci95": [
+    0.15207300286624836,
+    0.29978852332791506
+   ],
+   "p_raw": 4.9999750001249995e-06,
+   "test": "monte-carlo",
+   "p_holm": 1.9999900000499998e-05
+  },
+  {
+   "name": "X2 hybrid vs dense exact",
+   "treatment": "E9_hybrid_rrf_exact",
+   "control": "E2_dense_exact",
+   "n_units": 77,
+   "mean_diff": 0.04953669434971036,
+   "ci95": [
+    -0.00795901555341707,
+    0.10413744353848213
+   ],
+   "p_raw": 0.09064954675226623,
+   "test": "monte-carlo",
+   "p_holm": 0.09064954675226623
+  },
+  {
+   "name": "X3 dense exact vs BM25",
+   "treatment": "E2_dense_exact",
+   "control": "E1_bm25",
+   "n_units": 77,
+   "mean_diff": 0.17465294401950573,
+   "ci95": [
+    0.0747870651900375,
+    0.27443932621603284
+   ],
+   "p_raw": 0.0011549942250288748,
+   "test": "monte-carlo",
+   "p_holm": 0.0034649826750866243
+  },
+  {
+   "name": "X4 reranked hybrid vs dense exact",
+   "treatment": "E10_hybrid_rrf_exact_rerank20",
+   "control": "E2_dense_exact",
+   "n_units": 77,
+   "mean_diff": 0.06672008620564106,
+   "ci95": [
+    0.008055520624567915,
+    0.12433181505388226
+   ],
+   "p_raw": 0.028989855050724746,
+   "test": "monte-carlo",
+   "p_holm": 0.05797971010144949
+  }
+ ],
+ "overall": {
+  "scored_queries": 77,
+  "n_clusters": 64,
+  "arm_means_by_cluster": {
+   "E10_hybrid_rrf_exact_rerank20": 0.8516234163363945,
+   "E1_bm25": 0.5841561292512473,
+   "E2_dense_exact": 0.7870443290863582,
+   "E9_hybrid_rrf_exact": 0.838446670778743
+  },
+  "contrasts_descriptive": [
+   {
+    "name": "X1 hybrid vs BM25",
+    "treatment": "E9_hybrid_rrf_exact",
+    "control": "E1_bm25",
+    "n_units": 64,
+    "mean_diff": 0.25429054152749575,
+    "ci95": [
+     0.17096608721399323,
+     0.3389108418357119
+    ]
+   },
+   {
+    "name": "X2 hybrid vs dense exact",
+    "treatment": "E9_hybrid_rrf_exact",
+    "control": "E2_dense_exact",
+    "n_units": 64,
+    "mean_diff": 0.0514023416923848,
+    "ci95": [
+     -0.008290420364312868,
+     0.11343607943696637
+    ]
+   },
+   {
+    "name": "X3 dense exact vs BM25",
+    "treatment": "E2_dense_exact",
+    "control": "E1_bm25",
+    "n_units": 64,
+    "mean_diff": 0.20288819983511097,
+    "ci95": [
+     0.08844832526373342,
+     0.3138562331205196
+    ]
+   },
+   {
+    "name": "X4 reranked hybrid vs dense exact",
+    "treatment": "E10_hybrid_rrf_exact_rerank20",
+    "control": "E2_dense_exact",
+    "n_units": 64,
+    "mean_diff": 0.06457908725003633,
+    "ci95": [
+     0.002944580649399649,
+     0.1273576545862325
+    ]
+   }
+  ]
+ },
+ "per_category_descriptive": {
+  "app": {
+   "scored_queries": 20,
+   "n_clusters": 20,
+   "arm_means_by_cluster": {
+    "E10_hybrid_rrf_exact_rerank20": 0.9036626870889032,
+    "E1_bm25": 0.3751136384269668,
+    "E2_dense_exact": 0.8480218064000251,
+    "E9_hybrid_rrf_exact": 0.8714618345893932
+   },
+   "contrasts_descriptive": [
+    {
+     "name": "X1 hybrid vs BM25",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E1_bm25",
+     "n_units": 20,
+     "mean_diff": 0.49634819616242637,
+     "ci95": [
+      0.35775818673101956,
+      0.633836791224433
+     ]
+    },
+    {
+     "name": "X2 hybrid vs dense exact",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E2_dense_exact",
+     "n_units": 20,
+     "mean_diff": 0.02344002818936813,
+     "ci95": [
+      -0.08849912433276408,
+      0.13648004899918692
+     ]
+    },
+    {
+     "name": "X3 dense exact vs BM25",
+     "treatment": "E2_dense_exact",
+     "control": "E1_bm25",
+     "n_units": 20,
+     "mean_diff": 0.4729081679730583,
+     "ci95": [
+      0.3222549315385285,
+      0.6231819848306104
+     ]
+    },
+    {
+     "name": "X4 reranked hybrid vs dense exact",
+     "treatment": "E10_hybrid_rrf_exact_rerank20",
+     "control": "E2_dense_exact",
+     "n_units": 20,
+     "mean_diff": 0.055640880688878035,
+     "ci95": [
+      -0.03733598014093076,
+      0.15730494334696368
+     ]
+    }
+   ]
+  },
+  "contact": {
+   "scored_queries": 11,
+   "n_clusters": 11,
+   "arm_means_by_cluster": {
+    "E10_hybrid_rrf_exact_rerank20": 0.9927018899225625,
+    "E1_bm25": 0.596038586103878,
+    "E2_dense_exact": 0.964831562978678,
+    "E9_hybrid_rrf_exact": 1.0
+   },
+   "contrasts_descriptive": [
+    {
+     "name": "X1 hybrid vs BM25",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E1_bm25",
+     "n_units": 11,
+     "mean_diff": 0.40396141389612195,
+     "ci95": [
+      0.21826903692677388,
+      0.5933538066667964
+     ]
+    },
+    {
+     "name": "X2 hybrid vs dense exact",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E2_dense_exact",
+     "n_units": 11,
+     "mean_diff": 0.03516843702132197,
+     "ci95": [
+      0.0,
+      0.10550531106396589
+     ]
+    },
+    {
+     "name": "X3 dense exact vs BM25",
+     "treatment": "E2_dense_exact",
+     "control": "E1_bm25",
+     "n_units": 11,
+     "mean_diff": 0.36879297687479995,
+     "ci95": [
+      0.14653264197464863,
+      0.5803968087076972
+     ]
+    },
+    {
+     "name": "X4 reranked hybrid vs dense exact",
+     "treatment": "E10_hybrid_rrf_exact_rerank20",
+     "control": "E2_dense_exact",
+     "n_units": 11,
+     "mean_diff": 0.02787032694388447,
+     "ci95": [
+      -0.021894330232312485,
+      0.10550531106396589
+     ]
+    }
+   ]
+  },
+  "file": {
+   "scored_queries": 46,
+   "n_clusters": 33,
+   "arm_means_by_cluster": {
+    "E10_hybrid_rrf_exact_rerank20": 0.7730583065031212,
+    "E1_bm25": 0.7068877289817523,
+    "E2_dense_exact": 0.6908258709321504,
+    "E9_hybrid_rrf_exact": 0.7645863708500512
+   },
+   "contrasts_descriptive": [
+    {
+     "name": "X1 hybrid vs BM25",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E1_bm25",
+     "n_units": 33,
+     "mean_diff": 0.05769864186829882,
+     "ci95": [
+      -0.016377749799636535,
+      0.1298994309952741
+     ]
+    },
+    {
+     "name": "X2 hybrid vs dense exact",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E2_dense_exact",
+     "n_units": 33,
+     "mean_diff": 0.0737604999179007,
+     "ci95": [
+      -0.018962526852055354,
+      0.16517569892879597
+     ]
+    },
+    {
+     "name": "X3 dense exact vs BM25",
+     "treatment": "E2_dense_exact",
+     "control": "E1_bm25",
+     "n_units": 33,
+     "mean_diff": -0.016061858049601883,
+     "ci95": [
+      -0.16335024467802692,
+      0.1288534716051449
+     ]
+    },
+    {
+     "name": "X4 reranked hybrid vs dense exact",
+     "treatment": "E10_hybrid_rrf_exact_rerank20",
+     "control": "E2_dense_exact",
+     "n_units": 33,
+     "mean_diff": 0.08223243557097078,
+     "ci95": [
+      -0.02387182761064746,
+      0.18202046674575992
+     ]
+    }
+   ]
+  }
+ },
+ "per_stratum_descriptive": {
+  "name-like": {
+   "scored_queries": 59,
+   "n_clusters": 57,
+   "arm_means_by_cluster": {
+    "E10_hybrid_rrf_exact_rerank20": 0.8699271441248181,
+    "E1_bm25": 0.574062972017092,
+    "E2_dense_exact": 0.8155277899119371,
+    "E9_hybrid_rrf_exact": 0.8646138517953877
+   },
+   "contrasts_descriptive": [
+    {
+     "name": "X1 hybrid vs BM25",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E1_bm25",
+     "n_units": 57,
+     "mean_diff": 0.2905508797782957,
+     "ci95": [
+      0.20736198835202702,
+      0.3790724434965024
+     ]
+    },
+    {
+     "name": "X2 hybrid vs dense exact",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E2_dense_exact",
+     "n_units": 57,
+     "mean_diff": 0.04908606188345067,
+     "ci95": [
+      -0.017529374422966218,
+      0.11532525168220333
+     ]
+    },
+    {
+     "name": "X3 dense exact vs BM25",
+     "treatment": "E2_dense_exact",
+     "control": "E1_bm25",
+     "n_units": 57,
+     "mean_diff": 0.24146481789484503,
+     "ci95": [
+      0.12550892954586992,
+      0.3570480528346229
+     ]
+    },
+    {
+     "name": "X4 reranked hybrid vs dense exact",
+     "treatment": "E10_hybrid_rrf_exact_rerank20",
+     "control": "E2_dense_exact",
+     "n_units": 57,
+     "mean_diff": 0.05439935421288103,
+     "ci95": [
+      -0.012425082145359718,
+      0.12093687213349859
+     ]
+    }
+   ]
+  },
+  "sentence-like": {
+   "scored_queries": 18,
+   "n_clusters": 17,
+   "arm_means_by_cluster": {
+    "E10_hybrid_rrf_exact_rerank20": 0.8463289742998124,
+    "E1_bm25": 0.7552810927405877,
+    "E2_dense_exact": 0.7353306932501957,
+    "E9_hybrid_rrf_exact": 0.7911332446632916
+   },
+   "contrasts_descriptive": [
+    {
+     "name": "X1 hybrid vs BM25",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E1_bm25",
+     "n_units": 17,
+     "mean_diff": 0.03585215192270381,
+     "ci95": [
+      -0.07329137331099723,
+      0.13821986243455794
+     ]
+    },
+    {
+     "name": "X2 hybrid vs dense exact",
+     "treatment": "E9_hybrid_rrf_exact",
+     "control": "E2_dense_exact",
+     "n_units": 17,
+     "mean_diff": 0.05580255141309582,
+     "ci95": [
+      -0.042718316473102036,
+      0.15291563680765904
+     ]
+    },
+    {
+     "name": "X3 dense exact vs BM25",
+     "treatment": "E2_dense_exact",
+     "control": "E1_bm25",
+     "n_units": 17,
+     "mean_diff": -0.019950399490392005,
+     "ci95": [
+      -0.19152116711629047,
+      0.1404110980413382
+     ]
+    },
+    {
+     "name": "X4 reranked hybrid vs dense exact",
+     "treatment": "E10_hybrid_rrf_exact_rerank20",
+     "control": "E2_dense_exact",
+     "n_units": 17,
+     "mean_diff": 0.11099828104961654,
+     "ci95": [
+      0.00450372543879234,
+      0.2237433184854325
+     ]
+    }
+   ]
+  }
+ }
+}

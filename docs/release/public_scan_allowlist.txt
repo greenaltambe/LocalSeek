@@ -1,0 +1,8 @@
+app/src/test/java/com/augt/localseek/ml/BertTokenizerTest.kt
+app/src/test/java/com/augt/localseek/query/processing/QueryProcessingCoreTest.kt
+app/src/test/java/com/augt/localseek/tools/ContactActionsTest.kt
+app/src/test/java/com/augt/localseek/tools/PrefixAndRecentsTest.kt
+eval/test_anonymize_export.py
+eval/test_public_tree_scan.py
+app/src/test/java/com/augt/localseek/eval/ReplicationFixtureTest.kt
+eval/public_replication/fixtures/query_processing.json

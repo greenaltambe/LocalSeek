@@ -1,0 +1,77 @@
+# ---- Build and tooling ----
+*.iml
+.gradle
+/build
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/llama.cpp
+.kotlin
+.artifacts/
+.DS_Store
+
+# ---- Android Studio: keep only shared code style and inspection profiles ----
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+
+# ---- Large model binaries (exceed the GitHub push limit; see scripts/fetch_models.sh) ----
+app/src/main/assets/models/*.gguf
+app/src/main/assets/models/clip/*.tflite
+app/src/debug/assets/models/clip/*.tflite
+clip_model/src/main/assets/models/clip/*.tflite
+*.apks
+tools/bundletool/
+
+# ---- Logs, caches, virtualenvs ----
+*.log
+crash_log.txt
+eval/parity/.venv/
+__pycache__/
+*.pyc
+
+# ---- Personal data: never commit device databases, queries or raw benchmark exports ----
+*.db
+*.db-shm
+*.db-wal
+queries*.csv
+sample_targets*.csv
+eval/evidence/
+eval/benchmark_export.json
+eval/legacy_id_map.csv
+eval/results/canonical_publication_benchmark_export.json
+eval/results/canonical_per_query_forensic.csv
+eval/canonical_pool.*
+eval/canonical_image_pool.*
+eval/image_judging_sheet.*
+eval/canonical_query_metadata.json
+eval/pool_second*.csv
+eval/results_v2/per_query.csv
+
+# ---- Private judging working files ----
+eval/pool_*.csv
+eval/*image_pool*.csv
+eval/*.bak
+eval/*.csv.bak
+eval/*.tmp
+
+# ---- Private redactions list for anonymizing benchmark exports ----
+*redactions*.csv
+eval/redactions.csv
+
+# ---- Local-only helper folders and device-specific output ----
+tools/prompts/
+tools/overnight/
+tools/cc.sh
+scripts/index_progress.csv
+scripts/monitor_index.log
+
+# ---- Release signing (never commit) ----
+keystore.properties
+*.jks
+*.keystore
+
+# Public-data replication virtualenv
+eval/public_replication/.venv/

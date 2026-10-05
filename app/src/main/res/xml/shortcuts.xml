@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search_short"
+        android:shortcutLongLabel="@string/shortcut_search_long">
+        <intent
+            android:action="com.augt.localseek.action.SEARCH"
+            android:targetClass="com.augt.localseek.MainActivity"
+            android:targetPackage="com.augt.localseek" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="search_images"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_images"
+        android:shortcutShortLabel="@string/shortcut_images_short"
+        android:shortcutLongLabel="@string/shortcut_images_long">
+        <intent
+            android:action="com.augt.localseek.action.SEARCH"
+            android:targetClass="com.augt.localseek.MainActivity"
+            android:targetPackage="com.augt.localseek">
+            <extra
+                android:name="scope"
+                android:value="images" />
+        </intent>
+    </shortcut>
+</shortcuts>

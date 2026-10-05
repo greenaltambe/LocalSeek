@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/ic_launcher_background"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- soft lighter disc in the lower right adds depth without a gradient -->
+    <path
+        android:fillColor="#33FFFFFF"
+        android:pathData="M108,62a46,46 0,1 1,-46 46h46z" />
+</vector>

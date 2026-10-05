@@ -1,0 +1,12 @@
+LocalSeek
+Copyright 2026 Greenal Rajkumar Tambe, Parikshit Patil, Kartik Thakur and Archit Utsahi
+Department of Information Technology, Sardar Patel Institute of Technology, Mumbai, India
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes or depends on third-party components, each under its own licence: on-device machine
+learning models (all-MiniLM-L6-v2 and ms-marco-MiniLM-L-6-v2: Apache-2.0; CLIP ViT-B/32: MIT),
+LiteRT (Apache-2.0), PDFBox-Android (Apache-2.0), Bouncy Castle (MIT-style), AndroidX, Jetpack
+Compose, Room, WorkManager and Kotlin libraries (Apache-2.0). The full list with sources, versions
+and licence texts is in THIRD_PARTY_NOTICES.md. Documentation under docs/ is licensed under
+CC BY 4.0 (docs/LICENSE.md).

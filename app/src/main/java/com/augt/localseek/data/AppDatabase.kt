@@ -1,0 +1,450 @@
+package com.augt.localseek.data
+
+import android.annotation.SuppressLint
+import android.content.Context
+import androidx.room3.Database
+import androidx.room3.Room
+import androidx.room3.RoomDatabase
+import androidx.room3.TypeConverters
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.execSQL
+
+
+import androidx.room3.withWriteTransaction
+
+@SuppressLint("RestrictedApi")
+@Database(
+    // List all of @Entity classes here.
+    entities = [
+        DocumentEntity::class, DocumentChunk::class, ChunkFts::class,
+        AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class,
+        BenchmarkRunEntity::class, QrelsJudgment::class, ImageEntity::class
+    ],
+    version = 19,
+    exportSchema = true
+)
+@TypeConverters(VectorConverter::class)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun documentDao(): DocumentDao
+    abstract fun chunkDao(): ChunkDao
+    abstract fun appDao(): AppDao
+    abstract fun contactDao(): ContactDao
+    abstract fun imageDao(): ImageDao
+    abstract fun benchmarkRunDao(): BenchmarkRunDao
+    abstract fun qrelsDao(): QrelsDao
+
+    suspend fun <R> withTransaction(block: suspend () -> R): R = withWriteTransaction { block() }
+
+    private object Migration18To19 : Migration(18, 19) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            // Deduplicate pre-existing duplicate documents by filePath keeping lowest id
+            connection.execSQL("DELETE FROM document_chunks WHERE parentFileId IN (SELECT id FROM documents WHERE id NOT IN (SELECT MIN(id) FROM documents GROUP BY filePath))")
+            connection.execSQL("DELETE FROM documents WHERE id NOT IN (SELECT MIN(id) FROM documents GROUP BY filePath)")
+
+            // 1. Documents: add columns
+            connection.execSQL("ALTER TABLE documents ADD COLUMN stableKey TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE documents ADD COLUMN chunkCount INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE documents ADD COLUMN indexStatus TEXT NOT NULL DEFAULT 'COMPLETE'")
+            connection.execSQL("ALTER TABLE documents ADD COLUMN contentHash TEXT")
+
+            // Backfill documents stableKey from filePath
+            val docStmt = connection.prepare("SELECT id, filePath FROM documents")
+            val docUpdates = mutableListOf<Pair<Long, String>>()
+            try {
+                while (docStmt.step()) {
+                    val id = docStmt.getLong(0)
+                    val path = docStmt.getText(1)
+                    val key = com.augt.localseek.core.IdentityUtils.fileStableKey(path)
+                    docUpdates.add(id to key)
+                }
+            } finally {
+                docStmt.close()
+            }
+            docUpdates.forEach { (id, key) ->
+                val escapedKey = key.replace("'", "''")
+                connection.execSQL("UPDATE documents SET stableKey = '$escapedKey' WHERE id = $id")
+            }
+            connection.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_documents_stableKey ON documents(stableKey)")
+
+            // 2. Apps: deduplicate, add column and unique index
+            connection.execSQL("DELETE FROM apps WHERE id NOT IN (SELECT MIN(id) FROM apps GROUP BY packageName)")
+            connection.execSQL("ALTER TABLE apps ADD COLUMN stableKey TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("UPDATE apps SET stableKey = packageName WHERE stableKey = '' OR stableKey IS NULL")
+            connection.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_apps_stableKey ON apps(stableKey)")
+
+            // 3. Contacts: deduplicate, add column and unique index
+            connection.execSQL("DELETE FROM contacts WHERE id NOT IN (SELECT MIN(id) FROM contacts GROUP BY contactId)")
+            connection.execSQL("ALTER TABLE contacts ADD COLUMN stableKey TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("UPDATE contacts SET stableKey = contactId WHERE stableKey = '' OR stableKey IS NULL")
+            connection.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_contacts_stableKey ON contacts(stableKey)")
+
+            // 4. Images: deduplicate, add column and unique index
+            connection.execSQL("DELETE FROM images WHERE id NOT IN (SELECT MIN(id) FROM images GROUP BY mediaStoreId)")
+            connection.execSQL("ALTER TABLE images ADD COLUMN stableKey TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("UPDATE images SET stableKey = 'media:' || mediaStoreId WHERE stableKey = '' OR stableKey IS NULL")
+            connection.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_images_stableKey ON images(stableKey)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_images_mediaStoreId ON images(mediaStoreId)")
+
+            // 5. Benchmark runs: add additive columns
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN configHash TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN configJson TEXT NOT NULL DEFAULT '{}'")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN indexGeneration INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN corpusSizeImages INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN batteryBand TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN thermalStatus TEXT NOT NULL DEFAULT ''")
+
+            // 6. Cleanup dead structures
+            connection.execSQL("DROP INDEX IF EXISTS index_document_chunks_embedding")
+            connection.execSQL("DROP TABLE IF EXISTS documents_fts")
+        }
+    }
+
+    private object Migration17To18 : Migration(17, 18) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS images (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    mediaStoreId INTEGER NOT NULL,
+                    uri TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    dateAdded INTEGER NOT NULL,
+                    dateModified INTEGER NOT NULL,
+                    embedding BLOB,
+                    indexedTimestamp INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_images_mediaStoreId ON images(mediaStoreId)"
+            )
+        }
+    }
+
+    private object Migration16To17 : Migration(16, 17) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS qrels_judgments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    queryId TEXT NOT NULL,
+                    queryText TEXT NOT NULL,
+                    resultId TEXT NOT NULL,
+                    entityType TEXT NOT NULL,
+                    relevant INTEGER,
+                    sessionId TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    private object Migration15To16 : Migration(15, 16) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            // 1. Add title column to document_chunks
+            connection.execSQL("ALTER TABLE document_chunks ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+
+            // 2. Backfill title from documents table
+            connection.execSQL(
+                """
+                UPDATE document_chunks 
+                SET title = COALESCE((SELECT title FROM documents WHERE documents.id = document_chunks.parentFileId), '')
+                """.trimIndent()
+            )
+
+            // 3. Drop and recreate chunks_fts with text and title columns
+            // Room's @Fts5 content-linked tables require specific recreate + rebuild flow
+            connection.execSQL("DROP TABLE IF EXISTS chunks_fts")
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE chunks_fts USING fts5(
+                    text, 
+                    title, 
+                    content='document_chunks', 
+                    content_rowid='id', 
+                    tokenize='unicode61'
+                )
+                """.trimIndent()
+            )
+
+            // 4. Issue standard FTS5 rebuild command
+            connection.execSQL("INSERT INTO chunks_fts(chunks_fts) VALUES('rebuild')")
+            
+            // 5. Re-create the mandatory sync triggers for content-linked FTS
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_insert")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_insert AFTER INSERT ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(rowid, text, title) VALUES (new.id, new.text, new.title);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_delete")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_delete AFTER DELETE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text, title) 
+                    VALUES('delete', old.id, old.text, old.title);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL("DROP TRIGGER IF EXISTS chunks_fts_update")
+            connection.execSQL(
+                """
+                CREATE TRIGGER chunks_fts_update AFTER UPDATE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text, title) 
+                    VALUES('delete', old.id, old.text, old.title);
+                    INSERT INTO chunks_fts(rowid, text, title) VALUES (new.id, new.text, new.title);
+                END
+                """.trimIndent()
+            )
+        }
+    }
+
+    private object Migration14To15 : Migration(14, 15) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN resultTitlesJson TEXT NOT NULL DEFAULT '[]'")
+            connection.execSQL("ALTER TABLE benchmark_runs ADD COLUMN resultSnippetsJson TEXT NOT NULL DEFAULT '[]'")
+        }
+    }
+
+    private object Migration1To2 : Migration(1, 2) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentFileId INTEGER NOT NULL,
+                    chunkIndex INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    startOffset INTEGER NOT NULL,
+                    endOffset INTEGER NOT NULL,
+                    embedding BLOB,
+                    createdAt INTEGER NOT NULL,
+                    FOREIGN KEY(parentFileId) REFERENCES documents(id) ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts
+                USING fts5(text, content=document_chunks, content_rowid=id)
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_insert
+                AFTER INSERT ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(rowid, text) VALUES (new.id, new.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_delete
+                AFTER DELETE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text)
+                    VALUES('delete', old.id, old.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS chunks_fts_update
+                AFTER UPDATE ON document_chunks
+                BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, text)
+                    VALUES('delete', old.id, old.text);
+                    INSERT INTO chunks_fts(rowid, text) VALUES (new.id, new.text);
+                END
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_document_chunks_parentFileId
+                ON document_chunks(parentFileId)
+                """.trimIndent()
+            )
+        }
+    }
+
+    private object Migration10To11 : Migration(10, 11) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentFileId INTEGER NOT NULL,
+                    chunkIndex INTEGER NOT NULL,
+                    text TEXT NOT NULL,
+                    startOffset INTEGER NOT NULL,
+                    endOffset INTEGER NOT NULL,
+                    embedding BLOB,
+                    createdAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts
+                USING fts5(text, content=`document_chunks`, tokenize='unicode61')
+                """.trimIndent()
+            )
+
+            // Backfill one chunk per legacy document body to preserve searchable data.
+            connection.execSQL(
+                """
+                INSERT INTO document_chunks (parentFileId, chunkIndex, text, startOffset, endOffset, createdAt)
+                SELECT id, 0, body, 0, length(body), CAST(strftime('%s','now') AS INTEGER) * 1000
+                FROM documents
+                WHERE body IS NOT NULL AND length(trim(body)) > 0
+                """.trimIndent()
+            )
+
+            connection.execSQL(
+                """
+                INSERT INTO chunks_fts(rowid, text)
+                SELECT id, text FROM document_chunks
+                """.trimIndent()
+            )
+        }
+    }
+
+    private object Migration11To12 : Migration(11, 12) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_document_chunks_parentFileId ON document_chunks(parentFileId)"
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_document_chunks_embedding ON document_chunks(embedding)"
+            )
+        }
+    }
+
+    private object Migration12To13 : Migration(12, 13) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            // Apps table
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS apps (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    packageName TEXT NOT NULL,
+                    appName TEXT NOT NULL,
+                    textRepresentation TEXT NOT NULL,
+                    embedding BLOB,
+                    lastIndexedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts
+                USING fts5(textRepresentation, content=apps, content_rowid=id, tokenize='unicode61')
+                """.trimIndent()
+            )
+            
+            // Triggers for apps_fts
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_insert AFTER INSERT ON apps BEGIN INSERT INTO apps_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_delete AFTER DELETE ON apps BEGIN INSERT INTO apps_fts(apps_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS apps_fts_update AFTER UPDATE ON apps BEGIN INSERT INTO apps_fts(apps_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); INSERT INTO apps_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+
+            // Contacts table
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    contactId TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    textRepresentation TEXT NOT NULL,
+                    embedding BLOB,
+                    lastIndexedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS contacts_fts
+                USING fts5(textRepresentation, content=contacts, content_rowid=id, tokenize='unicode61')
+                """.trimIndent()
+            )
+            
+            // Triggers for contacts_fts
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_insert AFTER INSERT ON contacts BEGIN INSERT INTO contacts_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_delete AFTER DELETE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); END")
+            connection.execSQL("CREATE TRIGGER IF NOT EXISTS contacts_fts_update AFTER UPDATE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, textRepresentation) VALUES('delete', old.id, old.textRepresentation); INSERT INTO contacts_fts(rowid, textRepresentation) VALUES (new.id, new.textRepresentation); END")
+        }
+    }
+
+    private object Migration13To14 : Migration(13, 14) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS benchmark_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    runSessionId TEXT NOT NULL,
+                    queryId TEXT NOT NULL,
+                    queryText TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    deviceModel TEXT NOT NULL,
+                    androidVersion TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    corpusSizeChunks INTEGER NOT NULL,
+                    corpusSizeApps INTEGER NOT NULL,
+                    corpusSizeContacts INTEGER NOT NULL,
+                    latencyBm25Ms INTEGER NOT NULL,
+                    latencyDenseMs INTEGER NOT NULL,
+                    latencyFusionMs INTEGER NOT NULL,
+                    latencyRerankMs INTEGER,
+                    latencyTotalMs INTEGER NOT NULL,
+                    memoryMbPeak REAL NOT NULL,
+                    batteryPctBefore INTEGER,
+                    batteryPctAfter INTEGER,
+                    resultIdsJson TEXT NOT NULL,
+                    resultScoresJson TEXT NOT NULL,
+                    resultEntityTypesJson TEXT NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "hybrid_search.db"
+                )
+                // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
+                .setDriver(BundledSQLiteDriver())
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16, Migration16To17, Migration17To18, Migration18To19)
+                // Temporary dev safety valve for unsupported legacy version hops.
+                .fallbackToDestructiveMigration()
+                .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}

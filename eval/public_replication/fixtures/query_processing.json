@@ -1,0 +1,541 @@
+{"cases": [
+ {
+  "keyTerms": [
+   "ml",
+   "model",
+   "nlp",
+   "api"
+  ],
+  "normalized": "is the ml model for nlp an api",
+  "raw": "Is the ML model for NLP an API?",
+  "denseQuery": "ml model nlp api machine learning natural language processing application programming interface",
+  "bm25Query": "ml ml model nlp nlp api api machine learning natural language processing application programming interface"
+ },
+ {
+  "keyTerms": [
+   "how",
+   "vaccines",
+   "work"
+  ],
+  "normalized": "how do vaccines work",
+  "raw": "how do vaccines work",
+  "denseQuery": "how vaccines work",
+  "bm25Query": "how vaccines work"
+ },
+ {
+  "keyTerms": [
+   "covid-19",
+   "transmission",
+   "rates",
+   "masks"
+  ],
+  "normalized": "covid-19 transmission rates masks",
+  "raw": "COVID-19 transmission rates & masks",
+  "denseQuery": "covid-19 transmission rates masks",
+  "bm25Query": "covid-19 transmission rates masks"
+ },
+ {
+  "keyTerms": [
+   "cafe",
+   "muller's",
+   "naive",
+   "resume"
+  ],
+  "normalized": "cafe muller's naive resume",
+  "raw": "Café Müller's naïve résumé",
+  "denseQuery": "cafe muller's naive resume",
+  "bm25Query": "cafe muller's naive resume"
+ },
+ {
+  "keyTerms": [
+   "what",
+   "best",
+   "way",
+   "learn",
+   "python",
+   "programming"
+  ],
+  "normalized": "what is the best way to learn python programming",
+  "raw": "what's the best way to learn Python programming?",
+  "denseQuery": "what best way learn python programming study understand master",
+  "bm25Query": "what best way learn python python programming"
+ },
+ {
+  "keyTerms": [
+   "my",
+   "pdf",
+   "report",
+   "from",
+   "last",
+   "week"
+  ],
+  "normalized": "my pdf report from last week",
+  "raw": "my pdf report from last week",
+  "denseQuery": "my pdf report from last week",
+  "bm25Query": "my pdf report from last week"
+ },
+ {
+  "keyTerms": ["go"],
+  "normalized": "go",
+  "raw": "go",
+  "denseQuery": "go",
+  "bm25Query": "go go"
+ },
+ {
+  "keyTerms": ["r"],
+  "normalized": "r",
+  "raw": "r",
+  "denseQuery": "r",
+  "bm25Query": "r r"
+ },
+ {
+  "keyTerms": [
+   "sql",
+   "database",
+   "design"
+  ],
+  "normalized": "sql database design",
+  "raw": "sql database design",
+  "denseQuery": "sql database design structured query language plan architect structure",
+  "bm25Query": "sql sql database design structured query language"
+ },
+ {
+  "keyTerms": [],
+  "normalized": "the of and",
+  "raw": "the of and",
+  "denseQuery": "",
+  "bm25Query": ""
+ },
+ {
+  "keyTerms": [],
+  "normalized": "",
+  "raw": "",
+  "denseQuery": "",
+  "bm25Query": ""
+ },
+ {
+  "keyTerms": [],
+  "normalized": "",
+  "raw": "   ",
+  "denseQuery": "",
+  "bm25Query": ""
+ },
+ {
+  "keyTerms": [
+   "visit",
+   "now"
+  ],
+  "normalized": "visit now",
+  "raw": "Visit https://example.com/page now",
+  "denseQuery": "visit now",
+  "bm25Query": "visit now"
+ },
+ {
+  "keyTerms": [
+   "write",
+   "about"
+  ],
+  "normalized": "write to about it",
+  "raw": "write to someone@example.org about it",
+  "denseQuery": "write about",
+  "bm25Query": "write about"
+ },
+ {
+  "keyTerms": [
+   "not",
+   "cannot",
+   "not"
+  ],
+  "normalized": "do not cannot will not it is",
+  "raw": "don't can't won't it's",
+  "denseQuery": "not cannot not",
+  "bm25Query": "not cannot not"
+ },
+ {
+  "keyTerms": [
+   "state-of-the-art",
+   "deep-learning",
+   "methods"
+  ],
+  "normalized": "state-of-the-art deep-learning methods",
+  "raw": "state-of-the-art deep-learning methods",
+  "denseQuery": "state-of-the-art deep-learning methods",
+  "bm25Query": "state-of-the-art deep-learning methods"
+ },
+ {
+  "keyTerms": [
+   "2019-05-12",
+   "meeting",
+   "notes"
+  ],
+  "normalized": "2019-05-12 meeting notes",
+  "raw": "2019-05-12 meeting notes",
+  "denseQuery": "2019-05-12 meeting notes",
+  "bm25Query": "2019-05-12 meeting notes"
+ },
+ {
+  "keyTerms": [
+   "3",
+   "14",
+   "pi",
+   "value"
+  ],
+  "normalized": "3 14 pi value",
+  "raw": "3.14 pi value",
+  "denseQuery": "3 14 pi value",
+  "bm25Query": "3 14 pi value"
+ },
+ {
+  "keyTerms": [
+   "ui",
+   "ux",
+   "devops",
+   "cicd"
+  ],
+  "normalized": "ui ux devops cicd",
+  "raw": "UI UX devops cicd",
+  "denseQuery": "ui ux devops cicd user interface user experience development operations continuous integration deployment",
+  "bm25Query": "ui ui ux ux devops devops cicd cicd user interface user experience development operations continuous integration deployment"
+ },
+ {
+  "keyTerms": [
+   "backend",
+   "frontend",
+   "fullstack",
+   "docker"
+  ],
+  "normalized": "backend frontend fullstack docker",
+  "raw": "backend frontend fullstack docker",
+  "denseQuery": "backend frontend fullstack docker",
+  "bm25Query": "backend backend frontend frontend fullstack fullstack docker docker"
+ },
+ {
+  "keyTerms": [
+   "kubernetes",
+   "aws",
+   "azure",
+   "gcp"
+  ],
+  "normalized": "kubernetes aws azure gcp",
+  "raw": "kubernetes aws azure gcp",
+  "denseQuery": "kubernetes aws azure gcp",
+  "bm25Query": "kubernetes kubernetes aws aws azure azure gcp gcp"
+ },
+ {
+  "keyTerms": [
+   "ai",
+   "ai",
+   "ai"
+  ],
+  "normalized": "ai ai ai",
+  "raw": "ai ai ai",
+  "denseQuery": "ai ai ai artificial intelligence",
+  "bm25Query": "ai ai ai ai ai ai artificial intelligence"
+ },
+ {
+  "keyTerms": [
+   "search",
+   "document",
+   "image",
+   "create",
+   "delete",
+   "update"
+  ],
+  "normalized": "search document image create delete update",
+  "raw": "search document image create delete update",
+  "denseQuery": "search document image create delete update find lookup query file doc paper picture photo graphic make build generate remove erase discard modify change edit",
+  "bm25Query": "search document image create delete update"
+ },
+ {
+  "keyTerms": [
+   "what",
+   "effect",
+   "vitamin",
+   "d",
+   "bone",
+   "density",
+   "adults"
+  ],
+  "normalized": "what is the effect of vitamin d on bone density in adults",
+  "raw": "what is the effect of vitamin D on bone density in adults",
+  "denseQuery": "what effect vitamin d bone density adults",
+  "bm25Query": "what effect vitamin d bone density adults"
+ },
+ {
+  "keyTerms": [
+   "brackets",
+   "parens",
+   "braces",
+   "angle"
+  ],
+  "normalized": "brackets parens braces angle",
+  "raw": "[brackets] (parens) {braces} <angle>",
+  "denseQuery": "brackets parens braces angle",
+  "bm25Query": "brackets parens braces angle"
+ },
+ {
+  "keyTerms": [
+   "100",
+   "sure",
+   "hashtag",
+   "mention"
+  ],
+  "normalized": "100 sure hashtag mention",
+  "raw": "100% sure #hashtag @mention",
+  "denseQuery": "100 sure hashtag mention",
+  "bm25Query": "100 sure hashtag mention"
+ },
+ {
+  "keyTerms": [
+   "why",
+   "cells",
+   "divide",
+   "how",
+   "when"
+  ],
+  "normalized": "why do cells divide how when",
+  "raw": "Why do cells divide? How? When!",
+  "denseQuery": "why cells divide how when",
+  "bm25Query": "why cells divide how when"
+ },
+ {
+  "keyTerms": [
+   "json",
+   "xml",
+   "csv",
+   "markdown",
+   "text",
+   "file"
+  ],
+  "normalized": "json xml csv markdown text file",
+  "raw": "json xml csv markdown text file",
+  "denseQuery": "json xml csv markdown text file",
+  "bm25Query": "json xml csv markdown text file"
+ },
+ {
+  "keyTerms": [
+   "java",
+   "kotlin",
+   "c",
+   "c",
+   "rust"
+  ],
+  "normalized": "java kotlin c c rust",
+  "raw": "java kotlin c++ c# rust",
+  "denseQuery": "java kotlin c c rust",
+  "bm25Query": "java java kotlin kotlin c c rust rust"
+ },
+ {
+  "keyTerms": [
+   "yesterday",
+   "today",
+   "year",
+   "last",
+   "month"
+  ],
+  "normalized": "yesterday today this year last month",
+  "raw": "yesterday today this year last month",
+  "denseQuery": "yesterday today year last month",
+  "bm25Query": "yesterday today year last month"
+ },
+ {
+  "keyTerms": [
+   "nf-kb",
+   "signalling",
+   "t",
+   "cells"
+  ],
+  "normalized": "nf-kb signalling in t cells",
+  "raw": "NF-kB signalling in T cells",
+  "denseQuery": "nf-kb signalling t cells",
+  "bm25Query": "nf-kb signalling t cells"
+ },
+ {
+  "keyTerms": [],
+  "normalized": "a",
+  "raw": "a",
+  "denseQuery": "",
+  "bm25Query": ""
+ },
+ {
+  "keyTerms": [
+   "i",
+   "am",
+   "we",
+   "you"
+  ],
+  "normalized": "i am we are they are you have",
+  "raw": "I'm we're they're you've",
+  "denseQuery": "i am we you",
+  "bm25Query": "i am we you"
+ },
+ {
+  "keyTerms": [
+   "tutorial",
+   "example",
+   "error",
+   "performance",
+   "security"
+  ],
+  "normalized": "tutorial example error performance security",
+  "raw": "tutorial example error performance security",
+  "denseQuery": "tutorial example error performance security guide walkthrough lesson sample demo illustration bug issue problem speed efficiency optimization safety protection authentication",
+  "bm25Query": "tutorial example error performance security"
+ },
+ {
+  "keyTerms": [
+   "install",
+   "configure",
+   "integrate",
+   "run",
+   "test",
+   "debug",
+   "deploy"
+  ],
+  "normalized": "install configure integrate run test debug deploy",
+  "raw": "install configure integrate run test debug deploy",
+  "denseQuery": "install configure integrate run test debug deploy setup configure deploy setup set adjust combine merge connect execute launch start verify validate check fix troubleshoot resolve release publish launch",
+  "bm25Query": "install configure integrate run test debug deploy"
+ },
+ {
+  "keyTerms": [
+   "learn",
+   "explain",
+   "analyze",
+   "optimize",
+   "implement"
+  ],
+  "normalized": "learn explain analyze optimize implement",
+  "raw": "learn explain analyze optimize implement",
+  "denseQuery": "learn explain analyze optimize implement study understand master describe clarify elucidate examine study investigate improve enhance refine build develop code",
+  "bm25Query": "learn explain analyze optimize implement"
+ },
+ {
+  "keyTerms": [
+   "multi",
+   "spaced",
+   "query",
+   "here"
+  ],
+  "normalized": "multi spaced query here",
+  "raw": "Multi   spaced    query   here",
+  "denseQuery": "multi spaced query here",
+  "bm25Query": "multi spaced query here"
+ },
+ {
+  "keyTerms": [
+   "upper",
+   "lower",
+   "mixed"
+  ],
+  "normalized": "upper lower mixed",
+  "raw": "UPPER lower MiXeD",
+  "denseQuery": "upper lower mixed",
+  "bm25Query": "upper lower mixed"
+ },
+ {
+  "keyTerms": [
+   "tab",
+   "separated",
+   "query"
+  ],
+  "normalized": "tab separated query",
+  "raw": "tab\tseparated\tquery",
+  "denseQuery": "tab separated query",
+  "bm25Query": "tab separated query"
+ },
+ {
+  "keyTerms": [
+   "emoji",
+   "query"
+  ],
+  "normalized": "emoji query",
+  "raw": "emoji 😀 query",
+  "denseQuery": "emoji query",
+  "bm25Query": "emoji query"
+ },
+ {
+  "keyTerms": [
+   "hyphen-",
+   "-leading",
+   "trailing-"
+  ],
+  "normalized": "hyphen- -leading trailing-",
+  "raw": "hyphen- -leading trailing-",
+  "denseQuery": "hyphen- -leading trailing-",
+  "bm25Query": "hyphen- -leading trailing-"
+ },
+ {
+  "keyTerms": [
+   "'quoted'",
+   "double"
+  ],
+  "normalized": "'quoted' double",
+  "raw": "'quoted' \"double\"",
+  "denseQuery": "'quoted' double",
+  "bm25Query": "'quoted' double"
+ },
+ {
+  "keyTerms": [
+   "numbers",
+   "12",
+   "345",
+   "6789"
+  ],
+  "normalized": "numbers 12 345 6789",
+  "raw": "numbers 12 345 6789",
+  "denseQuery": "numbers 12 345 6789",
+  "bm25Query": "numbers 12 345 6789"
+ },
+ {
+  "keyTerms": [
+   "b",
+   "c",
+   "d",
+   "e",
+   "f",
+   "g"
+  ],
+  "normalized": "a b c d e f g",
+  "raw": "a b c d e f g",
+  "denseQuery": "b c d e f g",
+  "bm25Query": "b c d e f g"
+ },
+ {
+  "keyTerms": [
+   "algorithm",
+   "framework",
+   "design"
+  ],
+  "normalized": "algorithm framework design",
+  "raw": "algorithm framework design",
+  "denseQuery": "algorithm framework design method procedure approach library toolkit platform plan architect structure",
+  "bm25Query": "algorithm framework design"
+ },
+ {
+  "keyTerms": [
+   "ram",
+   "ssd",
+   "hdd",
+   "cpu",
+   "gpu"
+  ],
+  "normalized": "ram ssd hdd cpu gpu",
+  "raw": "ram ssd hdd cpu gpu",
+  "denseQuery": "ram ssd hdd cpu gpu random access memory solid state drive hard disk drive central processing unit graphics processing unit",
+  "bm25Query": "ram ram ssd ssd hdd hdd cpu cpu gpu gpu random access memory solid state drive hard disk drive central processing unit graphics processing unit"
+ },
+ {
+  "keyTerms": [
+   "regex",
+   "nosql",
+   "orm",
+   "crud",
+   "rest"
+  ],
+  "normalized": "regex nosql orm crud rest",
+  "raw": "regex nosql orm crud rest",
+  "denseQuery": "regex nosql orm crud rest regular expression non relational database object relational mapping create read update delete representational state transfer",
+  "bm25Query": "regex regex nosql nosql orm orm crud crud rest rest regular expression non relational database object relational mapping create read update delete representational state transfer"
+ }
+]}

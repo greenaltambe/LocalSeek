@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "LocalSeek: private hybrid search for Android"
+version: "1.0.0"
+license: Apache-2.0
+type: software
+repository-code: "https://github.com/greenaltambe/LocalSeek"
+authors:
+  - family-names: "Tambe"
+    given-names: "Greenal Rajkumar"
+    affiliation: "Department of Information Technology, Sardar Patel Institute of Technology, Mumbai, India"
+  - family-names: "Patil"
+    given-names: "Parikshit"
+    affiliation: "Department of Information Technology, Sardar Patel Institute of Technology, Mumbai, India"
+  - family-names: "Thakur"
+    given-names: "Kartik"
+    affiliation: "Department of Information Technology, Sardar Patel Institute of Technology, Mumbai, India"
+  - family-names: "Utsahi"
+    given-names: "Archit"
+    affiliation: "Department of Information Technology, Sardar Patel Institute of Technology, Mumbai, India"
+identifiers:
+  - type: other
+    value: "OSF vwmfz"
+    description: "OSF registration of the Set B study (https://osf.io/vwmfz)"

@@ -1,0 +1,101 @@
+pair_idx,query,passage,expected_score
+0,how to boil an egg,"Place eggs in boiling water for nine minutes for hard boiled eggs, then cool them in ice water before peeling.",4.7793989181518555
+1,how to boil an egg,"Canberra is the capital city of Australia, located between Sydney and Melbourne in the Australian Capital Territory.",-11.17917537689209
+2,how to boil an egg,"Whisk flour, milk, eggs and a pinch of salt into a smooth batter and fry ladlefuls in a hot buttered pan.",-5.8082122802734375
+3,how to boil an egg,"Mix flour, water and active starter, let the dough rise overnight, shape it and bake in a very hot covered pot.",-10.551681518554688
+4,capital of australia,"Canberra is the capital city of Australia, located between Sydney and Melbourne in the Australian Capital Territory.",8.502460479736328
+5,capital of australia,"To reset the router, hold the small reset button for ten seconds until the lights blink, then set up the network again.",-11.065738677978516
+6,capital of australia,"Use the open function with a with statement, then call read or iterate over the file object line by line.",-11.183422088623047
+7,capital of australia,"Open Settings, tap System, then Software update, and install the newest version while connected to power.",-11.163952827453613
+8,reset wifi router,"To reset the router, hold the small reset button for ten seconds until the lights blink, then set up the network again.",6.732804298400879
+9,reset wifi router,"Simmer crushed tomatoes with garlic, olive oil and basil for twenty minutes, then toss with cooked spaghetti.",-11.112580299377441
+10,reset wifi router,"Seasons are caused by the tilt of the Earth's axis as it orbits the Sun, changing how directly sunlight reaches each hemisphere.",-11.239180564880371
+11,reset wifi router,"Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to make sugar and release oxygen.",-11.116655349731445
+12,tomato pasta sauce recipe,"Simmer crushed tomatoes with garlic, olive oil and basil for twenty minutes, then toss with cooked spaghetti.",-0.2501978874206543
+13,tomato pasta sauce recipe,"By the most common convention there are seven continents: Africa, Antarctica, Asia, Europe, North America, Oceania and South America.",-11.19885540008545
+14,tomato pasta sauce recipe,"Remove the wheel, pry off the tire, patch or replace the inner tube, check for thorns, and reinflate.",-11.090155601501465
+15,tomato pasta sauce recipe,"Regular short practice, listening to native speakers, and speaking from the first week help most learners progress.",-11.118951797485352
+16,how many continents are there,"By the most common convention there are seven continents: Africa, Antarctica, Asia, Europe, North America, Oceania and South America.",9.364466667175293
+17,how many continents are there,"Open the browser settings, choose privacy, and select clear browsing data to remove cached images and files.",-11.178736686706543
+18,how many continents are there,"Mount Everest, on the border of Nepal and China, rises about 8,849 metres above sea level.",-10.838164329528809
+19,how many continents are there,"Switch off the power, let the bulb cool, unscrew it counterclockwise and screw in a bulb of the same base type.",-11.135990142822266
+20,clear browser cache,"Open the browser settings, choose privacy, and select clear browsing data to remove cached images and files.",4.853104114532471
+21,clear browser cache,"The Nile and the Amazon are the two candidates for the longest river, with measurements around 6,600 kilometres.",-11.414306640625
+22,clear browser cache,Multiply the temperature in Celsius by nine fifths and add thirty two to get degrees Fahrenheit.,-11.33076000213623
+23,clear browser cache,"Japan has a population of roughly 124 million people, most of whom live in cities on the island of Honshu.",-11.42193603515625
+24,longest river in the world,"The Nile and the Amazon are the two candidates for the longest river, with measurements around 6,600 kilometres.",8.05456256866455
+25,longest river in the world,"Whisk flour, milk, eggs and a pinch of salt into a smooth batter and fry ladlefuls in a hot buttered pan.",-11.03732967376709
+26,longest river in the world,"Mix flour, water and active starter, let the dough rise overnight, shape it and bake in a very hot covered pot.",-10.987842559814453
+27,longest river in the world,"Sauté onions and carrots, add diced potatoes, celery and stock, then simmer until the vegetables are tender.",-10.949000358581543
+28,how to make pancakes,"Whisk flour, milk, eggs and a pinch of salt into a smooth batter and fry ladlefuls in a hot buttered pan.",-1.8384590148925781
+29,how to make pancakes,"Use the open function with a with statement, then call read or iterate over the file object line by line.",-11.233739852905273
+30,how to make pancakes,"Open Settings, tap System, then Software update, and install the newest version while connected to power.",-11.24763011932373
+31,how to make pancakes,"Put the headphones in pairing mode, forget the old device on your phone, and try connecting again.",-11.196152687072754
+32,python read a text file,"Use the open function with a with statement, then call read or iterate over the file object line by line.",-5.089140892028809
+33,python read a text file,"Seasons are caused by the tilt of the Earth's axis as it orbits the Sun, changing how directly sunlight reaches each hemisphere.",-11.404458999633789
+34,python read a text file,"Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to make sugar and release oxygen.",-11.310450553894043
+35,python read a text file,The Mona Lisa was painted by Leonardo da Vinci in the early sixteenth century and hangs in the Louvre in Paris.,-11.385773658752441
+36,what causes the seasons,"Seasons are caused by the tilt of the Earth's axis as it orbits the Sun, changing how directly sunlight reaches each hemisphere.",9.289950370788574
+37,what causes the seasons,"Remove the wheel, pry off the tire, patch or replace the inner tube, check for thorns, and reinflate.",-11.175273895263672
+38,what causes the seasons,"Regular short practice, listening to native speakers, and speaking from the first week help most learners progress.",-11.259955406188965
+39,what causes the seasons,"Lower screen brightness, close background apps, enable battery saver mode and unplug unused peripherals.",-11.286806106567383
+40,fix a flat bicycle tire,"Remove the wheel, pry off the tire, patch or replace the inner tube, check for thorns, and reinflate.",-1.5656507015228271
+41,fix a flat bicycle tire,"Mount Everest, on the border of Nepal and China, rises about 8,849 metres above sea level.",-11.111478805541992
+42,fix a flat bicycle tire,"Switch off the power, let the bulb cool, unscrew it counterclockwise and screw in a bulb of the same base type.",-11.170049667358398
+43,fix a flat bicycle tire,"The Moon orbits the Earth at an average distance of about 384,000 kilometres.",-11.139699935913086
+44,highest mountain on earth,"Mount Everest, on the border of Nepal and China, rises about 8,849 metres above sea level.",4.072108745574951
+45,highest mountain on earth,Multiply the temperature in Celsius by nine fifths and add thirty two to get degrees Fahrenheit.,-11.004034042358398
+46,highest mountain on earth,"Japan has a population of roughly 124 million people, most of whom live in cities on the island of Honshu.",-11.104439735412598
+47,highest mountain on earth,"Mash ripe avocados with lime juice, salt, chopped onion, cilantro and a little chili.",-10.910224914550781
+48,convert celsius to fahrenheit,Multiply the temperature in Celsius by nine fifths and add thirty two to get degrees Fahrenheit.,6.166208267211914
+49,convert celsius to fahrenheit,"Mix flour, water and active starter, let the dough rise overnight, shape it and bake in a very hot covered pot.",-11.052034378051758
+50,convert celsius to fahrenheit,"Sauté onions and carrots, add diced potatoes, celery and stock, then simmer until the vegetables are tender.",-11.027787208557129
+51,convert celsius to fahrenheit,"Place eggs in boiling water for nine minutes for hard boiled eggs, then cool them in ice water before peeling.",-11.133561134338379
+52,how to bake sourdough bread,"Mix flour, water and active starter, let the dough rise overnight, shape it and bake in a very hot covered pot.",-3.5011258125305176
+53,how to bake sourdough bread,"Open Settings, tap System, then Software update, and install the newest version while connected to power.",-11.151021003723145
+54,how to bake sourdough bread,"Put the headphones in pairing mode, forget the old device on your phone, and try connecting again.",-11.1137113571167
+55,how to bake sourdough bread,"Canberra is the capital city of Australia, located between Sydney and Melbourne in the Australian Capital Territory.",-11.157464027404785
+56,update android phone software,"Open Settings, tap System, then Software update, and install the newest version while connected to power.",-3.040348768234253
+57,update android phone software,"Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to make sugar and release oxygen.",-11.132569313049316
+58,update android phone software,The Mona Lisa was painted by Leonardo da Vinci in the early sixteenth century and hangs in the Louvre in Paris.,-11.231524467468262
+59,update android phone software,"To reset the router, hold the small reset button for ten seconds until the lights blink, then set up the network again.",-11.222599029541016
+60,what is photosynthesis,"Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to make sugar and release oxygen.",10.716691017150879
+61,what is photosynthesis,"Regular short practice, listening to native speakers, and speaking from the first week help most learners progress.",-11.191238403320312
+62,what is photosynthesis,"Lower screen brightness, close background apps, enable battery saver mode and unplug unused peripherals.",-11.277894020080566
+63,what is photosynthesis,"Simmer crushed tomatoes with garlic, olive oil and basil for twenty minutes, then toss with cooked spaghetti.",-11.12120246887207
+64,best way to learn a language,"Regular short practice, listening to native speakers, and speaking from the first week help most learners progress.",-2.6953084468841553
+65,best way to learn a language,"Switch off the power, let the bulb cool, unscrew it counterclockwise and screw in a bulb of the same base type.",-11.088972091674805
+66,best way to learn a language,"The Moon orbits the Earth at an average distance of about 384,000 kilometres.",-11.072922706604004
+67,best way to learn a language,"By the most common convention there are seven continents: Africa, Antarctica, Asia, Europe, North America, Oceania and South America.",-11.164634704589844
+68,how to change a light bulb,"Switch off the power, let the bulb cool, unscrew it counterclockwise and screw in a bulb of the same base type.",4.5881028175354
+69,how to change a light bulb,"Japan has a population of roughly 124 million people, most of whom live in cities on the island of Honshu.",-11.225359916687012
+70,how to change a light bulb,"Mash ripe avocados with lime juice, salt, chopped onion, cilantro and a little chili.",-11.16848373413086
+71,how to change a light bulb,"Open the browser settings, choose privacy, and select clear browsing data to remove cached images and files.",-11.241090774536133
+72,population of japan,"Japan has a population of roughly 124 million people, most of whom live in cities on the island of Honshu.",9.639963150024414
+73,population of japan,"Sauté onions and carrots, add diced potatoes, celery and stock, then simmer until the vegetables are tender.",-10.984126091003418
+74,population of japan,"Place eggs in boiling water for nine minutes for hard boiled eggs, then cool them in ice water before peeling.",-11.027942657470703
+75,population of japan,"The Nile and the Amazon are the two candidates for the longest river, with measurements around 6,600 kilometres.",-11.105938911437988
+76,vegetable soup recipe,"Sauté onions and carrots, add diced potatoes, celery and stock, then simmer until the vegetables are tender.",0.21200594305992126
+77,vegetable soup recipe,"Put the headphones in pairing mode, forget the old device on your phone, and try connecting again.",-11.116205215454102
+78,vegetable soup recipe,"Canberra is the capital city of Australia, located between Sydney and Melbourne in the Australian Capital Territory.",-11.174110412597656
+79,vegetable soup recipe,"Whisk flour, milk, eggs and a pinch of salt into a smooth batter and fry ladlefuls in a hot buttered pan.",-9.068879127502441
+80,bluetooth headphones not pairing,"Put the headphones in pairing mode, forget the old device on your phone, and try connecting again.",3.4119279384613037
+81,bluetooth headphones not pairing,The Mona Lisa was painted by Leonardo da Vinci in the early sixteenth century and hangs in the Louvre in Paris.,-11.17271900177002
+82,bluetooth headphones not pairing,"To reset the router, hold the small reset button for ten seconds until the lights blink, then set up the network again.",-11.240693092346191
+83,bluetooth headphones not pairing,"Use the open function with a with statement, then call read or iterate over the file object line by line.",-11.304296493530273
+84,who painted the mona lisa,The Mona Lisa was painted by Leonardo da Vinci in the early sixteenth century and hangs in the Louvre in Paris.,10.560914993286133
+85,who painted the mona lisa,"Lower screen brightness, close background apps, enable battery saver mode and unplug unused peripherals.",-11.144811630249023
+86,who painted the mona lisa,"Simmer crushed tomatoes with garlic, olive oil and basil for twenty minutes, then toss with cooked spaghetti.",-11.125109672546387
+87,who painted the mona lisa,"Seasons are caused by the tilt of the Earth's axis as it orbits the Sun, changing how directly sunlight reaches each hemisphere.",-11.11977767944336
+88,how to save battery on a laptop,"Lower screen brightness, close background apps, enable battery saver mode and unplug unused peripherals.",1.3592984676361084
+89,how to save battery on a laptop,"The Moon orbits the Earth at an average distance of about 384,000 kilometres.",-11.20668888092041
+90,how to save battery on a laptop,"By the most common convention there are seven continents: Africa, Antarctica, Asia, Europe, North America, Oceania and South America.",-11.284893035888672
+91,how to save battery on a laptop,"Remove the wheel, pry off the tire, patch or replace the inner tube, check for thorns, and reinflate.",-11.214692115783691
+92,how far is the moon,"The Moon orbits the Earth at an average distance of about 384,000 kilometres.",7.4624857902526855
+93,how far is the moon,"Mash ripe avocados with lime juice, salt, chopped onion, cilantro and a little chili.",-11.265715599060059
+94,how far is the moon,"Open the browser settings, choose privacy, and select clear browsing data to remove cached images and files.",-11.338907241821289
+95,how far is the moon,"Mount Everest, on the border of Nepal and China, rises about 8,849 metres above sea level.",-10.33777904510498
+96,guacamole ingredients,"Mash ripe avocados with lime juice, salt, chopped onion, cilantro and a little chili.",-9.432294845581055
+97,guacamole ingredients,"Place eggs in boiling water for nine minutes for hard boiled eggs, then cool them in ice water before peeling.",-11.259697914123535
+98,guacamole ingredients,"The Nile and the Amazon are the two candidates for the longest river, with measurements around 6,600 kilometres.",-11.239764213562012
+99,guacamole ingredients,Multiply the temperature in Celsius by nine fifths and add thirty two to get degrees Fahrenheit.,-11.206436157226562
