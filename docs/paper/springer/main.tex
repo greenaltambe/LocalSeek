@@ -36,7 +36,7 @@
 
 \affil*[1]{\orgname{Sardar Patel Institute of Technology}, \orgaddress{\city{Mumbai}, \state{Maharashtra}, \country{India}}}
 
-\abstract{Searching a phone's own files, apps and contacts should happen on the device, yet there is little published evidence on how to build such a search engine, because personal collections cannot be shared. We present LocalSeek, an open-source Android app that combines lexical BM25 ranking with dense retrieval from a small sentence-embedding model and needs no network permission, and we evaluate it in three studies. In a pre-registered study on one owner's phone (77 scored real-use queries, nine configurations), a hybrid of exact dense search and rank fusion reached a normalised discounted cumulative gain at rank 10 (nDCG@10) of 0.838, 0.254 above BM25 alone, and beat the configuration shipped during development by 0.147. Merging the ranks rather than the raw scores of three lexical tables gained 0.105. Approximate search with locality-sensitive hashing and cross-encoder reranking showed no detectable benefit, and reranking cost 4.8 s per query. On eleven volunteers' own phones, with blind judging, the hybrid again led BM25 (+0.194) and dense search alone (+0.067); both gains were significant only in a sensitivity analysis that included every volunteer. Benchmarks on two phones with up to 200,000 vectors show that exact search is fast at personal scale and that a binary shortlist with rescoring keeps recall@10 at 0.975 or more below 30 ms beyond it, while the former hashing index found only 3 to 13\% of the true neighbours. A replication on five public datasets confirms the cost of hashing and the absence of a reranking gain.}
+\abstract{Searching a phone's own files, apps and contacts should happen on the device, yet there is little published evidence on how to build such a search engine, because personal collections cannot be shared. We present LocalSeek, an open-source Android app that combines lexical BM25 ranking with dense retrieval from a small sentence-embedding model and needs no network permission, and we evaluate it in three studies. In a pre-registered study on one owner's phone (77 scored real-use queries, nine configurations), a hybrid of exact dense search and rank fusion reached a normalised discounted cumulative gain at rank 10 (nDCG@10) of 0.838, 0.254 above BM25 alone, and beat the configuration shipped during development by 0.147. Merging the ranks rather than the raw scores of three lexical tables gained 0.105. Locality-sensitive hashing and cross-encoder reranking showed no detectable benefit, and reranking cost 4.8 s per query. On eleven volunteers' own phones, with blind judging, the hybrid again led BM25 (+0.194) and dense search alone (+0.067); both gains were significant only in a sensitivity analysis that included every volunteer. Benchmarks on two phones with up to 200,000 vectors show that exact search is fast at personal scale and that a binary shortlist with rescoring finds at least 97.5\% of the true top 10 in under 30 ms beyond it, while the former hashing index found only 3 to 13\% of the true neighbours. A replication on five public datasets confirms the cost of hashing and the absence of a reranking gain.}
 
 \keywords{On-device search, Hybrid retrieval, Personal information retrieval, Dense retrieval, Mobile computing, Pre-registration}
 
@@ -58,8 +58,8 @@ We built LocalSeek, an Android app that searches files, apps, contacts and image
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=0.9\linewidth]{drawio/studies.pdf}
-\caption{The three studies and how they feed the configuration that version 1.0.0 ships. Study 1 tests retrieval quality on real phones: confirmatory on the owner's phone (1A) and on eleven volunteers' own phones (1B). Study 2 checks speed and cost at larger sizes and on other phones; Study 3 asks whether the quality findings hold on data anyone can download.}
+\includegraphics[width=\linewidth]{drawio/studies.pdf}
+\caption{The three studies and how they feed the configuration that version 1.0.0 ships. Study 1 tests retrieval quality on real phones: confirmatory on the owner's phone (1A) and on eleven volunteers' own phones (1B). Study 2 checks speed and cost at larger sizes and on other phones; Study 3 asks whether the quality findings hold on data anyone can download}
 \label{fig:studies}
 \end{figure}
 
@@ -97,7 +97,7 @@ LocalSeek is an Android app written in Kotlin with Jetpack Compose (minimum Andr
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=0.85\linewidth]{drawio/arch.pdf}
-\caption{LocalSeek architecture (version 1.0.0). In the background, indexers store text in SQLite FTS5 tables and MiniLM embeddings beside them. At query time BM25, dense and (optionally) image retrieval run, reciprocal-rank fusion (RRF) merges their lists, and an optional cross-encoder can rerank the top 20. Dashed boxes are optional and off in every experiment.}
+\caption{LocalSeek architecture (version 1.0.0). In the background, indexers store text in SQLite FTS5 tables and MiniLM embeddings beside them. At query time BM25, dense and (optionally) image retrieval run, reciprocal-rank fusion (RRF) merges their lists, and an optional cross-encoder can rerank the top 20. Dashed boxes are optional and off in every experiment}
 \label{fig:arch}
 \end{figure}
 
@@ -127,7 +127,7 @@ Study~1 measures retrieval quality on real phones in two parts. Part~1A is the c
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{drawio/protocol.pdf}
-\caption{Study 1 protocol, from registration to the registered analysis. Numbers are those of the Set~B run.}
+\caption{Study 1 protocol, from registration to the registered analysis. Numbers are those of the Set~B run}
 \label{fig:protocol}
 \end{figure}
 
@@ -170,8 +170,8 @@ E12 & Replica of the configuration shipped before the study \\
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=0.9\linewidth]{drawio/userstudy.pdf}
-\caption{Study 1B flow on each volunteer's phone. Judging is blind to the method; the export holds numbers and enumerations only.}
+\includegraphics[width=\linewidth]{drawio/userstudy.pdf}
+\caption{Study 1B flow on each volunteer's phone. Judging is blind to the method; the export holds numbers and enumerations only}
 \label{fig:userstudy}
 \end{figure}
 
@@ -207,7 +207,7 @@ H5 & E9 $-$ E12 (best vs shipped) & +0.147 & [+0.080, +0.213] & 0.0002 & \textbf
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{fig_h_contrasts.pdf}
-\caption{Study 1 contrasts as paired differences in \ndcg{} (cluster means, 95\% bootstrap CI). Filled markers: Holm-adjusted $p<0.05$ within their family (upper group: registered; lower group: exploratory). Shaded band: smaller than the registered minimum detectable effect.}
+\caption{Study 1 contrasts as paired differences in \ndcg{} (cluster means, 95\% bootstrap CI). Filled markers: Holm-adjusted $p<0.05$ within their family (upper group: registered; lower group: exploratory). Shaded band: smaller than the registered minimum detectable effect}
 \label{fig:contrasts}
 \end{figure}
 
@@ -377,7 +377,7 @@ Arm means E1 / E2 / E9 & \multicolumn{3}{l}{0.703 / 0.834 / 0.901} & \multicolum
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{fig_i_study1b.pdf}
-\caption{Study 1B: each volunteer's mean paired difference in \ndcg{} (number of scored searches in brackets). Filled circles: the six participants of the planned analysis; open circles: the five with fewer than eight scored searches. Pooled estimates with participant-cluster 95\% intervals: planned analysis (filled diamond) and all eleven participants (open square).}
+\caption{Study 1B: each volunteer's mean paired difference in \ndcg{} (number of scored searches in brackets). Filled circles: the six participants of the planned analysis; open circles: the five with fewer than eight scored searches. Pooled estimates with participant-cluster 95\% intervals: planned analysis (filled diamond) and all eleven participants (open square)}
 \label{fig:s1b}
 \end{figure}
 
@@ -434,18 +434,15 @@ Exact p95 crosses 50 ms & between 50k and 100k & between 10k and 50k \\
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=0.66\linewidth]{fig_c_latency_vs_n.pdf}\\[-1pt]
-{\footnotesize (a) p95 latency, both phones}\\[6pt]
-\includegraphics[width=0.66\linewidth]{fig_d_memory_vs_n.pdf}\\[-1pt]
-{\footnotesize (b) memory, phone A}
-\caption{Study 2: (a) p95 latency of exact float32 search and the binary shortlist ($k'=200$) against the number of vectors $N$ on both phones (solid: phone A, dashed: phone B; the dotted line marks 50\,ms); (b) memory of each method on phone A.}
+\includegraphics[width=\linewidth]{fig_cd_latency_memory.pdf}
+\caption{Study 2: (a) p95 latency of exact float32 search (squares) and the binary shortlist with rescoring, $k'=200$ (triangles), against the number of vectors $N$ on both phones (solid lines: phone A; dashed lines: phone B; the dotted horizontal line marks 50\,ms); (b) analytic index memory of each method on phone A, both axes logarithmic. HNSW and the two LSH variants need almost the same memory, so their lines overlap}
 \label{fig:latmem}
 \end{figure}
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=0.66\linewidth]{fig_b_recall_vs_latency.pdf}
-\caption{Study 2, phone A: recall@10 against p95 latency for each method and collection size. Numbers next to points are efSearch (HNSW) or $k'$ (binary shortlist).}
+\includegraphics[width=\linewidth]{fig_b_recall_vs_latency.pdf}
+\caption{Study 2, phone A: recall@10 against p95 latency for each method and collection size $N$. Thin lines join the settings of one method: efSearch 16, 32, 64 and 128 for HNSW and $k'=100$ and 200 for the binary shortlist (higher settings give higher recall). HNSW was skipped at 200k by the heap rule. Not shown, because they fall far below the axis: the app's LSH configuration (recall@10 0.03--0.06) and LSH without the candidate cap (0.59--0.67)}
 \label{fig:recall}
 \end{figure}
 
@@ -537,7 +534,7 @@ On five public datasets, exact search beat LSH in the hybrid every time, reranki
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{drawio/replication.pdf}
-\caption{Study 3 workflow: a Python port of the app pipeline, checked against fixtures written by the Kotlin code, run on five public BEIR datasets under an analysis plan committed before any result.}
+\caption{Study 3 workflow: a Python port of the app pipeline, checked against fixtures written by the Kotlin code, run on five public BEIR datasets under an analysis plan committed before any result}
 \label{fig:replication}
 \end{figure}
 
@@ -603,8 +600,8 @@ EmbeddingGemma & 307.6M & 256 & --\footnotemark[2] & 0.732$^{*}$ & 0.357$^{*}$ &
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=0.66\linewidth]{fig_f_embedders.pdf}
-\caption{Study 3: \ndcg{} of the hybrid RRF exact configuration with each embedder on the five BEIR datasets. MiniLM (open circle) is the model the app ships.}
+\includegraphics[width=\linewidth]{fig_f_embedders.pdf}
+\caption{Study 3: \ndcg{} of the hybrid RRF exact configuration with each embedder on the five BEIR datasets. MiniLM (large open circle) is the model the app ships. EmbeddingGemma was not run on TREC-COVID}
 \label{fig:embedders}
 \end{figure}
 
@@ -658,9 +655,9 @@ On one person's phone, the measured best configuration of an on-device hybrid se
 \backmatter
 
 \bmhead{Acknowledgements}
-The authors thank their project guide, Prof.\ Pallavi Thakur (Sardar Patel Institute of Technology), for guidance, and the volunteers who took part in the user study.
+The authors are grateful to their project guide, Prof.\ Pallavi Thakur, Sardar Patel Institute of Technology, Mumbai, for her guidance and supervision throughout this work. The authors also thank the volunteers who took part in the user study.
 
-\section*{Declarations}
+\section*{Statements and Declarations}
 
 \bmhead{Funding} No funding was received for conducting this study.
 

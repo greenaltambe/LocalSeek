@@ -5,7 +5,7 @@ flowchart TB
         apps["Installed apps"]
         contacts["Contacts"]
         images["Images<br/>(optional)"]
-        prep["Text extraction and chunking<br/>files: 150-word chunks, 40-word overlap<br/>apps, contacts: names and labels"]
+        prep["Text extraction and chunking<br/>files: 150-word chunks,<br/>40-word overlap;<br/>apps, contacts: names, labels"]
         fts["SQLite FTS5 tables<br/>(chunks, apps, contacts)"]
         emb["MiniLM embeddings<br/>(384-d, TensorFlow Lite)"]
         clip["CLIP image<br/>embeddings"]
@@ -34,9 +34,7 @@ flowchart TB
         rrf --> rerank
         rerank --> res
     end
-    fts -.-> bm25
-    emb -.-> dense
-    clip -.-> img
+    IDX -. "indexes read at query time" .-> SRCH
     class files,apps,contacts,res input
     class prep,fts,emb data
     class qp plain
@@ -44,9 +42,9 @@ flowchart TB
     class rrf result
     class images,clip,img,rerank opt
     classDef input fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
-    classDef core fill:#E6E6E6,stroke:#000000,stroke-width:1px,color:#000
+    classDef core fill:#FFFFFF,stroke:#000000,stroke-width:1.6px,color:#000
     classDef result fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000
-    classDef data fill:#F2F2F2,stroke:#000000,stroke-width:1px,color:#000
+    classDef data fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
     classDef plan fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
     classDef plain fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
     classDef opt fill:#FFFFFF,stroke:#555555,stroke-width:1px,stroke-dasharray:5 4,color:#333

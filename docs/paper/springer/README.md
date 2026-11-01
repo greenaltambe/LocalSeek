@@ -3,8 +3,8 @@
 This folder is the **master copy** of the paper from 2026-11-01. `docs/paper/latex/` (article class) is the older layout; do not edit it any more.
 
 - `main.tex`: manuscript in the Springer Nature LaTeX template v3.1 (`sn-jnl.cls`, numbered references, `sn-basic.bst`).
-- `figures/`: charts. `python3 scripts/make_fig_contrasts.py` and `python3 scripts/make_fig_study1b.py` (run from this folder) redraw two of them; the others come from `docs/paper/figures/`.
-- `diagrams/*.mmd`: Mermaid sources of the five diagrams, black and white. To edit them in draw.io, use Arrange > Insert > Advanced > Mermaid. `drawio/*.pdf` are the rendered files the paper uses.
+- `figures/`: all charts, drawn at final size in one style (8 pt Arial-compatible, black and grey, marker shapes for grayscale) by `python3 scripts/make_figures_springer.py` (run from this folder; reads the committed result files).
+- Diagrams: `python3 scripts/make_flows.py` draws Figs 1, 3, 4 and 9 (`drawio/*.pdf`) and writes an editable draw.io twin of each (`drawio/*.drawio`, open with File > Open in draw.io). Fig 2 (architecture) is `diagrams/arch.mmd`, a Mermaid source (draw.io: Arrange > Insert > Advanced > Mermaid), rendered with `mmdc -i diagrams/arch.mmd -o drawio/arch.pdf -c mermaid-config.json --pdfFit -b white -w 3000`. All line art is black on white with no shading.
 - `sub/`: the flat submission package (main.tex, Fig1.pdf to Fig10.pdf, class, style, bib, bbl), rebuilt by `scripts/make_submission.py`.
 
 ## Build
@@ -19,7 +19,7 @@ for f in diagrams/*.mmd; do n=$(basename $f .mmd); mmdc -i $f -o drawio/$n.pdf -
 ## Journal requirements and where they are met
 | Requirement (journal guidelines) | Status |
 |---|---|
-| Abstract 150-250 words, no undefined abbreviations | 246 words |
+| Abstract 150-250 words, no undefined abbreviations | 247 words |
 | 4-6 keywords | 6 |
 | Numbered citations [n], Springer reference style | `sn-basic`, `Numbered` |
 | Title page: names, affiliation (city, country), corresponding author with email | done |
