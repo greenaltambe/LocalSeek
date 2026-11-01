@@ -63,7 +63,7 @@ class LocalSeekApplication : Application() {
             }
         }
 
-        // Load the dense index (exact in memory, or the binary one above 50,000 chunks) once in the background so the first
+        // Load the dense index (exact in memory, or the binary one above 25,000 chunks) once in the background so the first
         // search avoids the cold load.
         applicationScope.launch(Dispatchers.Default) {
             IndexWarmup(appContainer.autoVectorIndex).run()

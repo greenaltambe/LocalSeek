@@ -44,4 +44,27 @@ class ScalingStatsTest {
         assertTrue(ScalingStats.exceedsHeapBudget(0, (0.7 * max).toLong() + 1, max))
         assertFalse(ScalingStats.exceedsHeapBudget(0, (0.7 * max).toLong(), max))
     }
+
+    @Test
+    fun `size and method selection defaults keep everything`() {
+        val sizes = listOf(10_000, 25_000, 50_000)
+        assertEquals(sizes, ScalingStats.selectSizes(sizes, null))
+        assertEquals(sizes, ScalingStats.selectSizes(sizes, " "))
+        assertEquals(null, ScalingStats.parseMethods(null))
+        assertEquals(null, ScalingStats.parseMethods(""))
+        assertTrue(ScalingStats.methodSelected(null, "hnsw_ef16", "hnsw"))
+    }
+
+    @Test
+    fun `size and method selection restricts`() {
+        val sizes = listOf(10_000, 25_000, 50_000)
+        assertEquals(listOf(10_000, 50_000), ScalingStats.selectSizes(sizes, "50000, 10000,999"))
+        assertEquals(emptyList<Int>(), ScalingStats.selectSizes(sizes, "abc"))
+        val m = ScalingStats.parseMethods("exact_f32, hnsw_ef32,lsh")
+        assertEquals(setOf("exact_f32", "hnsw_ef32", "lsh"), m)
+        assertTrue(ScalingStats.methodSelected(m, "hnsw_ef32", "hnsw"))
+        assertFalse(ScalingStats.methodSelected(m, "hnsw_ef16", "hnsw"))
+        assertTrue(ScalingStats.methodSelected(m, "lsh_app", "lsh")) // family name selects all its modes
+        assertFalse(ScalingStats.methodSelected(m, "binary_rescore_k100", "binary_rescore"))
+    }
 }

@@ -114,7 +114,7 @@ class AppContainer(
         )
     }
 
-    /** The shipped dense index: exact in-memory up to 50,000 chunk vectors, binary shortlist + float rescoring above. */
+    /** The shipped dense index: exact in-memory up to 25,000 chunk vectors, binary shortlist + float rescoring above. */
     val autoVectorIndex: AutoVectorIndex by lazy {
         AutoVectorIndex(
             chunkDao = database.chunkDao(),

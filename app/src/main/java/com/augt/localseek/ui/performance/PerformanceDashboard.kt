@@ -248,7 +248,7 @@ private fun DenseIndexCard(info: DenseIndexInfo) {
         Column(modifier = Modifier.padding(16.dp)) {
             ConfigRow("In use", info.description)
             ConfigRow("Vectors", "${info.vectorCount} chunks")
-            ConfigRow("Rule", "exact up to 50,000 chunks, binary shortlist above")
+            ConfigRow("Rule", "exact up to 25,000 chunks, binary shortlist above")
         }
     }
 }

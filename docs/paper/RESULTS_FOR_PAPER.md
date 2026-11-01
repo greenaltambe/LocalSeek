@@ -35,6 +35,22 @@ Source: `docs/investigations/AN_SCALING_RESULTS.md` and `eval/scaling/results/sc
 | HNSW (M16, efC 200) at efSearch 128 | recall@10 0.988 to 0.997 (10k to 100k), p95 3.7 to 7.3 ms; build 8.4 s (10k), 164 s (100k, 8 threads) | tables |
 | Skipped | LSH manager and HNSW at N=200k (70% heap rule) | tables N=200k |
 
+## 2a. Scaling on a second phone (AR; descriptive)
+
+Source: `docs/investigations/AN_SCALING_RESULTS.md`, section "Additional devices"; raw `eval/scaling/results/phone2_SM-M315F/`. Samsung SM-M315F (Android 12, heap 256 MiB, commit `93bd4b4`), short-run profile (10k, 50k, 100k); OnePlus rows are the AN numbers (not re-run).
+
+| item | OnePlus CPH2707 | Samsung SM-M315F |
+|---|---|---|
+| Exact float32 p95, 10k / 50k / 100k | 4.8 / 23.8 / 66.2 ms | 12.6 / 61.4 / 208.4 ms |
+| Binary k'=200 p95, 10k / 50k / 100k | 1.5 / 3.9 / 11.4 ms | 5.4 / 15.6 / 29.0 ms |
+| Binary k'=200 recall@10 | 0.982 / 0.977 / 0.975 | 0.982 / 0.977 / 0.975 |
+| HNSW efSearch 128 build, 10k / 50k / 100k | 8.4 / 58.2 / 163.9 s | 32.1 / 225.7 s / skipped (heap) |
+| HNSW efSearch 128 p95, 10k / 50k / 100k | 3.7 / 4.5 / 7.3 ms | 10.4 / 12.4 ms / skipped |
+| LSH app recall@10, 10k / 50k / 100k | 0.055 / 0.034 / 0.029 | 0.055 / 0.034 / 0.029 |
+| Exact p95 crosses the 50 ms marker | between 50k and 100k | between 10k and 50k |
+
+Two phones, different heap limits and Android versions: latency differences are descriptive and not attributed to a cause. Figure: `docs/paper/figures/fig_c_latency_vs_n` (exact float32 and binary k'=200 per device).
+
 ## 2b. Latency of a non-debuggable build (AQ; one phone, one session, descriptive)
 
 Source: `docs/investigations/AQ_RELEASE_LATENCY.md` (benchmark build type: not debuggable, R8 off, debug key; commit `2fdd6bf`). Earlier runs (Set B, AN) were on the debuggable debug build (inferred from the runbook; the exports do not record it).
@@ -87,7 +103,7 @@ Source: `docs/investigations/AQ_HYBRID_CONTRASTS.md`, `eval/exploratory_hybrid.p
 
 ## 3d. Product state at submission
 
-Version 1.0.0 (versionCode 2), commit of `main` at the time of submission. The text pipeline is registered arm E9 (BM25 over three FTS5 tables merged by RRF, MiniLM dense search, RRF fusion, no rerank by default, no MMR, no dense skip) with one change: the dense index is size-adaptive (`DenseIndexType.AUTO`), exact in-memory search up to 50,000 chunk vectors, which gives rankings and scores identical to E9 (a unit test proves it on a fixture), and a binary shortlist with float re-scoring (k' = 200) above that, the setting from the AN scaling data. At the phone's size (13,696 chunks) the exact path is used, so the registered E9 results describe the shipped behaviour there. The LSH index is no longer built or loaded by the app; its code remains for the benchmark arms. Cross-encoder reranking is an experimental setting, off by default. This matches the system description in section 3 of the paper.
+Version 1.0.0 (versionCode 2), commit of `main` at the time of submission. The text pipeline is registered arm E9 (BM25 over three FTS5 tables merged by RRF, MiniLM dense search, RRF fusion, no rerank by default, no MMR, no dense skip) with one change: the dense index is size-adaptive (`DenseIndexType.AUTO`), exact in-memory search up to 25,000 chunk vectors (lowered from 50,000 in task AS after the second-phone scaling result), which gives rankings and scores identical to E9 (a unit test proves it on a fixture), and a binary shortlist with float re-scoring (k' = 200) above that, the setting from the AN scaling data. At the phone's size (13,696 chunks) the exact path is used, so the registered E9 results describe the shipped behaviour there. The LSH index is no longer built or loaded by the app; its code remains for the benchmark arms. Cross-encoder reranking is an experimental setting, off by default. This matches the system description in section 3 of the paper.
 
 ## 4. Claims we can make
 
@@ -98,7 +114,7 @@ Version 1.0.0 (versionCode 2), commit of `main` at the time of submission. The t
 5. On this phone exact float32 search stays at or below 24 ms p95 up to 50k vectors and crosses the 50 ms marker between 50k and 100k (marker descriptive only); binary shortlist plus rescoring keeps p95 at or below 19 ms up to 200k with recall@10 0.944-0.982; HNSW at efSearch >= 32 keeps p95 at or below 7.3 ms with recall@10 >= 0.942 up to 100k (not run at 200k: heap rule).
    int8 and binary+rescore stay within 0.001 and 0.004 nDCG@10 of exact dense search on all five public datasets (descriptive; checked 2026-10-05 against `eval/public_replication/results/*__minilm.json`: largest differences int8 -0.0006, binary -0.0040, both on FiQA).
 6. (Exploratory) The hybrid was far better than BM25 alone (+0.254), and dense exact search was far better than BM25 alone (+0.203). The hybrid's advantage over dense exact search alone (+0.051) was not distinguishable from zero (Holm p 0.103); do not write that the hybrid beat dense search.
-7. The app ships E9 (its text pipeline), as a decision taken after Set B, with a size-adaptive dense index that equals E9's exact search up to 50,000 chunks (section 3d).
+7. The app ships E9 (its text pipeline), as a decision taken after Set B, with a size-adaptive dense index that equals E9's exact search up to 25,000 chunks (section 3d).
 8. On this phone, a non-debuggable build answered the E9 and E12 searches about 15 to 23 percent faster than the debug build with identical rankings (section 2b; one session, descriptive).
 
 ## 5. Claims we cannot make
@@ -113,3 +129,23 @@ Version 1.0.0 (versionCode 2), commit of `main` at the time of submission. The t
 - That the chunk/encoder mismatch, empty embeddings or LSH build changes help: they are post-paper work.
 - Any claim from the v1 study in `eval/legacy/` (superseded).
 - That the labels are reliable beyond one assessor: the blind re-judge has not been done.
+
+## 6. Study 4: other users on their own phones (night run 2026-10-25; exploratory, planned before data, not registered)
+
+Full tables: `docs/investigations/USER_STUDY_RESULTS.md` (aggregates only). Five participant files, all valid; 47 searches, 39 scored; planned exclusion (fewer than 8 scored searches) removes two participants (6 scored each), so **3 participants, 27 scored searches** are analysed.
+
+- nDCG@10 per arm: E1 0.601, E2 0.744, E9 0.815.
+- U1 E9-E1 +0.212 (participant mean; query mean +0.214), 95% participant-cluster CI [+0.031, +0.420]; U2 E9-E2 +0.068 [-0.035, +0.164]; U3 E2-E1 +0.144 [-0.064, +0.390]. Sign-flip p 0.25, 0.25, 0.50; Holm 0.75 for all (smallest possible p with 3 participants is 0.25, so nothing can be significant).
+- Direction: U1 and U2 positive for all five participants (exploratory for P4, P5); U3 positive for four of five.
+- Found-rate 0.806 (25 of 31, analysed participants). SUS: 65.8 (range 60.0-72.5, n=3); 68.0 (range 60.0-77.5, n=5).
+- By kind (12 file / 9 app / 6 contact searches) E1/E2/E9: file 0.410/0.565/0.679, app 0.720/0.898/0.885, contact 0.805/0.873/0.980; by style (20 keyword / 7 sentence): keyword 0.710/0.765/0.843, sentence 0.290/0.687/0.735.
+- Latency (median / p95 ms) over all 47 searches: E1 42/113, E2 177/1,085, E9 156/315. Per phone medians: E1 18-72, E2 85-585, E9 50-286.
+- Index build (min / chunks): 15.4 / 1,715; 0.3 / 44; 413.5 / 10,094; 2.5 / 738; 1.1 / 3. Battery start -> end: 81->81, 18->18, 52->100 (charging), 68->67 (unplugged), 99->99.
+
+Claims we can make: the ordering E9 > E2 > E1 held on the analysed participants' means, as on the owner's phone; hybrid-versus-BM25 interval above zero. Claims we cannot make: any significance, any effect size for U2, anything about large collections beyond one phone, or that the participants are representative.
+
+## 7. Resource use (AT part 5; `docs/investigations/AT_RESOURCES.md`)
+
+- Release AAB 352.8 MB; universal APK without the CLIP pack 81.0 MB; MiniLM 22.7 MB; cross-encoder 45.3 MB; CLIP fp16 models 302.9 MB as stored (175.8 + 127.0).
+- Process memory on phone A, debug build, 14,886 chunks, 20 shipped searches, three runs: total PSS 218-225 MB at start, 1,164-1,207 MB after warm-up, 1,024-1,029 MB after 20 searches; Java heap 53-58 MB and native heap 608-614 MB after; in-memory dense index 22.9 MB (float32).
+- Energy: not measured.

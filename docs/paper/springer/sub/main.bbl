@@ -1,0 +1,196 @@
+\begin{thebibliography}{34}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{{#1}}
+\providecommand{\urlprefix}{URL }
+\providecommand{\doi}[1]{\url{https://doi.org/#1}}
+\providecommand{\eprint}[2][]{\url{#2}}
+ \bibcommenthead
+
+\bibitem[{Aum{\"u}ller et~al.(2020)Aum{\"u}ller, Bernhardsson, and
+  Faithfull}]{aumuller2020ann}
+Aum{\"u}ller M, Bernhardsson E, Faithfull A (2020) {ANN-Benchmarks}: A
+  benchmarking tool for approximate nearest neighbor algorithms. Information
+  Systems 87:101374. \doi{10.1016/j.is.2019.02.006}
+
+\bibitem[{Bangor et~al.(2008)Bangor, Kortum, and Miller}]{bangor2008sus}
+Bangor A, Kortum PT, Miller JT (2008) An empirical evaluation of the system
+  usability scale. International Journal of Human--Computer Interaction
+  24(6):574--594. \doi{10.1080/10447310802205776}
+
+\bibitem[{Brooke(1996)}]{brooke1996sus}
+Brooke J (1996) {SUS}: A ``quick and dirty'' usability scale. In: Jordan PW,
+  Thomas B, Weerdmeester BA, et~al (eds) Usability Evaluation in Industry.
+  Taylor \& Francis, London, p 189--194
+
+\bibitem[{Bruch et~al.(2023)Bruch, Gai, and Ingber}]{bruch2023fusion}
+Bruch S, Gai S, Ingber A (2023) An analysis of fusion functions for hybrid
+  retrieval. ACM Transactions on Information Systems 42(1).
+  \doi{10.1145/3596512}
+
+\bibitem[{Buckley and Voorhees(2004)}]{buckley2004bpref}
+Buckley C, Voorhees EM (2004) Retrieval evaluation with incomplete information.
+  In: Proceedings of the 27th Annual International ACM SIGIR Conference on
+  Research and Development in Information Retrieval, pp 25--32,
+  \doi{10.1145/1008992.1009000}
+
+\bibitem[{Charikar(2002)}]{charikar2002simhash}
+Charikar MS (2002) Similarity estimation techniques from rounding algorithms.
+  In: Proceedings of the 34th Annual ACM Symposium on Theory of Computing
+  (STOC), pp 380--388, \doi{10.1145/509907.509965}
+
+\bibitem[{Cormack et~al.(2009)Cormack, Clarke, and
+  B{\"u}ttcher}]{cormack2009rrf}
+Cormack GV, Clarke CLA, B{\"u}ttcher S (2009) Reciprocal rank fusion
+  outperforms {Condorcet} and individual rank learning methods. In: Proceedings
+  of the 32nd International ACM SIGIR Conference on Research and Development in
+  Information Retrieval, pp 758--759, \doi{10.1145/1571941.1572114}
+
+\bibitem[{van Dongen and Tulkens(2024)}]{vandongen2024model2vec}
+van Dongen T, Tulkens S (2024) {Model2Vec}: fast state-of-the-art static
+  embeddings. Software, \url{https://github.com/MinishLab/model2vec}
+
+\bibitem[{Dumais et~al.(2003)Dumais, Cutrell, Cadiz, Jancke, Sarin, and
+  Robbins}]{dumais2003sis}
+Dumais S, Cutrell E, Cadiz JJ, et~al (2003) Stuff {I}'ve {S}een: a system for
+  personal information retrieval and re-use. In: Proceedings of the 26th Annual
+  International ACM SIGIR Conference on Research and Development in Information
+  Retrieval, pp 72--79, \doi{10.1145/860435.860451}
+
+\bibitem[{Efron and Tibshirani(1994)}]{efron1993bootstrap}
+Efron B, Tibshirani RJ (1994) An Introduction to the Bootstrap. Chapman \&
+  Hall/CRC, New York, \doi{10.1201/9780429246593}, first published 1993; year
+  as in the publisher's record of the DOI
+
+\bibitem[{Holm(1979)}]{holm1979}
+Holm S (1979) A simple sequentially rejective multiple test procedure.
+  Scandinavian Journal of Statistics 6(2):65--70
+
+\bibitem[{Indyk and Motwani(1998)}]{indyk1998lsh}
+Indyk P, Motwani R (1998) Approximate nearest neighbors: towards removing the
+  curse of dimensionality. In: Proceedings of the 30th Annual ACM Symposium on
+  Theory of Computing (STOC), pp 604--613, \doi{10.1145/276698.276876}
+
+\bibitem[{J{\"a}rvelin and Kek{\"a}l{\"a}inen(2002)}]{jarvelin2002ndcg}
+J{\"a}rvelin K, Kek{\"a}l{\"a}inen J (2002) Cumulated gain-based evaluation of
+  {IR} techniques. ACM Transactions on Information Systems 20(4):422--446.
+  \doi{10.1145/582415.582418}
+
+\bibitem[{J{\'e}gou et~al.(2011)J{\'e}gou, Douze, and Schmid}]{jegou2011pq}
+J{\'e}gou H, Douze M, Schmid C (2011) Product quantization for nearest neighbor
+  search. IEEE Transactions on Pattern Analysis and Machine Intelligence
+  33(1):117--128. \doi{10.1109/TPAMI.2010.57}
+
+\bibitem[{Johnson et~al.(2021)Johnson, Douze, and J{\'e}gou}]{johnson2021faiss}
+Johnson J, Douze M, J{\'e}gou H (2021) Billion-scale similarity search with
+  {GPUs}. IEEE Transactions on Big Data 7(3):535--547.
+  \doi{10.1109/TBDATA.2019.2921572}
+
+\bibitem[{Karpukhin et~al.(2020)Karpukhin, O{\u{g}}uz, Min, Lewis, Wu, Edunov,
+  Chen, and Yih}]{karpukhin2020dpr}
+Karpukhin V, O{\u{g}}uz B, Min S, et~al (2020) Dense passage retrieval for
+  open-domain question answering. In: Proceedings of the 2020 Conference on
+  Empirical Methods in Natural Language Processing (EMNLP), pp 6769--6781,
+  \doi{10.18653/v1/2020.emnlp-main.550}
+
+\bibitem[{Kim and Croft(2009)}]{kim2009pseudodesktop}
+Kim J, Croft WB (2009) Retrieval experiments using pseudo-desktop collections.
+  In: Proceedings of the 18th ACM Conference on Information and Knowledge
+  Management (CIKM), pp 1297--1306, \doi{10.1145/1645953.1646117}
+
+\bibitem[{Kusupati et~al.(2022)}]{kusupati2022mrl}
+Kusupati A, et~al (2022) Matryoshka representation learning. In: Advances in
+  Neural Information Processing Systems 35 (NeurIPS 2022), arXiv:2205.13147
+
+\bibitem[{Malkov and Yashunin(2020)}]{malkov2020hnsw}
+Malkov YA, Yashunin DA (2020) Efficient and robust approximate nearest neighbor
+  search using hierarchical navigable small world graphs. IEEE Transactions on
+  Pattern Analysis and Machine Intelligence 42(4):824--836.
+  \doi{10.1109/TPAMI.2018.2889473}
+
+\bibitem[{Merrick et~al.(2024)Merrick, Xu, Nuti, and
+  Campos}]{merrick2024arctic}
+Merrick L, Xu D, Nuti G, et~al (2024) Arctic-embed: scalable, efficient, and
+  accurate text embedding models. ArXiv:2405.05374
+
+\bibitem[{Muennighoff et~al.(2023)Muennighoff, Tazi, Magne, and
+  Reimers}]{muennighoff2023mteb}
+Muennighoff N, Tazi N, Magne L, et~al (2023) {MTEB}: massive text embedding
+  benchmark. In: Proceedings of the 17th Conference of the European Chapter of
+  the Association for Computational Linguistics (EACL), pp 2014--2037,
+  \doi{10.18653/v1/2023.eacl-main.148}
+
+\bibitem[{Nogueira and Cho(2019)}]{nogueira2019bert}
+Nogueira R, Cho K (2019) Passage re-ranking with {BERT}. ArXiv:1901.04085
+
+\bibitem[{Nosek et~al.(2018)Nosek, Ebersole, DeHaven, and
+  Mellor}]{nosek2018prereg}
+Nosek BA, Ebersole CR, DeHaven AC, et~al (2018) The preregistration revolution.
+  Proceedings of the National Academy of Sciences 115(11):2600--2606.
+  \doi{10.1073/pnas.1708274114}
+
+\bibitem[{Park et~al.(2025)Park, Lee, and Kim}]{park2025mobilerag}
+Park T, Lee G, Kim MS (2025) {MobileRAG}: a fast, memory-efficient, and
+  energy-efficient method for on-device {RAG}. ArXiv:2507.01079
+
+\bibitem[{Reimers and Gurevych(2019)}]{reimers2019sbert}
+Reimers N, Gurevych I (2019) Sentence-{BERT}: sentence embeddings using
+  {S}iamese {BERT}-networks. In: Proceedings of the 2019 Conference on
+  Empirical Methods in Natural Language Processing and the 9th International
+  Joint Conference on Natural Language Processing (EMNLP-IJCNLP), pp
+  3982--3992, \doi{10.18653/v1/D19-1410}
+
+\bibitem[{Robertson and Zaragoza(2009)}]{robertson2009bm25}
+Robertson S, Zaragoza H (2009) The probabilistic relevance framework: {BM25}
+  and beyond. Foundations and Trends in Information Retrieval 3(4):333--389.
+  \doi{10.1561/1500000019}
+
+\bibitem[{Seemakhupt et~al.(2024)Seemakhupt, Liu, and
+  Khan}]{seemakhupt2024edgerag}
+Seemakhupt K, Liu S, Khan S (2024) {EdgeRAG}: online-indexed {RAG} for edge
+  devices. ArXiv:2412.21023
+
+\bibitem[{Smucker et~al.(2007)Smucker, Allan, and
+  Carterette}]{smucker2007significance}
+Smucker MD, Allan J, Carterette B (2007) A comparison of statistical
+  significance tests for information retrieval evaluation. In: Proceedings of
+  the 16th ACM Conference on Information and Knowledge Management (CIKM), pp
+  623--632, \doi{10.1145/1321440.1321528}
+
+\bibitem[{Thakur et~al.(2021)Thakur, Reimers, R{\"u}ckl{\'e}, Srivastava, and
+  Gurevych}]{thakur2021beir}
+Thakur N, Reimers N, R{\"u}ckl{\'e} A, et~al (2021) {BEIR}: a heterogeneous
+  benchmark for zero-shot evaluation of information retrieval models. In:
+  Proceedings of the Neural Information Processing Systems Track on Datasets
+  and Benchmarks, arXiv:2104.08663
+
+\bibitem[{Vera et~al.(2025)Vera, Dua, Zhang, Salz, Mullins
+  et~al.}]{vera2025embeddinggemma}
+Vera HS, Dua S, Zhang B, et~al (2025) {EmbeddingGemma}: powerful and
+  lightweight text representations. ArXiv:2509.20354
+
+\bibitem[{Voorhees(2000)}]{voorhees2000variations}
+Voorhees EM (2000) Variations in relevance judgments and the measurement of
+  retrieval effectiveness. Information Processing \& Management 36(5):697--716.
+  \doi{10.1016/S0306-4573(00)00010-8}
+
+\bibitem[{Wang et~al.(2020)Wang, Wei, Dong, Bao, Yang, and
+  Zhou}]{wang2020minilm}
+Wang W, Wei F, Dong L, et~al (2020) {MiniLM}: deep self-attention distillation
+  for task-agnostic compression of pre-trained transformers. In: Advances in
+  Neural Information Processing Systems 33 (NeurIPS 2020), arXiv:2002.10957
+
+\bibitem[{Xiao et~al.(2024)Xiao, Liu, Zhang, Muennighoff, Lian, and
+  Nie}]{xiao2024cpack}
+Xiao S, Liu Z, Zhang P, et~al (2024) {C-Pack}: packed resources for general
+  {C}hinese embeddings. In: Proceedings of the 47th International ACM SIGIR
+  Conference on Research and Development in Information Retrieval,
+  \doi{10.1145/3626772.3657878}
+
+\bibitem[{Yamada et~al.(2021)Yamada, Asai, and Hajishirzi}]{yamada2021bpr}
+Yamada I, Asai A, Hajishirzi H (2021) Efficient passage retrieval with hashing
+  for open-domain question answering. In: Proceedings of the 59th Annual
+  Meeting of the Association for Computational Linguistics and the 11th
+  International Joint Conference on Natural Language Processing (Volume 2:
+  Short Papers), \doi{10.18653/v1/2021.acl-short.123}
+
+\end{thebibliography}

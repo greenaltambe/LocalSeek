@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.runtime.Composable
@@ -21,9 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.augt.localseek.BuildConfig
 import com.augt.localseek.R
+import com.augt.localseek.ui.study.StudyGate
 
 /** Where the settings home can navigate to. */
-enum class SettingsDestination { SEARCH, APPEARANCE, WEB, INDEXING, PRIVACY, BACKUP, ABOUT, DEVELOPER }
+enum class SettingsDestination { SEARCH, APPEARANCE, WEB, INDEXING, PRIVACY, BACKUP, ABOUT, DEVELOPER, STUDY }
 
 /**
  * Settings home: one card per area (icon, title, one-line summary). Developer shows in debug builds always and in
@@ -92,6 +94,13 @@ fun SettingsHome(
                     stringResource(R.string.settings_developer_title), stringResource(R.string.settings_developer_summary),
                     Icons.Default.BugReport
                 ) { onNavigate(SettingsDestination.DEVELOPER) }
+            }
+        }
+        if (StudyGate.settingsEntryVisible()) {
+            item {
+                SettingsNavCard("Research study", "Take part in the LocalSeek evaluation study", Icons.Default.Science) {
+                    onNavigate(SettingsDestination.STUDY)
+                }
             }
         }
         item { Spacer(Modifier.height(8.dp)) }

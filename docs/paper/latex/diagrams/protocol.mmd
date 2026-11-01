@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph r1[" "]
+        direction LR
+        reg["Plan registered on OSF<br/>(vwmfz) before any run"]
+        q["95 real-use queries<br/>(75 name-like, 20 sentence-like)"]
+        run["9 configurations x 5 repetitions<br/>4,275 searches on the phone"]
+        pool["Depth-10 pool of all arms<br/>1,442 results"]
+        reg --> q --> run --> pool
+    end
+    subgraph r2[" "]
+        direction RL
+        judge["Blind relevance judging<br/>(arm hidden): 197 relevant"]
+        excl["Exclusions as registered<br/>77 scored queries, 64 clusters"]
+        ana["Cluster-level analysis: paired<br/>randomisation test, bootstrap<br/>95% CI, Holm over H1-H5"]
+        resu["H1-H5 (confirmatory)<br/>+ exploratory contrasts"]
+        judge --> excl --> ana --> resu
+    end
+    pool --> judge
+    style r1 fill:none,stroke:none
+    style r2 fill:none,stroke:none
+    class reg yellow
+    class q blue
+    class run orange
+    class pool,judge,excl grey
+    class ana,resu green
+    classDef blue fill:#DAE8FC,stroke:#6C8EBF,color:#000
+    classDef orange fill:#FFE6CC,stroke:#D79B00,color:#000
+    classDef green fill:#D5E8D4,stroke:#82B366,color:#000
+    classDef grey fill:#F5F5F5,stroke:#666666,color:#000
+    classDef yellow fill:#FFF2CC,stroke:#D6B656,color:#000
+    classDef white fill:#FFFFFF,stroke:#666666,color:#000
+    classDef opt fill:#FFFFFF,stroke:#999999,stroke-dasharray:5 4,color:#444

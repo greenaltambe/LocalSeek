@@ -27,4 +27,19 @@ object ScalingStats {
     /** True when holding [analyticBytes] more on top of [usedHeapBytes] would exceed [fraction] of [maxHeapBytes]. */
     fun exceedsHeapBudget(usedHeapBytes: Long, analyticBytes: Long, maxHeapBytes: Long, fraction: Double = 0.70): Boolean =
         usedHeapBytes + analyticBytes > fraction * maxHeapBytes
+
+    /** Sizes to run: the header's [available] sizes in header order, restricted to the comma list [arg]; null or blank = all (default). */
+    fun selectSizes(available: List<Int>, arg: String?): List<Int> {
+        if (arg.isNullOrBlank()) return available
+        val wanted = arg.split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
+        return available.filter { it in wanted }
+    }
+
+    /** Parses the comma list [arg] of method names (mode or family names); null or blank = no filter (default). */
+    fun parseMethods(arg: String?): Set<String>? =
+        if (arg.isNullOrBlank()) null else arg.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+    /** True when a mode is selected by [methods] (null = all); a method entry matches the mode name or its family name. */
+    fun methodSelected(methods: Set<String>?, mode: String, family: String): Boolean =
+        methods == null || mode in methods || family in methods
 }

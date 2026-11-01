@@ -1,0 +1,54 @@
+flowchart LR
+    subgraph IDX["Indexing (background, on the phone)"]
+        direction TB
+        files["Files<br/>(PDF, text)"]
+        apps["Installed apps"]
+        contacts["Contacts"]
+        images["Images<br/>(optional)"]
+        prep["Text extraction and chunking<br/>files: 150-word chunks, 40-word overlap<br/>apps, contacts: names and labels"]
+        fts["SQLite FTS5 tables<br/>(chunks, apps, contacts)"]
+        emb["MiniLM embeddings<br/>(384-d, TensorFlow Lite)"]
+        clip["CLIP image<br/>embeddings"]
+        files --> prep
+        apps --> prep
+        contacts --> prep
+        prep --> fts
+        prep --> emb
+        images --> clip
+    end
+    subgraph SRCH["Search (per query, on the phone)"]
+        direction TB
+        query["User query"]
+        qp["Query processing<br/>(normalise, stop words)"]
+        bm25["BM25 over 3 FTS5 tables<br/>rank-merged (RRF)"]
+        dense["Dense search<br/>exact up to 25k chunks,<br/>binary shortlist above"]
+        img["Image search<br/>(CLIP, optional)"]
+        rrf["Reciprocal-rank fusion (k = 60)"]
+        rerank["Optional cross-encoder rerank<br/>of the top 20 (off by default)"]
+        res["Ranked results"]
+        query --> qp
+        qp --> bm25
+        qp --> dense
+        qp --> img
+        bm25 --> rrf
+        dense --> rrf
+        img --> rrf
+        rrf --> rerank
+        rerank --> res
+    end
+    fts -.-> bm25
+    emb -.-> dense
+    clip -.-> img
+    class files,apps,contacts,res blue
+    class prep,fts,emb grey
+    class query,qp white
+    class bm25,dense orange
+    class rrf green
+    class images,clip,img,rerank opt
+    classDef blue fill:#DAE8FC,stroke:#6C8EBF,color:#000
+    classDef orange fill:#FFE6CC,stroke:#D79B00,color:#000
+    classDef green fill:#D5E8D4,stroke:#82B366,color:#000
+    classDef grey fill:#F5F5F5,stroke:#666666,color:#000
+    classDef yellow fill:#FFF2CC,stroke:#D6B656,color:#000
+    classDef white fill:#FFFFFF,stroke:#666666,color:#000
+    classDef opt fill:#FFFFFF,stroke:#999999,stroke-dasharray:5 4,color:#444

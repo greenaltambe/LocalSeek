@@ -1,0 +1,19 @@
+\begin{tikzpicture}[font=\footnotesize, >={Stealth[length=2mm]}]
+\node[draw=yellow!50!black, fill=yellow!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (consent) at (1.820,-0.780) {Consent screen\\(study build, no\\INTERNET permission)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (index) at (5.980,-0.780) {Index own phone\\(files, apps, contacts;\\images off)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (type) at (10.140,-0.780) {Type 10 to 15 real\\searches; tag kind\\and style};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (pool) at (14.300,-0.780) {Blind pooled list:\\top 10 of E1, E2, E9\\merged and shuffled};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (judge) at (14.300,-3.380) {Mark each item\\relevant or not;\\was the target there?};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (free) at (10.140,-3.380) {About 2 minutes\\of free use};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (sus) at (5.980,-3.380) {SUS questionnaire\\(10 items)};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.640cm, minimum height=1.560cm, text width=3.440cm] (export) at (1.820,-3.380) {Export one JSON:\\numbers and enums\\only};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=11.960cm, minimum height=1.170cm, text width=11.760cm] (ana) at (5.980,-5.785) {Organiser: nDCG@10, participant-cluster bootstrap,\\sign-flip test, Holm over U1 to U3};
+\draw[->, black!70] (consent) -- (index);
+\draw[->, black!70] (index) -- (type);
+\draw[->, black!70] (type) -- (pool);
+\draw[->, black!70] (pool) -- (judge);
+\draw[->, black!70] (judge) -- (free);
+\draw[->, black!70] (free) -- (sus);
+\draw[->, black!70] (sus) -- (export);
+\draw[->, black!70] (export) -- (ana);
+\end{tikzpicture}

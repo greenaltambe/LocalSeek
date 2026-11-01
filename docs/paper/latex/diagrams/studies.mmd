@@ -1,0 +1,27 @@
+flowchart TB
+    app["<b>LocalSeek app</b><br/>hybrid BM25 + dense search, on the phone"]
+    subgraph S1["Study 1: retrieval quality on real phones"]
+        direction LR
+        s1a["<b>1A: owner's phone</b><br/>(confirmatory, pre-registered on OSF)<br/>95 real queries, 9 configurations<br/>nDCG@10, latency"]
+        s1b["<b>1B: other users' phones</b><br/>(planned, exploratory)<br/>11 volunteers, 3 methods<br/>blind pooled judging, SUS"]
+    end
+    s2["<b>Study 2: speed and cost</b><br/>(descriptive)<br/>2 test phones, 10k to 200k vectors<br/>+ 11 users' phones: build time, latency"]
+    s3["<b>Study 3: public data</b><br/>(exploratory replication)<br/>Python port, 5 BEIR datasets<br/>5 embedding models"]
+    out["<b>Shipped configuration of v1.0.0</b><br/>hybrid RRF, exact dense search (binary shortlist above 25k chunks), no reranker"]
+    app --> S1
+    app --> s2
+    app --> s3
+    S1 --> out
+    s2 --> out
+    s3 --> out
+    class app,out grey
+    class s1a,s1b blue
+    class s2 orange
+    class s3 green
+    classDef blue fill:#DAE8FC,stroke:#6C8EBF,color:#000
+    classDef orange fill:#FFE6CC,stroke:#D79B00,color:#000
+    classDef green fill:#D5E8D4,stroke:#82B366,color:#000
+    classDef grey fill:#F5F5F5,stroke:#666666,color:#000
+    classDef yellow fill:#FFF2CC,stroke:#D6B656,color:#000
+    classDef white fill:#FFFFFF,stroke:#666666,color:#000
+    classDef opt fill:#FFFFFF,stroke:#999999,stroke-dasharray:5 4,color:#444

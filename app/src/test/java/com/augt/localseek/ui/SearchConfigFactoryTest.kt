@@ -20,7 +20,7 @@ import org.junit.Test
  * denseQueryMode, lshCandidateCap) except the four allowed differences below.
  *
  * Allowed differences:
- *  - denseIndexType: the app uses AUTO (exact in-memory search up to 50,000 chunk vectors, identical to E9's EXACT_MEMORY there;
+ *  - denseIndexType: the app uses AUTO (exact in-memory search up to 25,000 chunk vectors, identical to E9's EXACT_MEMORY there;
  *    binary shortlist plus float rescoring above), E9 uses EXACT_MEMORY (AutoVectorIndexTest proves the identity below the threshold);
  *  - enableImage: image search is kept as before (E9 is text-only, comparable with the text qrels);
  *  - presetName: a label;

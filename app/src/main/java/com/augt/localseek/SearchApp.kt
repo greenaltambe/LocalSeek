@@ -31,6 +31,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.augt.localseek.tools.ToolsRepository
 import com.augt.localseek.ui.about.AboutScreen
+import com.augt.localseek.ui.study.StudyGate
+import com.augt.localseek.ui.study.StudyScreen
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
+import androidx.compose.material3.ExtendedFloatingActionButton
 import com.augt.localseek.ui.onboarding.OnboardingPermissions
 import com.augt.localseek.ui.onboarding.OnboardingScreen
 import com.augt.localseek.ui.onboarding.OnboardingViewModel
@@ -58,6 +67,7 @@ internal enum class AppRoute {
     SETTINGS_PRIVACY,
     SETTINGS_BACKUP,
     SETTINGS_DEVELOPER,
+    STUDY,
     ABOUT,
     PERFORMANCE,
     QRELS_LIST,
@@ -68,6 +78,7 @@ internal enum class AppRoute {
         get() = when (this) {
             SEARCH -> SEARCH
             SETTINGS -> SEARCH
+            STUDY -> SEARCH
             QRELS_LABELING -> QRELS_LIST
             PERFORMANCE, QRELS_LIST -> SETTINGS_DEVELOPER
             else -> SETTINGS
@@ -84,7 +95,8 @@ fun SearchApp(
     modifier: Modifier = Modifier,
     onboardingPermissions: OnboardingPermissions = OnboardingPermissions.None
 ) {
-    var route by rememberSaveable { mutableStateOf(AppRoute.SEARCH) }
+    // In the study build the app opens on the study flow (participants go straight to it); everywhere else on search.
+    var route by rememberSaveable { mutableStateOf(if (StudyGate.isAvailable()) AppRoute.STUDY else AppRoute.SEARCH) }
     val qrelsViewModel: QrelsViewModel = viewModel()
     val context = LocalContext.current
     val toolsRepository = remember { ToolsRepository(context.applicationContext) }
@@ -112,7 +124,8 @@ fun SearchApp(
     // Each screen owns its Scaffold and window insets, so there is no outer Scaffold here.
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (onboardingCompleted == null) return@Surface
-        if (onboardingCompleted == false || replayOnboarding) {
+        // the study build skips the first-run tour: the study flow asks for the permissions itself
+        if (!StudyGate.isAvailable() && (onboardingCompleted == false || replayOnboarding)) {
             OnboardingScreen(
                 permissions = onboardingPermissions,
                 onFinished = { replayOnboarding = false },
@@ -164,6 +177,7 @@ fun SearchApp(
                             SettingsDestination.BACKUP -> AppRoute.SETTINGS_BACKUP
                             SettingsDestination.ABOUT -> AppRoute.ABOUT
                             SettingsDestination.DEVELOPER -> AppRoute.SETTINGS_DEVELOPER
+                            SettingsDestination.STUDY -> if (StudyGate.isAvailable()) AppRoute.STUDY else AppRoute.SETTINGS
                         }
                     },
                     onReplayOnboarding = {
@@ -187,6 +201,16 @@ fun SearchApp(
                     onNavigateToPerformance = { if (BuildConfig.DEBUG) route = AppRoute.PERFORMANCE },
                     onNavigateToQrels = { if (BuildConfig.DEBUG) route = AppRoute.QRELS_LIST }
                 )
+
+                AppRoute.STUDY -> if (StudyGate.isAvailable()) {
+                    StudyScreen(
+                        onBack = goBack,
+                        onOpenResult = viewModel::onResultClick,
+                        onOpenSearch = { route = AppRoute.SEARCH }
+                    )
+                } else {
+                    route = AppRoute.SETTINGS
+                }
 
                 AppRoute.ABOUT -> AboutScreen(onNavigateBack = goBack)
 
@@ -214,6 +238,11 @@ fun SearchApp(
                 } else {
                     route = AppRoute.SETTINGS
                 }
+            }
+        }
+        if (StudyGate.isAvailable() && route == AppRoute.SEARCH) {
+            Box(Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp), contentAlignment = Alignment.BottomEnd) {
+                ExtendedFloatingActionButton(onClick = { route = AppRoute.STUDY }) { Text("Back to study") }
             }
         }
     }

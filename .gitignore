@@ -75,3 +75,18 @@ keystore.properties
 
 # Public-data replication virtualenv
 eval/public_replication/.venv/
+
+# ---- User study (task AS): participant exports and analysis outputs stay private ----
+eval/user_study/participants/
+eval/user_study/results*/
+eval/user_study/P-*.json
+
+# ---- Paper (task AT): LaTeX build outputs ----
+docs/paper/latex/*.aux
+docs/paper/latex/*.bbl
+docs/paper/latex/*.blg
+docs/paper/latex/*.fdb_latexmk
+docs/paper/latex/*.fls
+docs/paper/latex/*.log
+docs/paper/latex/*.out
+docs/paper/latex/*.synctex.gz

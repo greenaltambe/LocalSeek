@@ -229,6 +229,8 @@ class ScalingBenchmarkInstrumentedTest {
     private val rows = JSONArray()
     private val csv = StringBuilder("dataset,n,method,mode,status,build_ms,analytic_bytes,heap_delta_bytes,recall10,p50_us,p95_us,p99_us,mean_us,thermal_start,thermal_end,battery_pct,charging\n")
     private lateinit var outDir: File
+    /** From `-e methods a,b` (mode or family names); null = all methods (default). */
+    private var methodFilter: Set<String>? = null
 
     private fun usedHeap(): Long = Runtime.getRuntime().let { it.totalMemory() - it.freeMemory() }
     private fun thermal(ctx: Context): Int = (ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).currentThermalStatus
@@ -268,13 +270,15 @@ class ScalingBenchmarkInstrumentedTest {
         ctx: Context, detector: StallDetector, dataset: String, v: Vectors, queries: FloatArray, nQ: Int, truth: Array<IntArray>, g: Group,
     ) {
         val n = v.n
+        val modes = g.modes.filter { ScalingStats.methodSelected(methodFilter, it.name, g.family) }
+        if (modes.isEmpty()) return
         val maxHeap = Runtime.getRuntime().maxMemory()
         BenchmarkSafety.requestGc("before ${g.family} $n", detector)
         val used = usedHeap()
         val analytic = g.analyticBytes(n)
         if (ScalingStats.exceedsHeapBudget(used, g.heapBytes(n), maxHeap, HEAP_FRACTION)) {
             val reason = "skipped: used heap $used + analytic $analytic bytes would exceed ${(HEAP_FRACTION * 100).toInt()}% of maxMemory $maxHeap"
-            g.modes.forEach { record(dataset, n, g.family, it.name, it.params, "skipped", 0, analytic, 0, 0.0, null, 0, thermal(ctx), thermal(ctx), battery(ctx).first, battery(ctx).second, reason) }
+            modes.forEach { record(dataset, n, g.family, it.name, it.params, "skipped", 0, analytic, 0, 0.0, null, 0, thermal(ctx), thermal(ctx), battery(ctx).first, battery(ctx).second, reason) }
             return
         }
         detector.phase = "build ${g.family} $n"
@@ -284,12 +288,12 @@ class ScalingBenchmarkInstrumentedTest {
         val t0 = System.nanoTime()
         val note = try { g.build(v) } catch (e: OutOfMemoryError) {
             g.close()
-            g.modes.forEach { record(dataset, n, g.family, it.name, it.params, "skipped", 0, analytic, 0, 0.0, null, 0, thermal(ctx), thermal(ctx), battery(ctx).first, battery(ctx).second, "OutOfMemoryError during build") }
+            modes.forEach { record(dataset, n, g.family, it.name, it.params, "skipped", 0, analytic, 0, 0.0, null, 0, thermal(ctx), thermal(ctx), battery(ctx).first, battery(ctx).second, "OutOfMemoryError during build") }
             return
         }
         val buildMs = (System.nanoTime() - t0) / 1_000_000
         val heapDelta = usedHeap() - heapBefore
-        for (mode in g.modes) {
+        for (mode in modes) {
             detector.phase = "search ${mode.name} $n"
             val thermalStart = thermal(ctx)
             val (batt, charging) = battery(ctx)
@@ -382,7 +386,10 @@ class ScalingBenchmarkInstrumentedTest {
     private fun execute(ctx: Context, dir: File, includeRealData: Boolean) {
         outDir = dir
         val h = JSONObject(File(dir, "scaling_header.json").readText())
-        val sizes = (0 until h.getJSONArray("sizes").length()).map { h.getJSONArray("sizes").getInt(it) }
+        val args = InstrumentationRegistry.getArguments()
+        val sizes = ScalingStats.selectSizes((0 until h.getJSONArray("sizes").length()).map { h.getJSONArray("sizes").getInt(it) }, args.getString("sizes"))
+        methodFilter = ScalingStats.parseMethods(args.getString("methods"))
+        Log.i(TAG, "SCALING selection sizes=$sizes methods=${methodFilter ?: "all"}")
         val nQ = h.getInt("queries")
         val topGt = h.getInt("ground_truth_top")
         val queries = readFloats(File(dir, "scaling_queries.f32"), nQ * DIM)
@@ -392,6 +399,7 @@ class ScalingBenchmarkInstrumentedTest {
         val maxHeap = Runtime.getRuntime().maxMemory()
         val meta = JSONObject().put("gitSha", com.augt.localseek.BuildConfig.GIT_SHA).put("device", Build.MODEL).put("sdk", Build.VERSION.SDK_INT)
             .put("maxHeapBytes", maxHeap).put("cores", Runtime.getRuntime().availableProcessors()).put("benchEnv", benchEnv)
+            .put("selectedSizes", JSONArray(sizes)).put("selectedMethods", methodFilter?.let { JSONArray(it.toList()) } ?: "all")
             .put("warmupQueries", WARMUP).put("passes", PASSES).put("k", K).put("header", h)
         try {
             for (n in sizes) {
@@ -411,6 +419,7 @@ class ScalingBenchmarkInstrumentedTest {
 
     /** Real-data point: the app's own chunk embeddings; 200 seeded held-out chunk vectors are the queries (document vectors as queries). */
     private fun realDataPoint(ctx: Context, detector: StallDetector, maxHeap: Long) {
+        if (!ctx.getDatabasePath("hybrid_search.db").exists()) { Log.w(TAG, "SCALING real-data point skipped: no LocalSeek database on this device"); return }
         // raw read-only SQLite (no Room: opening Room could run a migration; the blob format is little-endian float32, VectorConverter)
         val all = ArrayList<FloatArray>()
         val db = SQLiteDatabase.openDatabase(ctx.getDatabasePath("hybrid_search.db").path, null, SQLiteDatabase.OPEN_READONLY)

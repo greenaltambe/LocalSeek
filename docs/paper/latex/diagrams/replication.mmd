@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph r1[" "]
+        direction LR
+        kt["App pipeline in Kotlin<br/>(chunker, BM25, LSH, fusion)"]
+        fx["JVM tests write<br/>reference fixtures"]
+        py["Python port, checked<br/>against the fixtures"]
+        kt --> fx --> py
+    end
+    subgraph r2[" "]
+        direction LR
+        data["5 BEIR test sets<br/>(SciFact ... TREC-COVID)"]
+        cfg["9 configurations<br/>+ 5 embedding models"]
+        stat["Paired randomisation tests<br/>over queries, Holm over<br/>38 contrast-dataset pairs"]
+        plan["Analysis plan committed<br/>before any result"]
+        data --> cfg --> stat
+        plan --> stat
+    end
+    py --> cfg
+    style r1 fill:none,stroke:none
+    style r2 fill:none,stroke:none
+    class kt,fx grey
+    class py,data blue
+    class cfg orange
+    class plan yellow
+    class stat green
+    classDef blue fill:#DAE8FC,stroke:#6C8EBF,color:#000
+    classDef orange fill:#FFE6CC,stroke:#D79B00,color:#000
+    classDef green fill:#D5E8D4,stroke:#82B366,color:#000
+    classDef grey fill:#F5F5F5,stroke:#666666,color:#000
+    classDef yellow fill:#FFF2CC,stroke:#D6B656,color:#000
+    classDef white fill:#FFFFFF,stroke:#666666,color:#000
+    classDef opt fill:#FFFFFF,stroke:#999999,stroke-dasharray:5 4,color:#444

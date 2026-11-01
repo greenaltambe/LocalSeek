@@ -1,0 +1,38 @@
+flowchart TB
+    subgraph r0[" "]
+        direction LR
+        consent["Consent screen<br/>(study build, no<br/>INTERNET permission)"]
+        index["Index own phone<br/>(files, apps, contacts;<br/>images off)"]
+        type["Type 10 to 15 real<br/>searches; tag item<br/>kind and style"]
+        consent --> index --> type
+    end
+    subgraph r1[" "]
+        direction RL
+        pool["Blind pooled list:<br/>top 10 of E1, E2, E9<br/>merged and shuffled"]
+        judge["Mark each item<br/>relevant or not"]
+        sus["SUS questionnaire<br/>(10 items)"]
+        pool --> judge --> sus
+    end
+    type --> pool
+    subgraph r2[" "]
+        direction LR
+        export["Export one JSON file:<br/>numbers and enums only"]
+        ana["Organiser: nDCG@10,<br/>participant-cluster bootstrap,<br/>sign-flip test, Holm over U1-U3"]
+        export --> ana
+    end
+    sus --> export
+    style r0 fill:none,stroke:none
+    style r1 fill:none,stroke:none
+    style r2 fill:none,stroke:none
+    class consent plan
+    class index,type input
+    class pool core
+    class judge,sus data
+    class export,ana result
+    classDef input fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
+    classDef core fill:#E6E6E6,stroke:#000000,stroke-width:1px,color:#000
+    classDef result fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000
+    classDef data fill:#F2F2F2,stroke:#000000,stroke-width:1px,color:#000
+    classDef plan fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
+    classDef plain fill:#FFFFFF,stroke:#000000,stroke-width:1px,color:#000
+    classDef opt fill:#FFFFFF,stroke:#555555,stroke-width:1px,stroke-dasharray:5 4,color:#333

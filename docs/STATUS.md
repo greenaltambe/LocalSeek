@@ -9,17 +9,18 @@ LocalSeek is a working on-device search app (files, apps, contacts, optional CLI
 `targetSdk 36`. The registered Set B study (OSF `vwmfz`) is finished and its results are in `docs/investigations/SETB_RESULTS.md`; the
 follow-up studies are the scaling microbenchmark (AN), the public-data replication (AO) and the exploratory hybrid contrasts and
 release-build latency check (AQ). The app is not yet released: the Play closed test, the signing keystore and the permission
-declarations are open, and the paper is being rewritten around the registered study. The pipeline used in the paper is frozen: retrieval, fusion, reranking, indexing, tokenizer, chunker, document parser and encoders are not changed after the registration (`docs/investigations/PHASE2_PREREG.md`).
+declarations are open, and the paper is being rewritten around the registered study. The pipeline used in the paper is frozen.
 
 ## What version 1.0.0 ships
 
 - Text retrieval = registered arm E9: BM25 over three FTS5 tables merged by RRF, MiniLM dense search, RRF fusion, no rerank by default, no MMR, no dense skip.
-- Dense index `AUTO`: exact in-memory search up to 50,000 chunk vectors (identical rankings to E9), binary shortlist plus float re-scoring (k' = 200) above, database scan only if even that would not fit in memory (`search/vector/AutoVectorIndex.kt`; the 50k threshold comes from the AN scaling data).
+- Dense index `AUTO`: exact in-memory search up to 25,000 chunk vectors (identical rankings to E9), binary shortlist plus float re-scoring (k' = 200) above, database scan only if even that would not fit in memory (`search/vector/AutoVectorIndex.kt`; the 25k threshold comes from the AN scaling data incl. the second phone).
 - LSH is not built, loaded or written by the app. `LshIndexManager` only reads an existing `lsh_index.bin` or builds in memory, for the benchmark arms (E3, E5, E12); it never writes or deletes the file unless constructed with `persistIndex = true` (tests only).
 - Query cache and the in-memory index refresh on `AppContainer.indexGeneration`, bumped when an indexing run ends.
 - Cross-encoder reranking is an experimental setting, off by default, labelled as adding several seconds per search.
 - Settings that had no effect were removed from the UI (adaptive LSH, memory mode, chunk size, chunk overlap, auto-reindex, battery-aware search).
 - A `benchmark` build type exists for measurements on a non-debuggable build (R8 off).
+- A `study` build type (task AS) exists for the multi-user study: release configuration, debug signing so the APK can be sideloaded, `-study` version suffix, `BuildConfig.STUDY_MODE = true` (false everywhere else), image search off. The study screen (`ui/study/`, tables in `data/study/`, Room schema 20) is reachable only in that build. Plan: `docs/investigations/USER_STUDY_PLAN.md`; analysis: `eval/user_study/`; participant material: `docs/study/`. No participant data exists yet.
 
 ## Known issues in the app
 
@@ -31,7 +32,7 @@ declarations are open, and the paper is being rewritten around the registered st
 | Reranker result depends on timing: `withTimeoutOrNull` returns the un-reranked list when the time budget is exceeded. | `retrieval/CrossEncoderReranker.kt` | Verified in code. Rerank is off by default. |
 | Room falls back to destructive migration, so an unsupported schema hop would delete the index. | `data/AppDatabase.kt` (`fallbackToDestructiveMigration`, "temporary dev safety valve") | Verified in code. |
 | DOCX and other Office formats are not indexed (PDF and plain-text formats only). | `indexing/DocumentParser.kt` | Verified in code. |
-| Above 50,000 chunks the binary path scores by dot product (equal to cosine for the normalised MiniLM vectors) and keeps the float vectors on the heap (about 1.5 KB per chunk); beyond about 125,000 chunks the database scan answers (slow). | `search/vector/AutoVectorIndex.kt` | Unit-tested with a small injectable threshold; not run on a phone with more than 50k chunks. |
+| Above 25,000 chunks the binary path scores by dot product (equal to cosine for the normalised MiniLM vectors) and keeps the float vectors on the heap (about 1.5 KB per chunk); beyond about 125,000 chunks the database scan answers (slow). | `search/vector/AutoVectorIndex.kt` | Unit-tested with a small injectable threshold; not run on a phone with more than 25k chunks. |
 | Image models are not in git: the two CLIP `.tflite` files are fetched with `scripts/fetch_models.sh`. | `.gitignore`, `scripts/fetch_models.sh`, `clip_model/` | Verified. |
 
 ## Done
@@ -46,7 +47,7 @@ declarations are open, and the paper is being rewritten around the registered st
 - Encoder upgrade (for example EmbeddingGemma, which gave +0.054 / +0.038 / +0.025 hybrid nDCG@10 on three of four public corpora in AO): measure encode time and memory on the phone first (it is far slower than MiniLM on a laptop: 34 chunks per second against 451 documents per second for MiniLM in AO's timing).
 - Move the cross-encoder (45 MB) out of the base APK into an on-demand asset pack.
 - Image-search evaluation (no judged image pool exists, so no image claims).
-- More owners and phones for the study (single assessor, single phone today); blind re-judge of about 10 percent of the Set B queries.
+- More volunteers with larger collections for Study 4 (five phones so far, three analysable, mostly small collections); blind re-judge of about 10 percent of the Set B queries (second sheet prepared 2026-10-25, judging pending: `docs/TOMORROW.md`).
 - Measure latency of the R8-minified Play build; repeat the release-build run on the Set B queries.
 - Remove the LSH code from the app module once no paper arm needs it.
 
@@ -80,5 +81,8 @@ declarations are open, and the paper is being rewritten around the registered st
 - 2026-10-04: Set B registered on OSF (`vwmfz`) at commit `dcb0744`; plan frozen in `docs/investigations/PHASE2_PREREG.md`.
 - 2026-10-05: Set B run and analysed with the frozen scripts. Confirmatory result: E1b > E1 (Holm p 0.0118) and E9 > E12 (Holm p 0.0002); E9 vs E5, E11 vs E9 and E10 vs E9 show no evidence of a difference by cluster. The cascade criterion S1 was not met.
 - 2026-10-05: the app ships E9 for text; the combination E9 + E1b was never tested and is not shipped.
-- 2026-10-05 (AQ): the app keeps MiniLM; other embedders stay research results. HNSW is not added to the app (exact search takes milliseconds at the phone's size; hnswlib stays an androidTest dependency). Dense search becomes size-adaptive at 50,000 chunks. LSH leaves the production path.
+- 2026-10-05 (AQ): the app keeps MiniLM; other embedders stay research results. HNSW is not added to the app (exact search takes milliseconds at the phone's size; hnswlib stays an androidTest dependency). Dense search becomes size-adaptive (threshold 50,000 at the time; lowered to 25,000 in AS). LSH leaves the production path.
 - 2026-10-05 (AQ): authors for the software citation are the four group members; the project guide is credited in the acknowledgements, not as an author. The public repository is a fresh history with a single initial commit; the private repository is never pushed.
+- 2026-10-11 (AS): AUTO dense-index threshold lowered from 50,000 to 25,000 chunks (second phone, exact p95 61 ms at 50k). Study mode, analysis plan and code added; the plan was committed (9a41587) before any participant data existed. Note: the comment on `DenseIndexType.AUTO` in the frozen `core/config/RetrievalConfig.kt` still says 50,000 (not edited because the file is frozen; behaviour is set in `AutoVectorIndex.kt`).
+- 2026-10-11 (AS): study APK built from clean commit cc04200 (gitSha without -dirty), SHA-256 4370cb986d2a1c536c9bff74d3d41d2f7188f4724a0108a764412252addc0cab, kept in ~/localseek-private/study/. **Update 2026-10-25:** the study APK was then used by volunteers on their own phones and five valid export files came back, so the flow works in practice (no emulator or spare-phone walkthrough was done by Claude Code, and none is needed any more). The Room migration 19 to 20 is covered by a schema-diff JVM test; the instrumented test `StudyMigrationInstrumentedTest` compiles but was not run.
+- 2026-10-25 (AT, night run): paper sources tracked (v0.5 adds Study 4; not compiled, no LaTeX on the build machine); `eval/ci_recheck.py` independent re-check of the Study 1 intervals (all reproduced, largest bound difference 0.0044); references checked against Crossref and arXiv (one year corrected); Study 4 results in `docs/investigations/USER_STUDY_RESULTS.md` (3 analysable participants of 5, descriptive); sizes and process memory in `docs/investigations/AT_RESOURCES.md`. Pending for the owner: kappa judging, energy test, LaTeX build, draw.io export, public repository update, see `docs/TOMORROW.md`. Note: the phone's index held 14,886 chunks at the memory test (13,696 at the Set B freeze); it was already so before this run touched the phone.

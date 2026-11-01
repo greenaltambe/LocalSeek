@@ -1,0 +1,37 @@
+\begin{tikzpicture}[font=\footnotesize, >={Stealth[length=2mm]}]
+\draw[black!40, dashed, rounded corners=3pt] (0.000,0.000) rectangle (16.120,-6.370);
+\node[anchor=north west, font=\scriptsize\itshape, text=black!60] at (0.078,-0.052) {Indexing (background, on the phone)};
+\draw[black!40, dashed, rounded corners=3pt] (0.000,-6.890) rectangle (16.120,-15.470);
+\node[anchor=north west, font=\scriptsize\itshape, text=black!60] at (0.078,-6.942) {Search (per query, on the phone)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.380cm, minimum height=1.170cm, text width=3.180cm] (files) at (2.210,-1.365) {Files\\(PDF, text)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.120cm, minimum height=1.170cm, text width=2.920cm] (apps) at (5.980,-1.365) {Installed apps};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.120cm, minimum height=1.170cm, text width=2.920cm] (contacts) at (9.620,-1.365) {Contacts};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, dashed, minimum width=3.380cm, minimum height=1.170cm, text width=3.180cm] (images) at (13.910,-1.365) {Images\\(optional)};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=10.660cm, minimum height=1.170cm, text width=10.460cm] (prep) at (5.850,-3.315) {Text extraction and chunking\\(files: 150-word chunks, 40 overlap; apps, contacts: names)};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.070cm, minimum height=1.300cm, text width=4.870cm] (fts) at (3.055,-5.330) {SQLite FTS5 tables\\(chunks, apps, contacts)};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.070cm, minimum height=1.300cm, text width=4.870cm] (emb) at (8.645,-5.330) {MiniLM embeddings\\(384-d, TensorFlow Lite)};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, dashed, minimum width=3.380cm, minimum height=1.300cm, text width=3.180cm] (clip) at (13.910,-5.330) {CLIP image\\embeddings};
+\node[draw=black!60, fill=white, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.120cm, minimum height=0.832cm, text width=2.920cm] (query) at (8.060,-7.826) {User query};
+\node[draw=black!60, fill=white, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.160cm, minimum height=1.040cm, text width=3.960cm] (qp) at (8.060,-9.230) {Query processing\\(normalise, stop words)};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.680cm, minimum height=1.300cm, text width=4.480cm] (bm25) at (2.860,-11.180) {BM25 over 3 FTS5 tables\\rank-merged (RRF)};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.680cm, minimum height=1.560cm, text width=4.480cm] (dense) at (8.060,-11.180) {Dense search: exact up to\\25k chunks, binary\\shortlist above};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, dashed, minimum width=4.420cm, minimum height=1.300cm, text width=4.220cm] (img) at (13.390,-11.180) {Image search\\(CLIP, optional)};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=7.280cm, minimum height=0.910cm, text width=7.080cm] (rrf) at (8.060,-12.935) {Reciprocal-rank fusion (k = 60)};
+\node[draw=black!60, fill=white, rounded corners=2pt, align=center, inner sep=2pt, dashed, minimum width=9.880cm, minimum height=0.728cm, text width=9.680cm] (rerank) at (8.060,-14.066) {Optional cross-encoder rerank of top 20 (off by default)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.120cm, minimum height=0.572cm, text width=2.920cm] (res) at (8.060,-14.976) {Ranked results};
+\draw[->, black!70] (files) -- (prep);
+\draw[->, black!70] (apps) -- (prep);
+\draw[->, black!70] (contacts) -- (prep);
+\draw[->, black!70] (prep) -- (fts);
+\draw[->, black!70] (prep) -- (emb);
+\draw[->, black!70] (images) -- (clip);
+\draw[->, black!70] (query) -- (qp);
+\draw[->, black!70] (qp) -- (bm25);
+\draw[->, black!70] (qp) -- (dense);
+\draw[->, black!70] (qp) -- (img);
+\draw[->, black!70] (bm25) -- (rrf);
+\draw[->, black!70] (dense) -- (rrf);
+\draw[->, black!70] (img) -- (rrf);
+\draw[->, black!70] (rrf) -- (rerank);
+\draw[->, black!70] (rerank) -- (res);
+\end{tikzpicture}

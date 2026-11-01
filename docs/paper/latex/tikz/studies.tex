@@ -1,0 +1,18 @@
+\begin{tikzpicture}[font=\footnotesize, >={Stealth[length=2mm]}]
+\draw[black!40, dashed, rounded corners=3pt] (0.000,-1.950) rectangle (7.800,-5.720);
+\node[anchor=north west, font=\scriptsize\itshape, text=black!60] at (0.078,-2.002) {Study 1: retrieval quality on real phones};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.200cm, minimum height=1.170cm, text width=5.000cm] (app) at (8.060,-0.585) {LocalSeek app\\(hybrid BM25 + dense, on-device)};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.510cm, minimum height=2.730cm, text width=3.310cm] (s1a) at (2.015,-3.965) {1A: owner's phone\\(confirmatory, OSF)\\95 real queries,\\9 configurations};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.510cm, minimum height=2.730cm, text width=3.310cm] (s1b) at (5.785,-3.965) {1B: other users' phones\\(planned, exploratory)\\11 volunteers, 3 methods,\\blind pooled judging, SUS};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.770cm, minimum height=2.730cm, text width=3.570cm] (s2) at (10.205,-3.965) {Study 2: speed and cost\\(descriptive)\\2 test phones, 10k-200k\\vectors; 11 users' phones:\\build time, latency};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=3.770cm, minimum height=2.730cm, text width=3.570cm] (s3) at (14.235,-3.965) {Study 3: public data\\(exploratory)\\Python port, 5 BEIR\\sets, 5 embedders};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=13.000cm, minimum height=1.040cm, text width=12.800cm] (out) at (8.060,-7.020) {Shipped configuration of v1.0.0: hybrid RRF, exact dense search (binary shortlist above 25k chunks), no reranker};
+\draw[->, black!70] (app) -- (s1a);
+\draw[->, black!70] (app) -- (s1b);
+\draw[->, black!70] (app) -- (s2);
+\draw[->, black!70] (app) -- (s3);
+\draw[->, black!70] (s1a) -- (out);
+\draw[->, black!70] (s1b) -- (out);
+\draw[->, black!70] (s2) -- (out);
+\draw[->, black!70] (s3) -- (out);
+\end{tikzpicture}

@@ -1,0 +1,17 @@
+\begin{tikzpicture}[font=\footnotesize, >={Stealth[length=2mm]}]
+\node[draw=yellow!50!black, fill=yellow!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.420cm, minimum height=1.170cm, text width=4.220cm] (reg) at (2.210,-0.585) {Plan registered on OSF\\(vwmfz) before any run};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.200cm, minimum height=1.170cm, text width=5.000cm] (q) at (7.800,-0.585) {95 real-use queries\\(75 name-like, 20 sentence-like)};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.940cm, minimum height=1.170cm, text width=4.740cm] (run) at (13.650,-0.585) {9 configurations x 5 repetitions\\4,275 searches on the phone};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.940cm, minimum height=1.170cm, text width=4.740cm] (pool) at (13.650,-2.665) {Depth-10 pool of all arms\\1,442 results};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.200cm, minimum height=1.170cm, text width=5.000cm] (judge) at (7.800,-2.665) {Blind relevance judging\\(arm hidden) 197 relevant};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.420cm, minimum height=1.170cm, text width=4.220cm] (excl) at (2.210,-2.665) {Exclusions as registered\\77 scored queries, 64 clusters};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=10.400cm, minimum height=1.170cm, text width=10.200cm] (ana) at (5.200,-4.745) {Cluster-level analysis: paired randomisation test,\\bootstrap 95\% CI, Holm over H1-H5};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.940cm, minimum height=1.170cm, text width=4.740cm] (resu) at (13.650,-4.745) {H1-H5 (confirmatory)\\+ exploratory contrasts};
+\draw[->, black!70] (reg) -- (q);
+\draw[->, black!70] (q) -- (run);
+\draw[->, black!70] (run) -- (pool);
+\draw[->, black!70] (pool) -- (judge);
+\draw[->, black!70] (judge) -- (excl);
+\draw[->, black!70] (excl) -- (ana);
+\draw[->, black!70] (ana) -- (resu);
+\end{tikzpicture}

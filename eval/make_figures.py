@@ -147,8 +147,8 @@ def fig_scaling():
     fig.tight_layout()
     save(fig, "fig_b_recall_vs_latency")
     # (c) p95 latency vs N, (d) analytic memory vs N
-    for metric, ylabel, name, scale, dedupe in (("p95Us", "p95 latency (ms)", "fig_c_latency_vs_n", 1000.0, False),
-                                                 ("analyticBytes", "analytic memory (MB)", "fig_d_memory_vs_n", 1048576.0, True)):
+    fig_c_devices()
+    for metric, ylabel, name, scale, dedupe in (("analyticBytes", "analytic memory (MB)", "fig_d_memory_vs_n", 1048576.0, True),):
         fig, ax = plt.subplots(figsize=(3.4, 2.9))
         by_method = {}
         for r in rows:
@@ -175,6 +175,39 @@ def fig_scaling():
         ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
         ax.legend(handles=style_handles(), loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=2, frameon=False)
         save(fig, name)
+
+
+def fig_c_devices():
+    """(c) p95 latency vs N for exact float32 and binary + rescoring (k'=200) on every device; colour = method, line style = device."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("scaling_devices", os.path.join(ROOT, "eval", "scaling", "devices.py"))
+    dev = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dev)
+    devices = dev.load_devices()
+    if not devices:
+        return
+    fig, ax = plt.subplots(figsize=(3.4, 2.9))
+    styles = ["-", "--", ":", "-."]
+    sizes = sorted({r["n"] for _, _, rows in devices for r in rows if r["status"] == "ok"})
+    for i, (label, _, rows) in enumerate(devices):
+        for method, key in (("exact_f32", "exact_f32"), ("binary_rescore_k200", "binary_rescore")):
+            c, mk, _ = STYLE[key]
+            pts = sorted((r["n"], r["p95Us"] / 1000.0) for r in rows if r["method"] == method and r["status"] == "ok")
+            ax.plot([p[0] for p in pts], [p[1] for p in pts], marker=mk, ms=4, lw=1, ls=styles[i % 4], color=c)
+    ax.axhline(50, color="#999999", lw=0.8, ls=":")
+    ax.annotate("50 ms marker", (sizes[0], 50), xytext=(0, 2), textcoords="offset points", fontsize=8, color="#555555")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("number of vectors N")
+    ax.set_ylabel("p95 latency (ms)")
+    ax.set_xticks(sizes)
+    ax.set_xticklabels([f"{n // 1000}k" for n in sizes])
+    ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    handles = [plt.Line2D([], [], marker=STYLE["exact_f32"][1], color=STYLE["exact_f32"][0], ls="", ms=5, label="exact float32"),
+               plt.Line2D([], [], marker=STYLE["binary_rescore"][1], color=STYLE["binary_rescore"][0], ls="", ms=5, label="binary + rescoring (k'=200)")]
+    handles += [plt.Line2D([], [], color="#333333", ls=styles[i % 4], lw=1, label=label) for i, (label, _, _) in enumerate(devices)]
+    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=2, frameon=False)
+    save(fig, "fig_c_latency_vs_n")
 
 
 def fig_ao():

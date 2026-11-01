@@ -1,0 +1,24 @@
+Dear Editor,
+
+We are pleased to submit our manuscript "LocalSeek: Private Hybrid Search for Android Smartphones" for consideration as an original research article in Personal and Ubiquitous Computing.
+
+Searching the files, apps and contacts on one's own phone is a daily personal-computing task that should stay on the device for privacy, yet there is little published evidence on how to build such a search engine, because personal collections cannot be shared. Our manuscript presents LocalSeek, an open-source Android app that combines lexical (BM25) and dense (small sentence-embedding) retrieval entirely on the phone, with no network permission, and evaluates its design choices in three studies:
+
+1. A pre-registered evaluation (OSF, https://osf.io/vwmfz) on a real phone with 77 scored real-use queries and nine configurations, complemented by a planned study in which eleven volunteers searched their own phones and judged results blind.
+2. Speed and cost measurements on two test phones from 10,000 to 200,000 vectors and on the volunteers' eleven phones.
+3. A replication of the pipeline on five public benchmark datasets.
+
+The main findings are practical for anyone building on-device search. Exact dense search is fast enough at personal scale, while the approximate hashing index the app originally used loses most true neighbours. Merging the ranks of several lexical sources matters as much as the choice of retriever. A cross-encoder reranker does not pay for its latency on a phone. Hybrid retrieval led lexical search on both the owner's and the volunteers' phones. We report null results as nulls, and we publish the app, the benchmark harness and the analysis code.
+
+We believe the work fits the journal's focus on personal, mobile and ubiquitous computing: it studies a personal information task on everyday smartphones, with real users and on-device privacy as a design constraint.
+
+This manuscript is original, has not been published, and is not under consideration by any other journal. All authors have approved the manuscript and agree with its submission. The authors declare no competing interests, and no funding was received for this study. The user study was approved by our institution, and all participants gave informed consent; no personal content left the participants' phones.
+
+Thank you for considering our manuscript. We look forward to hearing from you.
+
+Sincerely,
+
+Greenal Rajkumar Tambe (corresponding author)
+on behalf of Parikshit Patil, Kartik Thakur and Archit Utsahi
+Sardar Patel Institute of Technology, Mumbai, India
+greenaltambe1@gmail.com

@@ -134,3 +134,77 @@ Cause: **unknown**. Not re-run (as instructed). What was checked in `ScalingBenc
 - Per-thousand cost: public 10k-50k 0.47 ms; real 13.3k 0.70 ms (1.5 times higher).
 
 To settle it, run the real-data point alone, and the public 10k point alone, in a fresh process, and compare. Until then the real-data latency is reported as measured and the 10k-50k trend is not extrapolated to it.
+
+
+# Additional devices (Part AR)
+
+Descriptive, one run (three passes) per point per device. Raw numbers: `eval/scaling/results/phone2_SM-M315F/` (`scaling_results.json/.csv`, `scaling_meta.json`); tables regenerated with `python3 eval/scaling/devices.py`.
+
+**Short-run profile** (the same measurement method as above: 50 warm-up queries, 3 passes of 1,000 queries, median pass, thermal gate, 70 percent heap rule; public vectors only): N = 10k, 50k, 100k; methods exact_f32, binary_rescore k'=100 and 200, HNSW (efSearch 32 and 128 from one build), LSH in the app configuration. Added instrumentation arguments `-e sizes` and `-e methods` (defaults unchanged); no real-data point on the extra phones (no LocalSeek database there, so the test skips it).
+
+## Devices
+
+- **CPH2707 (owner's phone, OnePlus).** Android 16, 8 cores, heap limit 384 MiB. **These rows are the existing AN numbers for the same sizes and methods; the profile was not re-run** (the AN run used the identical measurement method; clean commit `b8cf97a`).
+- **SM-M315F (Samsung Galaxy M31, a group member's phone).** Android 12 (SDK 31), 8 cores, about 7.4 GiB RAM (`MemTotal` 7,762,404 kB), heap limit 256 MiB (`maxMemory` 268,435,456 bytes). Debug build from a clean tree, commit `93bd4b4` (`ar-more-phones`), run on 2026-10-11, about 25 minutes (1,490 s). Phone charging (battery 77 to 78 percent), thermal status NONE at the start and end of every row, airplane mode off, `zen_mode` 0 (Do Not Disturb off), `stay_on` 0 as recorded by the harness (stay-awake was not on; the run completed without a stall). Only the benchmark's own result files were read from the phone; the app was never opened and no permission was granted.
+- **Skipped on SM-M315F:** HNSW at N = 100,000 (both efSearch values) by the 70 percent rule, with the 256 MiB heap. No out-of-memory error. exact_f32 at 100k ran from the memory-mapped file (as on the OnePlus).
+
+**CPH2707** (short-run profile)
+
+| N | method | recall@10 | p50 ms | p95 ms | build s |
+|---|---|---|---|---|---|
+| 10,000 | exact_f32 | 1.000 | 4.71 | 4.82 | 0.0 |
+| 10,000 | binary_rescore_k100 | 0.953 | 0.98 | 1.13 | 0.1 |
+| 10,000 | binary_rescore_k200 | 0.982 | 1.31 | 1.46 | 0.1 |
+| 10,000 | hnsw_ef32 | 0.969 | 1.04 | 1.30 | 8.4 |
+| 10,000 | hnsw_ef128 | 0.997 | 2.94 | 3.69 | 8.4 |
+| 10,000 | lsh_app | 0.055 | 3.08 | 5.36 | 1.4 |
+| 50,000 | exact_f32 | 1.000 | 23.44 | 23.85 | 0.1 |
+| 50,000 | binary_rescore_k100 | 0.946 | 3.42 | 3.55 | 0.2 |
+| 50,000 | binary_rescore_k200 | 0.977 | 3.86 | 3.94 | 0.2 |
+| 50,000 | hnsw_ef32 | 0.946 | 1.26 | 1.63 | 58.2 |
+| 50,000 | hnsw_ef128 | 0.991 | 3.54 | 4.51 | 58.2 |
+| 50,000 | lsh_app | 0.034 | 3.19 | 5.70 | 7.7 |
+| 100,000 | exact_f32 | 1.000 | 65.44 | 66.19 | 0.0 |
+| 100,000 | binary_rescore_k100 | 0.944 | 9.16 | 9.72 | 0.4 |
+| 100,000 | binary_rescore_k200 | 0.975 | 9.92 | 11.40 | 0.4 |
+| 100,000 | hnsw_ef32 | 0.942 | 1.97 | 2.75 | 163.9 |
+| 100,000 | hnsw_ef128 | 0.988 | 5.67 | 7.34 | 163.9 |
+| 100,000 | lsh_app | 0.029 | 3.39 | 6.32 | 16.3 |
+
+**SM-M315F** (short-run profile)
+
+| N | method | recall@10 | p50 ms | p95 ms | build s |
+|---|---|---|---|---|---|
+| 10,000 | exact_f32 | 1.000 | 12.15 | 12.57 | 0.1 |
+| 10,000 | binary_rescore_k100 | 0.953 | 3.02 | 4.10 | 0.1 |
+| 10,000 | binary_rescore_k200 | 0.982 | 3.92 | 5.39 | 0.1 |
+| 10,000 | hnsw_ef32 | 0.970 | 3.03 | 3.73 | 32.1 |
+| 10,000 | hnsw_ef128 | 0.997 | 8.32 | 10.35 | 32.1 |
+| 10,000 | lsh_app | 0.055 | 4.00 | 5.84 | 1.9 |
+| 50,000 | exact_f32 | 1.000 | 60.48 | 61.41 | 0.2 |
+| 50,000 | binary_rescore_k100 | 0.946 | 10.40 | 14.59 | 0.4 |
+| 50,000 | binary_rescore_k200 | 0.977 | 11.65 | 15.63 | 0.4 |
+| 50,000 | hnsw_ef32 | 0.946 | 3.53 | 4.93 | 225.7 |
+| 50,000 | hnsw_ef128 | 0.990 | 9.80 | 12.37 | 225.7 |
+| 50,000 | lsh_app | 0.034 | 5.41 | 8.79 | 10.6 |
+| 100,000 | exact_f32 | 1.000 | 200.50 | 208.45 | 0.0 |
+| 100,000 | binary_rescore_k100 | 0.944 | 19.44 | 19.61 | 0.7 |
+| 100,000 | binary_rescore_k200 | 0.975 | 20.80 | 29.05 | 0.7 |
+| 100,000 | hnsw_ef32 | skipped (70% heap rule) | | | |
+| 100,000 | hnsw_ef128 | skipped (70% heap rule) | | | |
+| 100,000 | lsh_app | 0.029 | 6.32 | 9.89 | 23.5 |
+
+## Cross-device table
+
+| device | heap MiB | exact p95 ms 10k / 50k / 100k | binary k200 p95 ms 10k / 50k / 100k | binary k200 recall 10k / 50k / 100k | HNSW ef128 build s 10k / 50k / 100k | HNSW ef128 p95 ms 10k / 50k / 100k | LSH app recall 10k / 50k / 100k | exact p95 crosses 50 ms between |
+|---|---|---|---|---|---|---|---|---|
+| CPH2707 | 384 | 4.8 / 23.8 / 66.2 | 1.5 / 3.9 / 11.4 | 0.982 / 0.977 / 0.975 | 8.4 / 58.2 / 163.9 | 3.7 / 4.5 / 7.3 | 0.055 / 0.034 / 0.029 | 50,000 and 100,000 |
+| SM-M315F | 256 | 12.6 / 61.4 / 208.4 | 5.4 / 15.6 / 29.0 | 0.982 / 0.977 / 0.975 | 32.1 / 225.7 / skipped | 10.4 / 12.4 / skipped | 0.055 / 0.034 / 0.029 | 10,000 and 50,000 |
+
+Reading (descriptive; the 50 ms p95 value is a marker, not a threshold or a claim):
+
+- Exact float32 p95 crosses 50 ms between 50k and 100k vectors on the OnePlus and between 10k and 50k vectors on the Samsung (the Samsung's p95 was 61.4 ms at 50k; no 25k point was run there, so the crossing is bracketed, not located). The Samsung is about 2.6 times slower at 10k and 50k and about 3.1 times slower at 100k (mapped-file scan on both).
+- Binary shortlist plus rescoring stays below 30 ms p95 on both phones up to 100k (29.0 ms on the Samsung), with identical recall@10 on the two phones (0.982, 0.977, 0.975 at k'=200), because the vectors and ground truth are the same.
+- HNSW ef128 recall is the same within 0.001 (10k: 0.997 on both; 50k: 0.990 Samsung vs 0.991 OnePlus; 100k: 0.988 on the OnePlus only); p95 is about 2.8 times higher on the Samsung and the build is 3.8 to 3.9 times slower (32 s vs 8.4 s at 10k; 226 s vs 58 s at 50k). At 100k it does not fit the 256 MiB heap rule.
+- LSH in the app configuration has the same recall on both phones (0.055, 0.034, 0.029), i.e. its low recall is a property of the method, not of the device.
+- Limitations: two phones, one session each, different heap limits (384 vs 256 MiB) and Android versions, so latency differences mix CPU, memory and OS effects and are not attributed to any one of them.

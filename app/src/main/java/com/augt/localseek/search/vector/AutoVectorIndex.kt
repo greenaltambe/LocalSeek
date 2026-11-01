@@ -10,7 +10,7 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Size-adaptive dense index (shipped configuration, [com.augt.localseek.core.config.DenseIndexType.AUTO]).
  *
- * - Up to [exactMaxVectors] chunk vectors (50,000 by default): exact in-memory search, delegated unchanged to [exact]
+ * - Up to [exactMaxVectors] chunk vectors (25,000 by default): exact in-memory search, delegated unchanged to [exact]
  *   (the same index registered arm E9 uses), so rankings and scores are identical to that arm.
  * - Above that: [BinaryRescoreIndex], a Hamming shortlist of [rescoreCandidates] (k' = 200) re-scored with the float vectors.
  *   Study 2 (scaling microbenchmark, one phone): recall@10 0.975-0.977 and p95 at most 19 ms up to 200k vectors, where exact
@@ -40,7 +40,11 @@ class AutoVectorIndex(
     data class Status(val path: Path, val vectorCount: Int)
 
     companion object {
-        const val DEFAULT_EXACT_MAX_VECTORS = 50_000
+        /**
+         * AUTO switches from exact to binary-rescore above this many chunks. Lowered from 50,000 to 25,000 because the second
+         * phone (SM-M315F) had exact float32 p95 of 61 ms at 50k vectors (AN_SCALING_RESULTS.md, "Additional devices").
+         */
+        const val DEFAULT_EXACT_MAX_VECTORS = 25_000
         const val DEFAULT_RESCORE_CANDIDATES = 200
         const val DEFAULT_MAX_BYTES: Long = 192L * 1024 * 1024
         const val DIM = ExactMemoryVectorIndex.DIM

@@ -10,12 +10,14 @@ subject of a pre-registered study and of follow-up measurements described below,
 - **Search across** files in Documents and Download, installed apps, contacts and, optionally, images.
 - **File formats read:** PDF (first 10 pages) and plain-text formats such as txt, md, csv, json, xml, html, code and config files (first 100 KB). Word, Excel and other Office formats are not indexed.
 - **Lexical search:** FTS5 with BM25 over three tables (file chunks, apps, contacts), merged by reciprocal-rank fusion.
-- **Dense search:** all-MiniLM-L6-v2 embeddings (LiteRT/TFLite). The index is size-adaptive: exact in-memory search up to 50,000 chunks, and above that a binary shortlist re-scored with the float vectors (k' = 200). A phone with the author's corpus has about 13.7k chunks, so it uses the exact path.
+- **Dense search:** all-MiniLM-L6-v2 embeddings (LiteRT/TFLite). The index is size-adaptive: exact in-memory search up to 25,000 chunks, and above that a binary shortlist re-scored with the float vectors (k' = 200). A phone with the author's corpus has about 13.7k chunks, so it uses the exact path.
 - **Fusion:** reciprocal-rank fusion (the shipped setting; other modes exist in the code for the benchmark arms).
 - **Cross-encoder reranking:** an experimental user setting, off by default. It adds several seconds to every search (about 5 s on the test phone) and was not shown to improve results.
 - **Image search** with CLIP text-to-image (optional; the model files are an on-demand asset pack and are not in git, see Build).
 - **Search tools** in the results screen: calculator, unit and date helpers, web-search hand-off to the browser, pinned results, a quick-settings tile and a widget.
 - **Not in the app:** any cloud or language-model feature, DOCX indexing, live file-system watching.
+
+The model files (`.tflite`) are not in git; they are fetched or built separately (`scripts/fetch_models.sh`, `eval/parity/`). Without them the app builds but the image-search asset pack is missing.
 
 The LSH index that earlier versions used for dense search is no longer built or loaded by the app. Its code stays in the repository because the benchmark arms that were studied (E3, E5, E12) use it.
 
@@ -49,6 +51,8 @@ A `benchmark` build type (release-like, not debuggable, R8 off, debug signing) e
 `./gradlew -PlsTestBuildType=benchmark :app:assembleBenchmark :app:assembleBenchmarkAndroidTest`.
 Third-party model licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+A `study` build type (release configuration, debug-signed so it can be sideloaded, no `INTERNET` permission, images off, `-study` version suffix) exists for the multi-user study: `./gradlew :app:assembleStudy`. Participant guide, consent text and organiser checklist: [docs/study/](docs/study/).
+
 ## Research summary
 
 All numbers are nDCG@10 unless stated; sources are in [docs/paper/RESULTS_FOR_PAPER.md](docs/paper/RESULTS_FOR_PAPER.md).
@@ -75,11 +79,17 @@ All numbers are nDCG@10 unless stated; sources are in [docs/paper/RESULTS_FOR_PA
 
 The hybrid was much better than BM25 alone; its advantage over exact dense search alone is not distinguishable from zero in this study.
 
-**Study 2, scaling on the phone** ([AN](docs/investigations/AN_SCALING_RESULTS.md), [release-build check](docs/investigations/AQ_RELEASE_LATENCY.md)): on public vectors, exact float32 search has p95 23.9 ms at 50k vectors and 66 ms at 100k; a binary shortlist with float re-scoring keeps p95 at or below 19 ms up to 200k with recall@10 0.944 to 0.982; HNSW at efSearch 32 or more keeps p95 at or below 7.3 ms up to 100k. This is why the app switches index type at 50,000 chunks.
+**Study 2, scaling on the phone** ([AN](docs/investigations/AN_SCALING_RESULTS.md), [release-build check](docs/investigations/AQ_RELEASE_LATENCY.md)): on public vectors, exact float32 search has p95 23.9 ms at 50k vectors and 66 ms at 100k; a binary shortlist with float re-scoring keeps p95 at or below 19 ms up to 200k with recall@10 0.944 to 0.982; HNSW at efSearch 32 or more keeps p95 at or below 7.3 ms up to 100k. This is why the app switches index type at 25,000 chunks (lowered from 50,000 after the second phone, a Samsung SM-M315F, measured exact p95 of 61 ms at 50k).
 
 **Study 3, public-data replication** ([AO](docs/investigations/AO_PUBLIC_REPLICATION_RESULTS.md); exploratory, planned before computing, not pre-registered): on five BEIR corpora the LSH configuration of the old app loses most neighbours (hybrid with exact search is +0.06 to +0.21 better), reranking the top 20 changes nothing detectably, and alternative embedders help on some corpora and not on others.
 
-Limits: one assessor wrote the queries, owns the phone and judged the results; raw data are private and not published. Single-phone timings are descriptive.
+**Study 4, other users on their own phones** ([USER_STUDY_RESULTS.md](docs/investigations/USER_STUDY_RESULTS.md); exploratory, plan committed before any participant file, not registered): a separate `study` build (no network permission, images off) was installed by five volunteers who searched their own phones and judged blind pooled lists of BM25, exact dense and hybrid results. Three participants met the preset minimum of eight scored searches (27 searches): nDCG@10 BM25 0.601, dense 0.744, hybrid 0.815; hybrid minus BM25 +0.212 (participant-cluster 95% CI [+0.031, +0.420]), hybrid minus dense +0.068 ([-0.035, +0.164]). With three participants no test can be significant (smallest p 0.25), so this is descriptive. Index build time and SUS scores per phone are in the results file.
+
+**Energy and judging agreement** ([AV_ENERGY_RESULTS.md](docs/investigations/AV_ENERGY_RESULTS.md), [AV_KAPPA_RESULTS.md](docs/investigations/AV_KAPPA_RESULTS.md)): battery-energy measurements of search on the test phone, and a self-agreement check in which the owner re-judged 8 queries blind (kappa 0.69).
+
+**Paper.** The Springer-format manuscript (sources, `main.pdf`, cover letter) is in [docs/paper/springer/](docs/paper/springer/).
+
+Limits: in Study 1 one assessor wrote the queries, owns the phone and judged the results (Study 4 adds five volunteers, three analysable); raw data are private and not published. Timings come from one phone (Study 1) or two phones (Study 2) and are descriptive.
 How to run the analysis code: [eval/README.md](eval/README.md). Project status and to-dos: [docs/STATUS.md](docs/STATUS.md); document index: [docs/README.md](docs/README.md).
 
 ## Authors and acknowledgements

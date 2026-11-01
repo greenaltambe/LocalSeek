@@ -1,0 +1,15 @@
+\begin{tikzpicture}[font=\footnotesize, >={Stealth[length=2mm]}]
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.680cm, minimum height=1.170cm, text width=4.480cm] (kt) at (2.340,-0.585) {App pipeline in Kotlin\\(chunker, BM25, LSH, fusion)};
+\node[draw=black!60, fill=black!5, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.160cm, minimum height=1.170cm, text width=3.960cm] (fx) at (7.540,-0.585) {JVM tests write\\reference fixtures};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.720cm, minimum height=1.170cm, text width=5.520cm] (py) at (13.260,-0.585) {Python port, checked\\against the fixtures};
+\node[draw=yellow!50!black, fill=yellow!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.680cm, minimum height=1.170cm, text width=4.480cm] (plan) at (2.340,-2.665) {Analysis plan committed\\before any result};
+\node[draw=blue!45!black, fill=blue!10, rounded corners=2pt, align=center, inner sep=2pt, minimum width=4.160cm, minimum height=1.170cm, text width=3.960cm] (data) at (7.540,-2.665) {5 BEIR test sets\\(SciFact ... TREC-COVID)};
+\node[draw=orange!60!black, fill=orange!15, rounded corners=2pt, align=center, inner sep=2pt, minimum width=5.720cm, minimum height=1.170cm, text width=5.520cm] (cfg) at (13.260,-2.665) {9 configurations\\+ 5 embedders};
+\node[draw=green!40!black, fill=green!12, rounded corners=2pt, align=center, inner sep=2pt, minimum width=9.880cm, minimum height=1.170cm, text width=9.680cm] (stat) at (8.060,-4.745) {Paired randomisation tests over queries,\\Holm over 38 contrast-dataset pairs};
+\draw[->, black!70] (kt) -- (fx);
+\draw[->, black!70] (fx) -- (py);
+\draw[->, black!70] (py) -- (cfg);
+\draw[->, black!70] (data) -- (cfg);
+\draw[->, black!70] (plan) -- (stat);
+\draw[->, black!70] (cfg) -- (stat);
+\end{tikzpicture}

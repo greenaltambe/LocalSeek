@@ -2,7 +2,7 @@
 
 This folder holds the analysis, judging and diagnosis scripts for the LocalSeek study. Raw benchmark exports, judging pools,
 judgments (qrels) and query lists contain personal data (file and contact names, query texts about the owner's phone). They are
-**not published**; the `.gitignore` excludes them and they live under `~/localseek-private/`. Only code and aggregate results are in the repository. This includes the owner's private judgments for the Set A, Set B and v1 studies: the scripts that read them (`analyze.py`, `clustered_analysis.py`, `exploratory_*.py`, `judging.py`, `eval/legacy/`) are published for inspection and for use on your own data, and their unit tests run on synthetic data.
+**not published**; the `.gitignore` excludes them and they live under `~/localseek-private/`. Only code and aggregate results are in the repository.
 
 ## The two studies
 

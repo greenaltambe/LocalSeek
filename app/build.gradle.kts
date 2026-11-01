@@ -57,7 +57,7 @@ androidComponents {
 }
 
 tasks.configureEach {
-    if (name in setOf("assembleDebug", "assembleRelease", "bundleDebug", "bundleRelease")) dependsOn(verifyNoInternetPermission)
+    if (name in setOf("assembleDebug", "assembleRelease", "assembleStudy", "bundleDebug", "bundleRelease")) dependsOn(verifyNoInternetPermission)
 }
 
 // THIRD_PARTY_NOTICES.md is the single source for the in-app licenses page: copy it into a generated
@@ -67,6 +67,13 @@ val copyNoticesToRaw = tasks.register<Copy>("copyNoticesToRaw") {
     into(layout.buildDirectory.dir("generated/notices/res/raw"))
 }
 tasks.named("preBuild") { dependsOn(copyNoticesToRaw) }
+
+// docs/study/CONSENT.md is the single source of the in-app consent text (study build, task AS): copied into res/raw at build time.
+val copyConsentToRaw = tasks.register<Copy>("copyConsentToRaw") {
+    from(rootProject.file("docs/study/CONSENT.md")) { rename { "study_consent.md" } }
+    into(layout.buildDirectory.dir("generated/consent/res/raw"))
+}
+tasks.named("preBuild") { dependsOn(copyConsentToRaw) }
 
 val keystoreProps = Properties().also { props ->
     val f = rootProject.file("keystore.properties")
@@ -86,6 +93,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GIT_SHA", "\"${getGitSha()}\"")
+        // true only in the "study" build type (multi-user evaluation, task AS); the study screen is unreachable otherwise
+        buildConfigField("boolean", "STUDY_MODE", "false")
     }
 
     testOptions {
@@ -147,12 +156,26 @@ android {
             matchingFallbacks += listOf("release")
         }
     }
+    // "study": the participant build of the multi-user study (task AS). Release configuration (R8 on, not debuggable) signed with
+    // the debug key so the APK can be sideloaded; BuildConfig.STUDY_MODE is true here and false in every other build type. Image
+    // search is off (no photos are read in the study).
+    buildTypes {
+        create("study") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            versionNameSuffix = "-study"
+            buildConfigField("boolean", "STUDY_MODE", "true")
+            buildConfigField("boolean", "ENABLE_IMAGE_SEARCH", "false")
+            matchingFallbacks += listOf("release")
+        }
+    }
     testBuildType = (findProperty("lsTestBuildType") as String?) ?: "debug"
     // the benchmark build keeps the harness helpers that live in src/debug (StallDetector, ThermalGate, ...); the large CLIP
     // debug assets stay debug-only
     sourceSets.getByName("benchmark").kotlin.srcDir("src/debug/java")
     assetPacks += ":clip_model"
     sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/notices/res").get().asFile)
+    sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/consent/res").get().asFile)
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

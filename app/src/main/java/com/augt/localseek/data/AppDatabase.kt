@@ -20,9 +20,11 @@ import androidx.room3.withWriteTransaction
     entities = [
         DocumentEntity::class, DocumentChunk::class, ChunkFts::class,
         AppEntity::class, AppFts::class, ContactEntity::class, ContactFts::class,
-        BenchmarkRunEntity::class, QrelsJudgment::class, ImageEntity::class
+        BenchmarkRunEntity::class, QrelsJudgment::class, ImageEntity::class,
+        com.augt.localseek.data.study.StudySessionEntity::class, com.augt.localseek.data.study.StudyQueryEntity::class,
+        com.augt.localseek.data.study.StudyJudgmentEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = true
 )
 @TypeConverters(VectorConverter::class)
@@ -35,8 +37,16 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun imageDao(): ImageDao
     abstract fun benchmarkRunDao(): BenchmarkRunDao
     abstract fun qrelsDao(): QrelsDao
+    abstract fun studyDao(): com.augt.localseek.data.study.StudyDao
 
     suspend fun <R> withTransaction(block: suspend () -> R): R = withWriteTransaction { block() }
+
+    /** Task AS: adds the three study tables. Only CREATEs; no existing table, index or trigger is touched (StudyMigrationTest). */
+    internal object Migration19To20 : Migration(19, 20) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            com.augt.localseek.data.study.StudySchema.CREATE_STATEMENTS.forEach { connection.execSQL(it) }
+        }
+    }
 
     private object Migration18To19 : Migration(18, 19) {
         override suspend fun migrate(connection: SQLiteConnection) {
@@ -438,7 +448,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use bundled SQLite to ensure FTS5 and BM25 support on all devices
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16, Migration16To17, Migration17To18, Migration18To19)
+                .addMigrations(Migration1To2, Migration10To11, Migration11To12, Migration12To13, Migration13To14, Migration14To15, Migration15To16, Migration16To17, Migration17To18, Migration18To19, Migration19To20)
                 // Temporary dev safety valve for unsupported legacy version hops.
                 .fallbackToDestructiveMigration()
                 .build()

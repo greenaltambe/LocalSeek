@@ -10,5 +10,6 @@ The public repository starts with a single commit ("LocalSeek v1.0.0") built fro
 | `a1a84f4` (full id `a1a84f431c8dc668c6d278946d9ba1189ab76391`) | Plan of the public-data replication (AO), committed before any result. | public initial commit (`docs/investigations/AO_PUBLIC_REPLICATION_PLAN.md`) |
 | `3e73f3a` (full id `3e73f3ac49c4e26d967fdd0ac3891dde5a5bb31e`) | Build of the paper-v1.2 benchmark run on the deduplicated index (Set A, exploratory). | public initial commit |
 | `c7aaa18` (full id `c7aaa18c0031c1744ad7d1269edb579453ebe688`) | Version 1.0.0 (`versionCode 2`): the source of this tree. | public initial commit |
+| `9a41587` (full id `9a41587250482b5ff0169c495da14111261cd669`) | Analysis plan and analysis code of the multi-user study (Study 1B), committed before any participant data. Cited in the paper. | this commit (multi-user study and paper update) |
 
 The private tags `paper-v1`, `paper-v1.1` and `paper-v1.2` are not reproduced. Numbers in the documents that name a private commit refer to the table above.

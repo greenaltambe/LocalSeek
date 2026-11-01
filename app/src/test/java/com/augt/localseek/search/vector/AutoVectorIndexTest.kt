@@ -57,6 +57,20 @@ class AutoVectorIndexTest {
     }
 
     @Test
+    fun `default threshold is 25000 and a default-built index uses exact at that size`() = runBlocking {
+        assertEquals(25_000, AutoVectorIndex.DEFAULT_EXACT_MAX_VECTORS)
+        val db = FakeDb(rows(50))
+        val exactDb = BruteForceVectorIndex(db.dao)
+        val auto = AutoVectorIndex(db.dao, exact = ExactMemoryVectorIndex(db.dao, fallback = exactDb), fallback = exactDb)
+        auto.search(vec(1), 10)
+        assertEquals(AutoVectorIndex.Path.EXACT_MEMORY, auto.status().path)
+        coEvery { db.dao.countAllChunks() } returns 25_001
+        coEvery { db.dao.getEmbeddingsPage(any(), any()) } returns emptyList()
+        auto.search(vec(1), 10)
+        assertEquals(AutoVectorIndex.Path.BINARY_RESCORE, auto.status().path)
+    }
+
+    @Test
     fun `at exactly the threshold the exact path is still used`() = runBlocking {
         val db = FakeDb(rows(120))
         val auto = auto(db, threshold = 120)

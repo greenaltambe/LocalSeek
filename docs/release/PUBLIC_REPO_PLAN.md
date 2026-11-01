@@ -1,7 +1,5 @@
 # Public repository plan (AE4)
 
-> Status note (task AQ, 2026-10-05): this tree was built from the private repository's `main` with `git archive`, excluding `tools/`, `CLAUDE.md`, `eval/legacy/qrels.txt` and `eval/legacy/results/per_run_metrics.csv`. The private-to-public commit mapping is in [COMMIT_MAP.md](COMMIT_MAP.md). The text below is the plan as written before; paths named in it that are not in this tree are the excluded ones.
-
 The GitHub repository is empty, so the first push defines public history. The private history contains files that must never be public (see below), so the plan is a **fresh public repository with a cleaned tree and a single initial commit**. The private repository is not rewritten and nothing has been pushed.
 
 ## 1. Must not go public
@@ -76,7 +74,7 @@ git add -A && git commit -m "Fix references for the public tree"
 # build check from the clean tree (models absent: the asset pack step needs them):
 ./gradlew :app:testDebugUnitTest :app:assembleDebug
 # create the empty GitHub repository first (no README, no licence), then:
-git remote add origin <ssh url of the empty GitHub repository>
+git remote add origin git@github.com:<owner>/LocalSeek.git
 git push -u origin main
 # only after the push: tag and fill in section 5
 ```

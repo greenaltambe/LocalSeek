@@ -6,3 +6,8 @@ eval/test_anonymize_export.py
 eval/test_public_tree_scan.py
 app/src/test/java/com/augt/localseek/eval/ReplicationFixtureTest.kt
 eval/public_replication/fixtures/query_processing.json
+docs/paper/latex/main.tex
+docs/paper/springer/main.tex
+docs/paper/springer/sub/main.tex
+docs/paper/springer/cover_letter.txt
+docs/release/PUBLIC_REPO_PLAN.md
