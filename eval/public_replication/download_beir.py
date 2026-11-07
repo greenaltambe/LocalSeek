@@ -3,7 +3,17 @@ and print path, size and SHA-256 of each file (used to write DATA.md). Only corp
 import hashlib, os, sys
 from huggingface_hub import hf_hub_download
 
-ROOT = os.path.expanduser("~/localseek-public-data/beir")
+def _data_dir():
+    """Public datasets folder: $LOCALSEEK_DATA if set, else ../data/localseek-public-data next to the repository, else ~/localseek-public-data."""
+    env = os.environ.get("LOCALSEEK_DATA")
+    if env:
+        return os.path.expanduser(env)
+    repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    sibling = os.path.join(os.path.dirname(repo), "data", "localseek-public-data")
+    return sibling if os.path.isdir(sibling) else os.path.expanduser("~/localseek-public-data")
+
+
+ROOT = os.path.join(_data_dir(), "beir")
 DATASETS = ["scifact", "nfcorpus", "fiqa", "scidocs", "trec-covid"]
 
 def sha256(path):

@@ -16,7 +16,17 @@ from . import app_pipeline as ap, ir_metrics as im, query_processing as qp
 from .embedders import ALTERNATIVES, BY_KEY, Embedder, l2norm
 from .vector_indexes import BinaryRescoreIndex, ExactIndex, Int8Index
 
-DATA = os.path.expanduser("~/localseek-public-data")
+def _data_dir():
+    """Public datasets folder: $LOCALSEEK_DATA if set, else ../data/localseek-public-data next to the repository, else ~/localseek-public-data."""
+    env = os.environ.get("LOCALSEEK_DATA")
+    if env:
+        return os.path.expanduser(env)
+    repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    sibling = os.path.join(os.path.dirname(repo), "data", "localseek-public-data")
+    return sibling if os.path.isdir(sibling) else os.path.expanduser("~/localseek-public-data")
+
+
+DATA = _data_dir()
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "results")
 BUDGET_MIN = 90.0
